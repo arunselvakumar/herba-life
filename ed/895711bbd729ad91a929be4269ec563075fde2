@@ -1,0 +1,49 @@
+.gitignore
+  s_af78d63e944e24::t_9c66b33204bb14 1-41
+AGENTS.md
+  s_af78d63e944e24::t_2f44968898356a 1-9
+README.md
+  s_af78d63e944e24::t_d45d30de53edcc 1-35
+bun.lock
+  s_af78d63e944e24::t_b68187c5f86e5c 1-918
+eslint.config.mjs
+  s_af78d63e944e24::t_bdc946ca392e8b 1-18
+next.config.ts
+  s_af78d63e944e24::t_a5cd6efd9d3961 1-18
+package.json
+  s_af78d63e944e24::t_c0ec73974ac5d8 1-36
+public/file.svg
+  s_af78d63e944e24::t_51d2d9f80cd1ab 1
+public/globe.svg
+  s_af78d63e944e24::t_73acddff4fe84a 1
+public/next.svg
+  s_af78d63e944e24::t_dc75e5809bccb3 1
+public/vercel.svg
+  s_af78d63e944e24::t_6695f5a932984c 1
+public/window.svg
+  s_af78d63e944e24::t_5dca5e27b6bd6e 1
+src/app/globals.css
+  s_af78d63e944e24::t_a32242253b81bf 1-26
+src/app/layout.tsx
+  s_af78d63e944e24::t_3c394479156c55 1-29
+src/app/page.tsx
+  s_af78d63e944e24::t_dd87ae9c78ebd3 1-69
+tsconfig.json
+  s_af78d63e944e24::t_1fb0ef86c2591b 1-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.11",
+  "base_commit_sha": "ed895711bbd729ad91a929be4269ec563075fde2",
+  "prompts": {},
+  "sessions": {
+    "s_af78d63e944e24": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0016a7e1-58ca-4684-a475-f4ac73f636a7",
+        "model": "unknown"
+      },
+      "human_author": "Arun Selva Kumar <arun@joinassembly.com>"
+    }
+  }
+}
