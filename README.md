@@ -78,6 +78,16 @@ mapped onto the shadcn semantic tokens (`primary`, `sidebar`, `accent`, …).
 Herbalife's brand face (GT Walsheim) is proprietary, so the app ships
 Plus Jakarta Sans via `next/font`.
 
+### Brand assets
+
+The logo artwork in `public/brand/` is the official Herbalife logo as served
+on herbalife.com (`/dmassets/hn-one/en/hybrid/h1-logo.png`). The leaf mark is
+cropped from the same file. Both are Garden Green on transparent; the
+`Logo`/`LogoMark` components in `src/components/brand/logo.tsx` recolour them
+white for dark surfaces with `tone="white"`. Taglines on the login screen
+("Make wellness a movement", "Live your best life") and the copyright notice
+are taken from herbalife.com.
+
 ## Authentication
 
 - `src/lib/auth.ts` – Better Auth server instance (Drizzle adapter, email +

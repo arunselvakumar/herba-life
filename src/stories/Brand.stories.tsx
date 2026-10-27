@@ -6,24 +6,28 @@ const meta = {
   component: Logo,
   parameters: { layout: "centered" },
   tags: ["autodocs"],
+  argTypes: {
+    tone: { control: "radio", options: ["brand", "white"] },
+  },
 } satisfies Meta<typeof Logo>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const OnLinen: Story = {
-  args: { className: "text-brand-600", subtitle: "Internal" },
+  args: { subtitle: "Internal", imageClassName: "h-10" },
 };
 
 export const OnEvergreen: Story = {
-  args: {
-    className: "text-white",
-    markClassName: "text-brand-200",
-    subtitle: "Internal",
-  },
+  args: { tone: "white", subtitle: "Live your best life", imageClassName: "h-10" },
   globals: { backgrounds: { value: "evergreen" } },
 };
 
 export const MarkOnly: Story = {
-  render: () => <LogoMark className="size-16 text-brand-600" />,
+  render: () => <LogoMark className="h-16" />,
+};
+
+export const MarkOnEvergreen: Story = {
+  render: () => <LogoMark className="h-16" tone="white" />,
+  globals: { backgrounds: { value: "evergreen" } },
 };

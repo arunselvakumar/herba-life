@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { Logo } from "@/components/brand/logo";
+import { Logo, LogoMark } from "@/components/brand/logo";
 import {
   Sidebar,
   SidebarContent,
@@ -21,10 +21,14 @@ export function AppSidebar() {
           className="flex items-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
           <Logo
-            className="text-white"
-            markClassName="size-8 text-brand-200 group-data-[collapsible=icon]:size-6"
-            wordmarkClassName="text-base group-data-[collapsible=icon]:hidden"
+            className="group-data-[collapsible=icon]:hidden"
+            tone="white"
+            imageClassName="h-6"
             subtitle="Internal"
+          />
+          <LogoMark
+            className="hidden h-7 group-data-[collapsible=icon]:block"
+            tone="white"
           />
         </Link>
       </SidebarHeader>

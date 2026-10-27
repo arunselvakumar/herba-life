@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: "Sign in",
 };
 
+// Matches the notice on herbalife.com; the page is statically prerendered,
+// so the year is a constant rather than read from the clock at render time.
+const COPYRIGHT_YEAR = 2026;
+
 const HIGHLIGHTS = [
   "Distributor and member management",
   "Order, inventory, and fulfilment tracking",
@@ -33,17 +37,23 @@ export default function LoginPage() {
         />
 
         <Logo
-          className="relative text-white"
-          markClassName="size-10 text-brand-200"
-          wordmarkClassName="text-xl"
-          subtitle="Internal"
+          className="relative"
+          tone="white"
+          imageClassName="h-9"
+          subtitle="Live your best life"
         />
 
         <div className="relative max-w-md space-y-8">
           <p className="text-eyebrow text-brand-200">Management console</p>
           <h1 className="font-heading text-4xl leading-[1.1] font-extrabold tracking-tight text-balance xl:text-5xl">
-            Nutrition for a better life, run from one place.
+            Make wellness a movement.
           </h1>
+          <p className="text-base leading-relaxed text-white/80">
+            The world&rsquo;s premier health and wellness platform, on a mission
+            of over 45 years to help people live their best lives through
+            rigorous scientific research, high-quality ingredients and a strong
+            sense of community spirit.
+          </p>
           <ul className="space-y-3 text-sm text-white/80">
             {HIGHLIGHTS.map((item) => (
               <li key={item} className="flex items-center gap-3">
@@ -57,20 +67,16 @@ export default function LoginPage() {
           </ul>
         </div>
 
-        <p className="relative text-xs text-white/50">
-          © Herbalife. For authorised personnel
-          only.
+        <p className="relative max-w-md text-xs leading-relaxed text-white/50">
+          Copyright &copy; {COPYRIGHT_YEAR} Herbalife International of America,
+          Inc. All Rights Reserved. For authorised personnel only.
         </p>
       </section>
 
       {/* Form panel */}
       <section className="flex items-center justify-center px-6 py-12 sm:px-10">
         <div className="w-full max-w-sm space-y-8">
-          <Logo
-            className="text-brand-600 lg:hidden"
-            markClassName="size-9"
-            subtitle="Internal"
-          />
+          <Logo className="lg:hidden" imageClassName="h-8" subtitle="Internal" />
           <div className="space-y-2">
             <p className="text-eyebrow text-brand-600">Welcome back</p>
             <h2 className="font-heading text-3xl font-extrabold tracking-tight">
