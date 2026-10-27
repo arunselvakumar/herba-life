@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   reactCompiler: true,
+  // Keep the Postgres driver out of the Turbopack bundle; it uses dynamic
+  // requires (pg-native, pg-cloudflare) that break when bundled.
+  serverExternalPackages: ["pg"],
   turbopack: {
     rules: {
       "*.css": {

@@ -1,35 +1,102 @@
-# Herbalife
+# Herbalife Internal
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app), using [Bun](https://bun.sh) and [Tailwind CSS](https://tailwindcss.com).
+Internal management tool for Herbalife. Next.js 16 (App Router, Cache
+Components), Better Auth, Drizzle ORM on Postgres, shadcn/ui styled with the
+Herbalife design system, Storybook, and Playwright.
 
-## Getting Started
+## Prerequisites
 
-First, run the development server:
+- [Bun](https://bun.sh) 1.3+
+- Node 20+ (the dev server runs under Node; Bun is the package manager)
+- Docker with a Postgres container running
+
+## Getting started
 
 ```bash
 bun install
-bun dev
+cp .env.example .env         # then set BETTER_AUTH_SECRET (openssl rand -base64 32)
+bun run db:migrate           # creates the auth tables
+bun run db:seed              # creates the local admin account
+bun run dev                  # http://localhost:3000
 ```
 
-`bun dev` runs the Next.js dev server on the Bun runtime (`bun --bun next dev`). `bun run build` and `bun run start` use Next's default Node runtime, because the production server currently fails to load under `--bun`.
+### Local admin account
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Public sign-up is disabled. The seed script provisions one account for local
+development:
 
-You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
+| Field    | Value                   |
+| -------- | ----------------------- |
+| Email    | `admin@herbalife.local` |
+| Password | `Herbalife2026!`        |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Edit `scripts/seed.ts` to add more accounts. The password is hashed through
+Better Auth's own helpers so it matches what the sign-in endpoint expects.
 
-## Learn More
+### Database
 
-To learn more about Next.js, take a look at the following resources:
+`DATABASE_URL` points at the `herbalife` database inside the existing
+`white-board-v3-postgres-1` container (host port 5433). Create it once with:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+docker exec white-board-v3-postgres-1 psql -U whiteboard -d postgres -c "CREATE DATABASE herbalife"
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Script            | What it does                                   |
+| ----------------- | ---------------------------------------------- |
+| `bun run db:generate` | Generate a migration from `src/db/schema.ts` |
+| `bun run db:migrate`  | Apply pending migrations                      |
+| `bun run db:push`     | Push schema directly (prototyping only)       |
+| `bun run db:studio`   | Open Drizzle Studio                           |
+| `bun run db:seed`     | Seed local accounts                           |
 
-## Deploy on Vercel
+When Better Auth options change (plugins, additional fields), regenerate the
+auth tables with:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+bunx @better-auth/cli@latest generate --config src/lib/auth.ts --output src/db/auth-schema.ts -y
+bun run db:generate && bun run db:migrate
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Design system
+
+Brand tokens live in `src/app/globals.css`:
+
+| Token          | Hex       | Use                               |
+| -------------- | --------- | --------------------------------- |
+| Garden Green   | `#266431` | Primary (PMS 7733C)               |
+| Grass          | `#42A046` | Accent, success, focus ring       |
+| Mint           | `#B5E3BD` | Soft fills                        |
+| Succulent      | `#E5FFC5` | Highlight / accent background     |
+| Forest         | `#163E35` | Secondary foreground              |
+| Evergreen      | `#0E2512` | Sidebar, hero panels              |
+| Linen          | `#F9F8F4` | Page background                   |
+| Stone          | `#E0DFD9` | Borders, dividers                 |
+
+They are exposed to Tailwind as `brand-50…900`, `linen`, and `stone`, and
+mapped onto the shadcn semantic tokens (`primary`, `sidebar`, `accent`, …).
+Herbalife's brand face (GT Walsheim) is proprietary, so the app ships
+Plus Jakarta Sans via `next/font`.
+
+## Authentication
+
+- `src/lib/auth.ts` – Better Auth server instance (Drizzle adapter, email +
+  password, sign-up disabled, `role` field on users).
+- `src/lib/auth-client.ts` – React client.
+- `src/app/api/auth/[...all]/route.ts` – auth API routes.
+- `src/proxy.ts` – optimistic cookie check that redirects anonymous visitors
+  to `/login`.
+- `src/lib/session.ts` – `getCurrentUser()`, the Data Access Layer entry point
+  (`use cache: private`). Always call this in server code; never trust the
+  cookie check alone.
+
+## Tooling
+
+| Script                 | What it does                         |
+| ---------------------- | ------------------------------------ |
+| `bun run dev`          | Next.js dev server                   |
+| `bun run build`        | Production build                     |
+| `bun run typecheck`    | `tsc --noEmit` (strict + extras)     |
+| `bun run lint`         | ESLint                               |
+| `bun run storybook`    | Storybook on http://localhost:6006   |
+| `bun run test:e2e`     | Playwright (starts the dev server)   |

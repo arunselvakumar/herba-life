@@ -1,26 +1,215 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
+@custom-variant dark (&:is(.dark *));
+
+/* ------------------------------------------------------------------
+ * Herbalife brand palette
+ * Garden Green #266431 is the signature brand colour (PMS 7733C).
+ * Supporting tones are sampled from herbalife.com and the brand library:
+ * Grass #42A046, Succulent #E5FFC5, Mint #B5E3BD, Forest #163E35,
+ * Evergreen #0E2512, warm Linen background #F9F8F4, Stone border #E0DFD9.
+ * ------------------------------------------------------------------ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --hl-garden-green: #266431;
+  --hl-garden-green-hover: #2a6f37;
+  --hl-grass: #42a046;
+  --hl-succulent: #e5ffc5;
+  --hl-mint: #b5e3bd;
+  --hl-forest: #163e35;
+  --hl-evergreen: #0e2512;
+  --hl-linen: #f9f8f4;
+  --hl-stone: #e0dfd9;
+  --hl-ink: #202020;
+  --hl-slate: #55544f;
+  --hl-ash: #74736e;
+  --hl-teal: #3b9187;
+  --hl-gold: #f7eb55;
+  --hl-berry: #db0661;
+  --hl-sky: #3a70c2;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  /* Brand scale, usable as bg-brand-500, text-brand-700, etc. */
+  --color-brand-50: #f1f8f1;
+  --color-brand-100: #e5ffc5;
+  --color-brand-200: #b5e3bd;
+  --color-brand-300: #8ccf98;
+  --color-brand-400: #5fb56b;
+  --color-brand-500: #42a046;
+  --color-brand-600: #266431;
+  --color-brand-700: #1f5329;
+  --color-brand-800: #163e35;
+  --color-brand-900: #0e2512;
+  --color-linen: #f9f8f4;
+  --color-stone: #e0dfd9;
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --radius: 0.75rem;
+
+  --background: var(--hl-linen);
+  --foreground: var(--hl-ink);
+  --card: #ffffff;
+  --card-foreground: var(--hl-ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--hl-ink);
+
+  --primary: var(--hl-garden-green);
+  --primary-foreground: #ffffff;
+  --secondary: #eef3ea;
+  --secondary-foreground: var(--hl-forest);
+  --muted: #f1f0eb;
+  --muted-foreground: var(--hl-ash);
+  --accent: var(--hl-succulent);
+  --accent-foreground: var(--hl-evergreen);
+  --destructive: #c8102e;
+  --border: var(--hl-stone);
+  --input: var(--hl-stone);
+  --ring: var(--hl-grass);
+
+  --success: var(--hl-grass);
+  --success-foreground: #ffffff;
+  --warning: #d9a400;
+  --warning-foreground: var(--hl-ink);
+  --info: var(--hl-teal);
+  --info-foreground: #ffffff;
+
+  --chart-1: var(--hl-garden-green);
+  --chart-2: var(--hl-grass);
+  --chart-3: var(--hl-teal);
+  --chart-4: var(--hl-mint);
+  --chart-5: var(--hl-gold);
+
+  --sidebar: var(--hl-evergreen);
+  --sidebar-foreground: #e8f1e9;
+  --sidebar-primary: var(--hl-grass);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: var(--hl-grass);
+}
+
+.dark {
+  --background: #0b1a0e;
+  --foreground: #eef3ea;
+  --card: #11261a;
+  --card-foreground: #eef3ea;
+  --popover: #11261a;
+  --popover-foreground: #eef3ea;
+
+  --primary: var(--hl-grass);
+  --primary-foreground: var(--hl-evergreen);
+  --secondary: #173327;
+  --secondary-foreground: #d7e8d9;
+  --muted: #173327;
+  --muted-foreground: #9fb5a3;
+  --accent: #1d4030;
+  --accent-foreground: var(--hl-succulent);
+  --destructive: #ff6b6b;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.15);
+  --ring: var(--hl-grass);
+
+  --success: var(--hl-grass);
+  --success-foreground: var(--hl-evergreen);
+  --warning: #f7eb55;
+  --warning-foreground: var(--hl-evergreen);
+  --info: #5fc2b6;
+  --info-foreground: var(--hl-evergreen);
+
+  --chart-1: var(--hl-grass);
+  --chart-2: var(--hl-mint);
+  --chart-3: #5fc2b6;
+  --chart-4: var(--hl-succulent);
+  --chart-5: var(--hl-gold);
+
+  --sidebar: #07140a;
+  --sidebar-foreground: #e8f1e9;
+  --sidebar-primary: var(--hl-grass);
+  --sidebar-primary-foreground: var(--hl-evergreen);
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: var(--hl-grass);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading tracking-tight;
+  }
+  ::selection {
+    background: var(--hl-mint);
+    color: var(--hl-evergreen);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  /* Herbalife eyebrow: small, bold, uppercase, generous tracking */
+  .text-eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.14em];
+  }
 }
