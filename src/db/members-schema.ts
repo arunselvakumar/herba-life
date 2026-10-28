@@ -1,18 +1,7 @@
 import { relations } from "drizzle-orm";
-import {
-  boolean,
-  date,
-  index,
-  integer,
-  numeric,
-  pgEnum,
-  pgTable,
-  serial,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { boolean, date, index, integer, pgEnum, pgTable, serial, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema";
+import { habitColumns, healthColumns, measure, measurementColumns, money, personColumns } from "./record-columns";
 
 /**
  * Member management schema.
@@ -23,16 +12,11 @@ import { user } from "./auth-schema";
  * matches what was written down.
  */
 
-export const genderEnum = pgEnum("gender", ["male", "female", "other"]);
-export const dietEnum = pgEnum("diet", ["veg", "non_veg", "eggetarian"]);
 export const packageStatusEnum = pgEnum("package_status", [
   "active",
   "completed",
   "cancelled",
 ]);
-
-const money = (name: string) => numeric(name, { precision: 10, scale: 2, mode: "number" });
-const measure = (name: string) => numeric(name, { precision: 6, scale: 2, mode: "number" });
 
 export const member = pgTable(
   "member",
@@ -41,40 +25,13 @@ export const member = pgTable(
     /** The "Sl. No." on the paper record; auto-incrementing and human friendly. */
     serialNo: serial("serial_no").notNull().unique(),
 
-    firstName: text("first_name").notNull(),
-    lastName: text("last_name").notNull().default(""),
-    gender: genderEnum("gender"),
-    dateOfBirth: date("date_of_birth"),
-    /** Only used when the date of birth is unknown; otherwise derived. */
-    age: integer("age"),
-    mobile: text("mobile"),
-    email: text("email"),
-    address: text("address"),
-    referredBy: text("referred_by"),
+    ...personColumns(),
     /** The "Date" on the intake sheet: when the member joined. */
     joinedOn: date("joined_on").notNull(),
     heightCm: measure("height_cm"),
 
-    // Eating habits
-    wakeUpTime: text("wake_up_time"),
-    teaCoffee: text("tea_coffee"),
-    breakfast: text("breakfast"),
-    lunch: text("lunch"),
-    eveningSnacks: text("evening_snacks"),
-    dinner: text("dinner"),
-    diet: dietEnum("diet"),
-    waterIntake: text("water_intake"),
-
-    // Health condition
-    hasBloodPressure: boolean("has_blood_pressure").notNull().default(false),
-    hasSugar: boolean("has_sugar").notNull().default(false),
-    hasCardiac: boolean("has_cardiac").notNull().default(false),
-    medicines: text("medicines"),
-    /** Keys from SYMPTOMS in src/lib/members/constants.ts */
-    symptoms: text("symptoms").array().notNull().default([]),
-    /** Keys from PAIN_AREAS in src/lib/members/constants.ts */
-    painAreas: text("pain_areas").array().notNull().default([]),
-    healthNotes: text("health_notes"),
+    ...habitColumns(),
+    ...healthColumns(),
 
     remarks: text("remarks"),
 
@@ -158,14 +115,7 @@ export const memberCheckin = pgTable(
       .notNull()
       .references(() => member.id, { onDelete: "cascade" }),
     recordedOn: date("recorded_on").notNull(),
-    weightKg: measure("weight_kg"),
-    bodyFatPct: measure("body_fat_pct"),
-    bmi: measure("bmi"),
-    visceralFat: measure("visceral_fat"),
-    bmr: integer("bmr"),
-    bodyAge: integer("body_age"),
-    muscleMassPct: measure("muscle_mass_pct"),
-    waistCm: measure("waist_cm"),
+    ...measurementColumns(),
     remarks: text("remarks"),
     recordedBy: text("recorded_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),

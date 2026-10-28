@@ -3,9 +3,11 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import {
+  CalendarCheckIcon,
   CalendarClockIcon,
   ClipboardListIcon,
   HourglassIcon,
+  MessageSquareMoreIcon,
   PackageCheckIcon,
   UserRoundPlusIcon,
   UsersRoundIcon,
@@ -16,11 +18,15 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatCard, type Stat } from "@/components/dashboard/stat-card";
+import { FollowUpDue, InquiryStatusBadge } from "@/components/inquiries/inquiry-badges";
 import { PackageBadge } from "@/components/members/package-badge";
+import { sourceLabel } from "@/lib/inquiries/format";
+import { getInquiryDashboard } from "@/lib/inquiries/queries";
 import { EXPIRING_SOON_DAYS, FOLLOW_UP_INTERVAL_DAYS } from "@/lib/members/constants";
 import { daysBetween, formatDay, today } from "@/lib/members/dates";
 import { formatNumber, fullName } from "@/lib/members/format";
 import { getDashboardData } from "@/lib/members/queries";
+import { countDay } from "@/lib/attendance/queries";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -95,7 +101,7 @@ export default function DashboardPage() {
 async function Overview() {
   await connection();
   const now = today();
-  const data = await getDashboardData(now);
+  const [data, inquiries, attendanceToday] = await Promise.all([getDashboardData(now), getInquiryDashboard(now), countDay(now)]);
   const month = monthLabel.format(new Date());
 
   const stats: Stat[] = [
@@ -130,11 +136,27 @@ async function Overview() {
       hint: `recorded in ${month}`,
       icon: ClipboardListIcon,
     },
+    {
+      id: "inquiries",
+      label: "Open inquiries",
+      value: inquiries.open,
+      hint: inquiries.due > 0 ? `${inquiries.due} to follow up today` : `${inquiries.convertedThisMonth} converted in ${month}`,
+      icon: MessageSquareMoreIcon,
+      tone: inquiries.due > 0 ? "warning" : "default",
+    },
+    {
+      id: "attendance",
+      label: "Check-ins today",
+      value: attendanceToday.visits,
+      hint: `${attendanceToday.members} member${attendanceToday.members === 1 ? "" : "s"} came in`,
+      icon: CalendarCheckIcon,
+      tone: "brand",
+    },
   ];
 
   return (
     <>
-      <section aria-label="Key metrics" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="Key metrics" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {stats.map((stat) => (
           <StatCard key={stat.id} stat={stat} />
         ))}
@@ -230,6 +252,96 @@ async function Overview() {
                       </TableRow>
                     );
                   })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-2">
+        <Card className="ring-stone/80">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold">Inquiries to follow up</CardTitle>
+            <CardDescription>Due today or overdue, plus new ones nobody has called yet</CardDescription>
+            <CardAction>
+              <Button asChild variant="outline" size="sm">
+                <Link href={{ pathname: "/inquiries", query: { filter: "due" } }}>View all</Link>
+              </Button>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="px-0">
+            {inquiries.dueList.length === 0 ? (
+              <EmptyRow>Nothing due. Every open inquiry has a future follow-up.</EmptyRow>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="pl-4">Person</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="pr-4 text-right">Due</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {inquiries.dueList.map((i) => (
+                    <TableRow key={i.id}>
+                      <TableCell className="pl-4">
+                        <Link href={`/inquiries/${i.id}`} className="font-medium hover:underline">
+                          {fullName(i)}
+                        </Link>
+                        <div className="text-xs text-muted-foreground">{i.mobile ?? sourceLabel(i.source)}</div>
+                      </TableCell>
+                      <TableCell>
+                        <InquiryStatusBadge status={i.status} />
+                      </TableCell>
+                      <TableCell className="pr-4 text-right">
+                        <FollowUpDue nextFollowUpOn={i.nextFollowUpOn} today={now} className="text-xs" />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="ring-stone/80">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold">Recent inquiries</CardTitle>
+            <CardDescription>
+              {inquiries.newThisMonth} received in {month} · {inquiries.convertedThisMonth} converted
+            </CardDescription>
+            <CardAction>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/inquiries">View all</Link>
+              </Button>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="px-0">
+            {inquiries.recent.length === 0 ? (
+              <EmptyRow>No open inquiries. Record one when someone asks about the programme.</EmptyRow>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="pl-4">Person</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead className="pr-4 text-right">Inquired</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {inquiries.recent.map((i) => (
+                    <TableRow key={i.id}>
+                      <TableCell className="pl-4">
+                        <Link href={`/inquiries/${i.id}`} className="font-medium hover:underline">
+                          {fullName(i)}
+                        </Link>
+                        {i.interestedPlan ? <div className="text-xs text-muted-foreground">Interested in {i.interestedPlan.name}</div> : null}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{sourceLabel(i.source)}</TableCell>
+                      <TableCell className="pr-4 text-right text-muted-foreground">{formatDay(i.inquiredOn)}</TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             )}

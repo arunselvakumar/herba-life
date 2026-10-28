@@ -4,10 +4,10 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { member, memberCheckin, memberPackage, packagePlan, type PackagePlan } from "@/db/schema";
+import { member, memberCheckin, memberPackage } from "@/db/schema";
 import { requireUser } from "@/lib/session";
-import { packageEndDate } from "./dates";
 import type { FormState } from "./form-state";
+import { activePlan, enrolmentValues, hasAnyMeasurement, insertMember, invalid } from "./intake";
 import {
   checkinSchema,
   memberSchema,
@@ -16,8 +16,6 @@ import {
   intakeSchema,
   packageSchema,
   packageStatusSchema,
-  type FieldErrors,
-  type MeasurementsInput,
 } from "./validation";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -27,74 +25,16 @@ function assertId(id: string): string {
   return id;
 }
 
-function hasAnyMeasurement(m: MeasurementsInput): boolean {
-  return Object.values(m).some((v) => v !== null && v !== undefined);
-}
-
-function invalid(errors: FieldErrors): FormState {
-  return { status: "error", message: "Please fix the highlighted fields.", errors };
-}
-
-/** Resolve the chosen catalog plan; archived plans cannot be used for new enrolments. */
-async function activePlan(planId: string, prefix = ""): Promise<PackagePlan | FormState> {
-  const plan = await db.query.packagePlan.findFirst({ where: eq(packagePlan.id, planId) });
-  if (!plan || !plan.isActive) {
-    return invalid({ [`${prefix}planId`]: ["That package is no longer available. Pick another."] });
-  }
-  return plan;
-}
-
-function enrolmentValues(plan: PackagePlan, input: { extraDays: number | null; startDate: string; amountPaid: number | null; notes: string | null }) {
-  const extraDays = input.extraDays ?? 0;
-  return {
-    planId: plan.id,
-    name: plan.name,
-    durationDays: plan.durationDays,
-    extraDays,
-    startDate: input.startDate,
-    endDate: packageEndDate(input.startDate, plan.durationDays, extraDays),
-    price: plan.price,
-    amountPaid: input.amountPaid ?? 0,
-    notes: input.notes,
-  };
-}
-
 export async function createMember(_prev: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser();
   const parsed = intakeSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) return invalid(flattenErrors(parsed.error));
 
-  const { baseline, package: pkg, lastName, ...details } = parsed.data;
-
+  const pkg = parsed.data.package;
   const plan = pkg ? await activePlan(pkg.planId, "package.") : null;
   if (plan && "status" in plan) return plan;
 
-  const id = await db.transaction(async (tx) => {
-    const [created] = await tx
-      .insert(member)
-      .values({ ...details, lastName: lastName ?? "", createdBy: user.id })
-      .returning({ id: member.id });
-    if (!created) throw new Error("Insert failed");
-
-    if (hasAnyMeasurement(baseline)) {
-      await tx.insert(memberCheckin).values({
-        ...baseline,
-        memberId: created.id,
-        recordedOn: details.joinedOn,
-        remarks: "Baseline at enrolment",
-        recordedBy: user.id,
-      });
-    }
-
-    if (pkg && plan) {
-      await tx.insert(memberPackage).values({
-        ...enrolmentValues(plan, pkg),
-        memberId: created.id,
-        createdBy: user.id,
-      });
-    }
-    return created.id;
-  });
+  const id = await db.transaction((tx) => insertMember(tx, parsed.data, plan, user.id));
 
   revalidatePath("/members");
   revalidatePath("/dashboard");
@@ -126,6 +66,7 @@ export async function deleteMember(memberId: string): Promise<void> {
   const id = assertId(memberId);
   await db.delete(member).where(eq(member.id, id));
   revalidatePath("/members");
+  revalidatePath("/inquiries");
   revalidatePath("/dashboard");
   redirect("/members");
 }

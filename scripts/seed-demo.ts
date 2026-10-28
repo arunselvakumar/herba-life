@@ -1,8 +1,9 @@
 import "dotenv/config";
 import { eq } from "drizzle-orm";
 import { db } from "../src/db";
-import { member, memberCheckin, memberPackage, packagePlan, user } from "../src/db/schema";
-import { addDays, packageEndDate, today } from "../src/lib/members/dates";
+import { attendance, inquiry, inquiryActivity, member, memberCheckin, memberPackage, packagePlan, user } from "../src/db/schema";
+import { addDays, packageEndDate, parseDay, today } from "../src/lib/members/dates";
+import { periodFor } from "../src/lib/attendance/time";
 
 /**
  * Sample members for local development only. Never run this against a real
@@ -240,6 +241,182 @@ async function main(): Promise<void> {
     }
 
     console.log(`✓ created ${demo.firstName} ${demo.lastName}`);
+  }
+
+  // Inquiries: prospects at various stages of follow-up. Skipped when any exist.
+  // Attendance: a realistic 60 days of self check-ins for the demo members.
+  // Deterministic (seeded PRNG) so re-runs on a fresh database look the same;
+  // skipped entirely once any attendance exists.
+  const [existingAttendance] = await db.select({ id: attendance.id }).from(attendance).limit(1);
+  if (existingAttendance) {
+    console.log("• attendance already seeded, skipping");
+  } else {
+    let seed = 20261028;
+    const random = () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    };
+    const demoMembers = await db.select({ id: member.id, mobile: member.mobile }).from(member);
+    const byMobile = new Map(demoMembers.map((m) => [m.mobile, m.id]));
+    // Per member: how often they come (0–1), and whether they tend to come twice a day.
+    const habits: { mobile: string; regularity: number; twice: number; morningHour: number; eveningHour: number }[] = [
+      { mobile: "98400 12345", regularity: 0.85, twice: 0.5, morningHour: 7, eveningHour: 18 },
+      { mobile: "98410 55667", regularity: 0.6, twice: 0.15, morningHour: 8, eveningHour: 19 },
+    ];
+    for (const demo of DEMO) {
+      if (!habits.some((h) => h.mobile === demo.mobile)) {
+        habits.push({ mobile: demo.mobile, regularity: 0.3 + random() * 0.5, twice: random() * 0.3, morningHour: 7 + Math.floor(random() * 3), eveningHour: 17 + Math.floor(random() * 3) });
+      }
+    }
+    const rows: (typeof attendance.$inferInsert)[] = [];
+    for (let daysAgo = 60; daysAgo >= 0; daysAgo--) {
+      const day = addDays(now, -daysAgo);
+      const weekday = parseDay(day).getDay();
+      if (weekday === 0) continue; // closed on Sundays
+      for (const habit of habits) {
+        const memberId = byMobile.get(habit.mobile);
+        if (!memberId) continue;
+        const chance = weekday === 6 ? habit.regularity * 0.6 : habit.regularity;
+        if (random() > chance) continue;
+        const visits = random() < habit.twice ? [habit.morningHour, habit.eveningHour] : [random() < 0.7 ? habit.morningHour : habit.eveningHour];
+        for (const hour of visits) {
+          const at = parseDay(day);
+          at.setHours(hour, Math.floor(random() * 60), 0, 0);
+          if (at.getTime() > Date.now()) continue;
+          rows.push({ memberId, checkedInAt: at, day, period: periodFor(at), source: "kiosk", recordedBy: createdBy });
+        }
+      }
+    }
+    if (rows.length) await db.insert(attendance).values(rows);
+    console.log(`✓ created ${rows.length} attendance check-ins`);
+  }
+
+  const [existingInquiry] = await db.select({ id: inquiry.id }).from(inquiry).limit(1);
+  if (existingInquiry) {
+    console.log("• inquiries already seeded, skipping");
+    return;
+  }
+  const priya = await db.query.member.findFirst({ where: eq(member.mobile, "98400 12345"), columns: { id: true } });
+  const DEMO_INQUIRIES = [
+    {
+      firstName: "Divya",
+      lastName: "Shankar",
+      gender: "female" as const,
+      age: 34,
+      mobile: "97890 11223",
+      source: "referral" as const,
+      referredBy: "Priya Raghunathan",
+      referredByMemberId: priya?.id ?? null,
+      inquiredDaysAgo: 6,
+      goals: ["weight_loss", "energy"],
+      goalNotes: "Wants to lose 6 kg before a cousin's wedding in January.",
+      plan: "3 months",
+      heightCm: 160,
+      weightKg: 71.4,
+      bodyFatPct: 34.2,
+      waistCm: 91,
+      status: "in_progress" as const,
+      nextFollowUpDaysFromNow: -1,
+      activities: [
+        { daysAgo: 6, type: "visit" as const, notes: "Walked in with Priya. Free check done; very keen but wants to discuss with husband." },
+        { daysAgo: 3, type: "call" as const, notes: "Husband is okay with it. Will come on Saturday with the advance." },
+      ],
+    },
+    {
+      firstName: "Mohan",
+      lastName: "Kumar",
+      gender: "male" as const,
+      age: 45,
+      mobile: "90800 44556",
+      source: "walk_in" as const,
+      inquiredDaysAgo: 1,
+      goals: ["weight_loss"],
+      goalNotes: "Doctor told him to reduce weight; sugar is borderline.",
+      hasSugar: true,
+      heightCm: 170,
+      weightKg: 92.3,
+      bodyFatPct: 30.1,
+      waistCm: 104,
+      status: "new" as const,
+      nextFollowUpDaysFromNow: null,
+      activities: [],
+    },
+    {
+      firstName: "Sneha",
+      lastName: "Varma",
+      gender: "female" as const,
+      age: 27,
+      mobile: "99400 77665",
+      email: "sneha.v@example.com",
+      source: "social_media" as const,
+      inquiredDaysAgo: 2,
+      goals: ["general_wellness", "skin_hair"],
+      preferredContactTime: "After 7 pm",
+      status: "in_progress" as const,
+      nextFollowUpDaysFromNow: 2,
+      activities: [{ daysAgo: 2, type: "whatsapp" as const, notes: "Asked about the 1-month plan price. Sent the brochure." }],
+    },
+    {
+      firstName: "Venkat",
+      lastName: "Raman",
+      gender: "male" as const,
+      age: 52,
+      mobile: "98400 99887",
+      source: "phone" as const,
+      inquiredDaysAgo: 20,
+      goals: ["weight_loss"],
+      status: "lost" as const,
+      lostReason: "Joined a gym near his office instead.",
+      nextFollowUpDaysFromNow: null,
+      activities: [
+        { daysAgo: 20, type: "call" as const, notes: "Called about prices. Will think." },
+        { daysAgo: 12, type: "call" as const, notes: "Not interested any more." },
+      ],
+    },
+  ];
+  for (const demo of DEMO_INQUIRIES) {
+    const planId = "plan" in demo && demo.plan ? (planIds.get(demo.plan) ?? null) : null;
+    const [created] = await db
+      .insert(inquiry)
+      .values({
+        firstName: demo.firstName,
+        lastName: demo.lastName,
+        gender: demo.gender,
+        age: demo.age,
+        mobile: demo.mobile,
+        email: "email" in demo ? demo.email : null,
+        source: demo.source,
+        referredBy: "referredBy" in demo ? demo.referredBy : null,
+        referredByMemberId: "referredByMemberId" in demo ? demo.referredByMemberId : null,
+        inquiredOn: addDays(now, -demo.inquiredDaysAgo),
+        goals: demo.goals,
+        goalNotes: "goalNotes" in demo ? demo.goalNotes : null,
+        preferredContactTime: "preferredContactTime" in demo ? demo.preferredContactTime : null,
+        interestedPlanId: planId,
+        heightCm: "heightCm" in demo ? demo.heightCm : null,
+        weightKg: "weightKg" in demo ? demo.weightKg : null,
+        bodyFatPct: "bodyFatPct" in demo ? demo.bodyFatPct : null,
+        waistCm: "waistCm" in demo ? demo.waistCm : null,
+        hasSugar: "hasSugar" in demo ? demo.hasSugar : false,
+        status: demo.status,
+        lostReason: "lostReason" in demo ? demo.lostReason : null,
+        closedAt: demo.status === "lost" ? new Date() : null,
+        nextFollowUpOn: demo.nextFollowUpDaysFromNow === null ? null : addDays(now, demo.nextFollowUpDaysFromNow),
+        assignedTo: createdBy,
+        createdBy,
+      })
+      .returning({ id: inquiry.id });
+    if (!created) throw new Error("inquiry insert failed");
+    for (const a of demo.activities) {
+      await db.insert(inquiryActivity).values({
+        inquiryId: created.id,
+        type: a.type,
+        occurredOn: addDays(now, -a.daysAgo),
+        notes: a.notes,
+        recordedBy: createdBy,
+      });
+    }
+    console.log(`✓ created inquiry ${demo.firstName} ${demo.lastName}`);
   }
 }
 

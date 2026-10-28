@@ -15,6 +15,20 @@
       "when": 1793183642879,
       "tag": "0001_tough_zarda",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793189043245,
+      "tag": "0002_inquiries",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793189286314,
+      "tag": "0003_attendance",
+      "breakpoints": true
     }
   ]
 }

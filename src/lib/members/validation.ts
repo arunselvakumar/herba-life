@@ -1,27 +1,30 @@
 import { z } from "zod";
 import { DIETS, GENDERS, PACKAGE_STATUSES, PAIN_AREAS, SYMPTOMS } from "./constants";
 
-const blankToNull = (value: unknown) =>
+export const blankToNull = (value: unknown) =>
   typeof value === "string" && value.trim() === "" ? null : value;
 
-const optionalText = (max = 500) =>
+export const optionalText = (max = 500) =>
   z.preprocess(blankToNull, z.string().trim().max(max).nullable()).default(null);
 
-const optionalNumber = (min: number, max: number) =>
+export const optionalNumber = (min: number, max: number) =>
   z.preprocess(blankToNull, z.coerce.number().min(min).max(max).nullable()).default(null);
 
-const optionalInt = (min: number, max: number) =>
+export const optionalInt = (min: number, max: number) =>
   z.preprocess(blankToNull, z.coerce.number().int().min(min).max(max).nullable()).default(null);
 
-const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid date");
-const optionalDay = z.preprocess(blankToNull, day.nullable()).default(null);
+export const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid date");
+export const optionalDay = z.preprocess(blankToNull, day.nullable()).default(null);
 
-const checkbox = z.preprocess((value) => value === "on" || value === "true" || value === true, z.boolean());
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const optionalUuid = z.preprocess(blankToNull, z.string().regex(UUID_RE, "Pick one from the list").nullable()).default(null);
 
-const enumValues = <T extends readonly { value: string }[]>(list: T) =>
+export const checkbox = z.preprocess((value) => value === "on" || value === "true" || value === true, z.boolean());
+
+export const enumValues = <T extends readonly { value: string }[]>(list: T) =>
   list.map((item) => item.value) as [T[number]["value"], ...T[number]["value"][]];
 
-const stringList = <T extends readonly { value: string }[]>(list: T) =>
+export const stringList = <T extends readonly { value: string }[]>(list: T) =>
   z.array(z.enum(enumValues(list))).default([]);
 
 export const measurementsSchema = z.object({
@@ -44,7 +47,7 @@ export type CheckinInput = z.infer<typeof checkinSchema>;
 
 const planId = z
   .string({ error: "Choose a package" })
-  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, "Choose a package");
+  .regex(UUID_RE, "Choose a package");
 
 export const packageSchema = z.object({
   planId: z.preprocess((value) => (typeof value === "string" && value.trim() === "" ? undefined : value), planId),
@@ -57,7 +60,12 @@ export type PackageInput = z.infer<typeof packageSchema>;
 
 export const packageStatusSchema = z.enum(PACKAGE_STATUSES);
 
-export const memberSchema = z.object({
+/**
+ * The field groups below mirror the column groups in src/db/record-columns.ts;
+ * the member intake form and the inquiry form are both built from them.
+ */
+
+export const personSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required").max(80),
   lastName: z.preprocess(blankToNull, z.string().trim().max(80).nullable()).default(null),
   gender: z.preprocess(blankToNull, z.enum(enumValues(GENDERS)).nullable()).default(null),
@@ -67,9 +75,9 @@ export const memberSchema = z.object({
   email: z.preprocess(blankToNull, z.string().trim().email("Enter a valid email").nullable()).default(null),
   address: optionalText(1000),
   referredBy: optionalText(120),
-  joinedOn: day,
-  heightCm: optionalNumber(30, 300),
+});
 
+export const habitsSchema = z.object({
   wakeUpTime: optionalText(120),
   teaCoffee: optionalText(200),
   breakfast: optionalText(300),
@@ -78,7 +86,9 @@ export const memberSchema = z.object({
   dinner: optionalText(300),
   diet: z.preprocess(blankToNull, z.enum(enumValues(DIETS)).nullable()).default(null),
   waterIntake: optionalText(120),
+});
 
+export const healthSchema = z.object({
   hasBloodPressure: checkbox.default(false),
   hasSugar: checkbox.default(false),
   hasCardiac: checkbox.default(false),
@@ -86,7 +96,13 @@ export const memberSchema = z.object({
   symptoms: stringList(SYMPTOMS),
   painAreas: stringList(PAIN_AREAS),
   healthNotes: optionalText(2000),
+});
 
+export const memberSchema = personSchema.extend({
+  joinedOn: day,
+  heightCm: optionalNumber(30, 300),
+  ...habitsSchema.shape,
+  ...healthSchema.shape,
   remarks: optionalText(2000),
 });
 export type MemberInput = z.infer<typeof memberSchema>;

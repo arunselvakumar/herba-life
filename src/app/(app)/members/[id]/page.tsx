@@ -26,12 +26,15 @@ import { Delta, MeasurementValue } from "@/components/members/measurement-value"
 import { PackageBadge } from "@/components/members/package-badge";
 import { PackageList } from "@/components/members/package-list";
 import { WeightTrend } from "@/components/members/weight-trend";
+import { AttendanceSummary } from "@/components/attendance/member-summary";
 import { addCheckin, deleteMember } from "@/lib/members/actions";
 import { DIETS, EXPIRING_SOON_DAYS, GENDERS, MEASUREMENTS, PAIN_AREAS, SYMPTOMS } from "@/lib/members/constants";
 import { formatDay, today } from "@/lib/members/dates";
 import { UUID_RE } from "@/lib/members/form-defaults";
 import { daysLeft, displayAge, formatNumber, fullName, packageState, rangeVerdict } from "@/lib/members/format";
 import { getMember, type MemberDetail } from "@/lib/members/queries";
+import { sourceLabel } from "@/lib/inquiries/format";
+import { getSourceInquiry } from "@/lib/inquiries/queries";
 
 export const metadata: Metadata = {
   title: "Member",
@@ -63,6 +66,7 @@ async function MemberProfile({ params }: { params: PageProps<"/members/[id]">["p
   const currentState = currentPackage ? packageState(currentPackage, EXPIRING_SOON_DAYS, now) : null;
   const latest = member.checkins[0] ?? null;
   const baseline = member.checkins[member.checkins.length - 1] ?? null;
+  const sourceInquiry = await getSourceInquiry(member.id);
 
   return (
     <>
@@ -160,7 +164,8 @@ async function MemberProfile({ params }: { params: PageProps<"/members/[id]">["p
         </div>
         <div className="min-w-0 space-y-6">
           <PackageList memberId={member.id} packages={member.packages} today={now} />
-          <ContactCard member={member} />
+          <AttendanceSummary memberId={member.id} today={now} />
+          <ContactCard member={member} sourceInquiry={sourceInquiry} />
           <HealthCard member={member} />
           <EatingHabitsCard member={member} />
           {member.remarks ? (
@@ -187,7 +192,13 @@ function DetailRow({ label, value }: { label: string; value: string | number | n
   );
 }
 
-function ContactCard({ member }: { member: MemberDetail }) {
+function ContactCard({
+  member,
+  sourceInquiry,
+}: {
+  member: MemberDetail;
+  sourceInquiry: { id: string; serialNo: number; inquiredOn: string; source: Parameters<typeof sourceLabel>[0] } | null;
+}) {
   return (
     <Card className="ring-stone/80">
       <CardHeader>
@@ -228,6 +239,20 @@ function ContactCard({ member }: { member: MemberDetail }) {
             <DetailRow label="Height" value={member.heightCm !== null ? `${formatNumber(member.heightCm)} cm` : null} />
             <DetailRow label="Referred by" value={member.referredBy} />
             <DetailRow label="Added by" value={member.createdByUser?.name} />
+            {sourceInquiry ? (
+              <div className="grid grid-cols-[7rem_1fr] gap-2 text-sm">
+                <dt className="text-muted-foreground">Came from</dt>
+                <dd className="min-w-0">
+                  <Link href={`/inquiries/${sourceInquiry.id}`} className="hover:underline">
+                    Inquiry #{sourceInquiry.serialNo}
+                  </Link>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    · {sourceLabel(sourceInquiry.source)}, {formatDay(sourceInquiry.inquiredOn)}
+                  </span>
+                </dd>
+              </div>
+            ) : null}
           </div>
         </dl>
       </CardContent>

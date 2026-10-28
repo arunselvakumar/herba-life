@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { LayoutDashboardIcon, PackageIcon, UserRoundPlusIcon, UsersRoundIcon } from "lucide-react";
+import { CalendarCheckIcon, LayoutDashboardIcon, MessageSquareMoreIcon, MessageSquarePlusIcon, MonitorCheckIcon, PackageIcon, UserRoundPlusIcon, UsersRoundIcon } from "lucide-react";
 
 export type NavItem = {
   title: string;
@@ -27,8 +27,22 @@ export const navigation: readonly NavGroup[] = [
     ],
   },
   {
+    label: "Inquiries",
+    items: [
+      { title: "All inquiries", href: "/inquiries", icon: MessageSquareMoreIcon },
+      { title: "New inquiry", href: "/inquiries/new", icon: MessageSquarePlusIcon, exact: true },
+    ],
+  },
+  {
     label: "Catalog",
     items: [{ title: "Packages", href: "/packages", icon: PackageIcon }],
+  },
+  {
+    label: "Attendance",
+    items: [
+      { title: "Attendance", href: "/attendance", icon: CalendarCheckIcon, exact: true },
+      { title: "Attendance Mode", href: "/attendance/kiosk", icon: MonitorCheckIcon, exact: true },
+    ],
   },
 ];
 

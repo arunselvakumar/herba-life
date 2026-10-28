@@ -31,10 +31,51 @@ Record**:
 - **Dashboard** – member and package counts, follow-ups due (on a package but
   not measured in 30 days), packages ending within 14 days, recent follow-ups.
 
+### Inquiries
+
+Prospects who asked about the programme but have not joined. The full
+requirements are in [`docs/inquiry-module.md`](docs/inquiry-module.md).
+
+- **Inquiries** (`/inquiries`) – open inquiries sorted by next follow-up,
+  with search and filters (open, follow-up due, new, converted, lost, all).
+- **New inquiry** (`/inquiries/new`) – source, referrer (free text or an
+  existing member), assigned staff, next follow-up, personal details, goals,
+  interested package, free-check readings, eating habits, health condition.
+  Only the first name is required.
+- **Detail** (`/inquiries/[id]`) – status, follow-up log with an add-entry
+  form (call / WhatsApp / visit / note, which also reschedules the next
+  follow-up), mark lost with a reason, reopen, delete. Warns when a member
+  already has the same mobile number.
+- **Convert** (`/inquiries/[id]/convert`) – the normal New member form,
+  pre-filled from the inquiry (readings become the baseline follow-up, the
+  interested package is pre-selected). Saving creates the member and closes
+  the inquiry as converted in one transaction; the two records link to each
+  other.
+- **Dashboard** – open inquiries count, follow-ups due, recent inquiries.
+
+Code lives in `src/db/inquiries-schema.ts`, `src/lib/inquiries/`,
+`src/components/inquiries/` and `src/app/(app)/inquiries/`. The column groups
+shared with the member record are in `src/db/record-columns.ts`.
+
 Code lives in `src/db/members-schema.ts` (tables), `src/lib/members/` and
 `src/lib/packages/` (validation, queries, server actions, helpers),
 `src/components/members/`, `src/components/packages/`, `src/app/(app)/members/`
 and `src/app/(app)/packages/`.
+
+### Attendance
+
+Members mark their own visits on a tablet at the entrance:
+
+- **Attendance Mode** (`/attendance/kiosk`) – full-screen, member-facing
+  kiosk. Find your name, tap, confirm; a welcome screen shows the time and the
+  visit count for the month. A second tap within 45 minutes is treated as the
+  same visit. Leaving the kiosk requires the signed-in staff member's password.
+- **Attendance** (`/attendance`) – per-day view with check-ins, morning /
+  afternoon / evening split, a chart over 2 weeks to 12 months, busy hours,
+  weekday pattern, regulars, members on a package who have not been seen for
+  7+ days, the day's log, and a "Record a visit" fallback for staff.
+
+See `docs/attendance-module.md` for the full requirements.
 
 ## Prerequisites
 
@@ -49,7 +90,7 @@ bun install
 cp .env.example .env         # then set BETTER_AUTH_SECRET (openssl rand -base64 32)
 bun run db:migrate           # creates the auth tables
 bun run db:seed              # creates the local admin account
-bun run db:seed:demo         # optional: four packages and six sample members with follow-ups
+bun run db:seed:demo         # optional: four packages, six sample members with follow-ups, four inquiries
 bun run dev                  # http://localhost:3000
 ```
 
