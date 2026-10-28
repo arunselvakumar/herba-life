@@ -27,7 +27,7 @@ export function InquiryTable({ inquiries, today, emptyMessage }: { inquiries: In
   }
 
   return (
-    <Card className="py-0">
+    <Card>
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">

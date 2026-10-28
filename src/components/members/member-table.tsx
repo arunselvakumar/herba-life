@@ -26,7 +26,7 @@ export function MemberTable({ members, emptyMessage }: { members: MemberListRow[
   }
 
   return (
-    <Card className="py-0">
+    <Card>
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">

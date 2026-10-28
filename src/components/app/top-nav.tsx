@@ -84,7 +84,7 @@ export function TopNav({ className, testId }: { className?: string; testId?: str
               aria-current={active ? "page" : undefined}
               className={cn(
                 "relative z-10 flex h-9 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-semibold whitespace-nowrap transition-colors duration-300 outline-none focus-visible:ring-3 focus-visible:ring-ring/15",
-                active ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                active ? "text-primary-foreground" : "text-muted-foreground hover:bg-foreground/6 hover:text-foreground",
                 active && !hydrated && "bg-primary",
               )}
             >

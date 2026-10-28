@@ -32,7 +32,7 @@ export function PlanTable({ plans, canEdit }: { plans: PlanRow[]; canEdit: boole
   }
 
   return (
-    <Card className="py-0">
+    <Card>
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
