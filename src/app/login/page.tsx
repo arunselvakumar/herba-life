@@ -13,9 +13,9 @@ export const metadata: Metadata = {
 const COPYRIGHT_YEAR = 2026;
 
 const HIGHLIGHTS = [
-  "Distributor and member management",
-  "Order, inventory, and fulfilment tracking",
-  "Volume points and compensation insights",
+  "Member wellness records and follow-ups",
+  "Package enrolment and renewal tracking",
+  "Progress at a glance for every member",
 ] as const;
 
 export default function LoginPage() {

@@ -1,19 +1,12 @@
 import type { LucideIcon } from "lucide-react";
-import {
-  BarChart3Icon,
-  BoxesIcon,
-  LayoutDashboardIcon,
-  PackageIcon,
-  SettingsIcon,
-  UsersIcon,
-  WarehouseIcon,
-} from "lucide-react";
+import { LayoutDashboardIcon, PackageIcon, UserRoundPlusIcon, UsersRoundIcon } from "lucide-react";
 
 export type NavItem = {
   title: string;
   href: string;
   icon: LucideIcon;
-  badge?: string;
+  /** When set, the item is only active on an exact match (not on sub-routes). */
+  exact?: boolean;
 };
 
 export type NavGroup = {
@@ -27,31 +20,33 @@ export const navigation: readonly NavGroup[] = [
     items: [{ title: "Dashboard", href: "/dashboard", icon: LayoutDashboardIcon }],
   },
   {
-    label: "Operations",
+    label: "Members",
     items: [
-      { title: "Distributors", href: "/distributors", icon: UsersIcon },
-      { title: "Orders", href: "/orders", icon: PackageIcon, badge: "742" },
-      { title: "Products", href: "/products", icon: BoxesIcon },
-      { title: "Inventory", href: "/inventory", icon: WarehouseIcon },
+      { title: "All members", href: "/members", icon: UsersRoundIcon },
+      { title: "New member", href: "/members/new", icon: UserRoundPlusIcon, exact: true },
     ],
   },
   {
-    label: "Insights",
-    items: [{ title: "Reports", href: "/reports", icon: BarChart3Icon }],
-  },
-  {
-    label: "System",
-    items: [{ title: "Settings", href: "/settings", icon: SettingsIcon }],
+    label: "Catalog",
+    items: [{ title: "Packages", href: "/packages", icon: PackageIcon }],
   },
 ];
 
+export function isNavItemActive(item: NavItem, pathname: string): boolean {
+  if (pathname === item.href) return true;
+  if (item.exact) return false;
+  return pathname.startsWith(`${item.href}/`);
+}
+
 export function findNavItem(pathname: string): NavItem | undefined {
+  // Prefer the most specific match so "/members/new" wins over "/members".
+  let best: NavItem | undefined;
   for (const group of navigation) {
     for (const item of group.items) {
-      if (pathname === item.href || pathname.startsWith(`${item.href}/`)) {
-        return item;
+      if (isNavItemActive(item, pathname) && (!best || item.href.length > best.href.length)) {
+        best = item;
       }
     }
   }
-  return undefined;
+  return best;
 }

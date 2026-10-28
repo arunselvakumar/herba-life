@@ -9,7 +9,7 @@ import {
   SidebarRail,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { NavMain } from "./nav-main";
+import { NavList, NavMain } from "./nav-main";
 import { SidebarUser, SidebarUserSkeleton } from "./sidebar-user";
 
 export function AppSidebar() {
@@ -34,7 +34,9 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarSeparator className="mx-0 bg-sidebar-border" />
       <SidebarContent>
-        <NavMain />
+        <Suspense fallback={<NavList activeHref={null} />}>
+          <NavMain />
+        </Suspense>
       </SidebarContent>
       <SidebarFooter>
         <Suspense fallback={<SidebarUserSkeleton />}>

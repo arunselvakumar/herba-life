@@ -1,40 +1,40 @@
-import { ArrowDownRightIcon, ArrowUpRightIcon, MinusIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Stat } from "@/lib/dashboard-data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-const trendStyles = {
-  up: { icon: ArrowUpRightIcon, className: "bg-brand-100 text-brand-700" },
-  down: { icon: ArrowDownRightIcon, className: "bg-destructive/10 text-destructive" },
-  flat: { icon: MinusIcon, className: "bg-muted text-muted-foreground" },
+export type Stat = {
+  id: string;
+  label: string;
+  value: string | number;
+  hint: string;
+  icon: LucideIcon;
+  tone?: "default" | "warning" | "brand";
+};
+
+const tones = {
+  default: "bg-muted text-muted-foreground",
+  brand: "bg-brand-100 text-brand-700",
+  warning: "bg-warning/20 text-amber-800",
 } as const;
 
 export function StatCard({ stat }: { stat: Stat }) {
-  const trend = trendStyles[stat.trend];
-  const TrendIcon = trend.icon;
-
+  const Icon = stat.icon;
   return (
     <Card className="ring-stone/80">
-      <CardHeader>
-        <CardDescription className="text-eyebrow text-[0.65rem] text-muted-foreground">
-          {stat.label}
-        </CardDescription>
-        <CardTitle className="font-heading text-3xl font-extrabold tracking-tight">
-          {stat.value}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold",
-            trend.className,
-          )}
-        >
-          <TrendIcon className="size-3" />
-          {stat.delta}
+      <CardHeader className="grid-cols-[1fr_auto]">
+        <div className="space-y-1">
+          <CardDescription className="text-eyebrow text-[0.65rem] text-muted-foreground">
+            {stat.label}
+          </CardDescription>
+          <CardTitle className="font-heading text-3xl font-extrabold tracking-tight tabular-nums">
+            {stat.value}
+          </CardTitle>
+        </div>
+        <span className={cn("flex size-9 items-center justify-center rounded-full", tones[stat.tone ?? "default"])}>
+          <Icon className="size-4" />
         </span>
-        <span>{stat.hint}</span>
-      </CardContent>
+      </CardHeader>
+      <CardContent className="text-xs text-muted-foreground">{stat.hint}</CardContent>
     </Card>
   );
 }

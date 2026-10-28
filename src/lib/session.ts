@@ -38,3 +38,31 @@ export async function getCurrentUser(): Promise<CurrentUser> {
     role: user.role ?? "staff",
   };
 }
+
+/**
+ * Uncached session check for Server Actions. Actions run outside the render
+ * tree, so they cannot use the private-cached `getCurrentUser()`.
+ */
+export async function requireUser(): Promise<CurrentUser> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) {
+    redirect("/login");
+  }
+  const { user } = session;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    image: user.image ?? null,
+    role: user.role ?? "staff",
+  };
+}
+
+/** Server Actions that change shared configuration (e.g. the package catalog). */
+export async function requireAdmin(): Promise<CurrentUser> {
+  const user = await requireUser();
+  if (user.role !== "admin") {
+    throw new Error("Only administrators can do this.");
+  }
+  return user;
+}

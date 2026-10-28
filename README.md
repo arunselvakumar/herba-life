@@ -1,8 +1,40 @@
 # Herbalife Internal
 
-Internal management tool for Herbalife. Next.js 16 (App Router, Cache
-Components), Better Auth, Drizzle ORM on Postgres, shadcn/ui styled with the
-Herbalife design system, Storybook, and Playwright.
+Internal management tool for a Herbalife nutrition centre. Next.js 16 (App
+Router, Cache Components), Better Auth, Drizzle ORM on Postgres, shadcn/ui
+styled with the Herbalife design system, Storybook, and Playwright.
+
+## Modules
+
+### Member management
+
+The digital version of the branch's paper **Wellness Record** and **Follow Up
+Record**:
+
+- **Members** (`/members`) – searchable list with the current package state and
+  last follow-up. Filters: on a package, follow-up due, ending soon, no package.
+- **Enrolment** (`/members/new`) – personal details, eating habits, health
+  conditions, baseline measurements and an optional starting package, all on
+  one form like the paper sheet.
+- **Profile** (`/members/[id]`) – current readings against the reference
+  ranges printed on the record, a follow-up entry form, weight trend, the full
+  follow-up grid (weight, fat %, BMI, VF, BMR, body age, MM %, waist), and the
+  member's packages.
+- **Packages** (`/packages`) – the catalog of programmes the branch sells:
+  name, duration in days, price. Administrators create, edit, archive or delete
+  them. Enrolment copies the plan's name, duration and price onto the member's
+  record, so catalog edits never rewrite history.
+- **Enrolment** – a member is enrolled in a catalog package from their join
+  date (editable), with optional extra days and an advance paid. The last
+  covered day is `start + duration + extra - 1`; days left count down from
+  today. Enrolments can be completed, cancelled, reopened or deleted.
+- **Dashboard** – member and package counts, follow-ups due (on a package but
+  not measured in 30 days), packages ending within 14 days, recent follow-ups.
+
+Code lives in `src/db/members-schema.ts` (tables), `src/lib/members/` and
+`src/lib/packages/` (validation, queries, server actions, helpers),
+`src/components/members/`, `src/components/packages/`, `src/app/(app)/members/`
+and `src/app/(app)/packages/`.
 
 ## Prerequisites
 
@@ -17,6 +49,7 @@ bun install
 cp .env.example .env         # then set BETTER_AUTH_SECRET (openssl rand -base64 32)
 bun run db:migrate           # creates the auth tables
 bun run db:seed              # creates the local admin account
+bun run db:seed:demo         # optional: four packages and six sample members with follow-ups
 bun run dev                  # http://localhost:3000
 ```
 
@@ -49,6 +82,7 @@ docker exec white-board-v3-postgres-1 psql -U whiteboard -d postgres -c "CREATE 
 | `bun run db:push`     | Push schema directly (prototyping only)       |
 | `bun run db:studio`   | Open Drizzle Studio                           |
 | `bun run db:seed`     | Seed local accounts                           |
+| `bun run db:seed:demo` | Insert sample members (local development only) |
 
 When Better Auth options change (plugins, additional fields), regenerate the
 auth tables with:
@@ -92,7 +126,7 @@ are taken from herbalife.com.
 
 - `src/lib/auth.ts` – Better Auth server instance (Drizzle adapter, email +
   password, sign-up disabled, `role` field on users).
-- `src/lib/auth-client.ts` – React client.
+- `src/lib/auth-member.ts` – React member.
 - `src/app/api/auth/[...all]/route.ts` – auth API routes.
 - `src/proxy.ts` – optimistic cookie check that redirects anonymous visitors
   to `/login`.
