@@ -17,7 +17,7 @@ export function CheckinHistory({ member }: { member: MemberDetail }) {
   const rows = member.checkins; // newest first
 
   return (
-    <Card className="ring-stone/80">
+    <Card>
       <CardHeader>
         <CardTitle className="text-base font-bold">Follow-up record</CardTitle>
         <CardDescription>
@@ -26,7 +26,7 @@ export function CheckinHistory({ member }: { member: MemberDetail }) {
       </CardHeader>
       <CardContent className="px-0">
         {rows.length === 0 ? (
-          <p className="mx-4 rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+          <p className="mx-4 rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
             Use the form above to record the first visit.
           </p>
         ) : (

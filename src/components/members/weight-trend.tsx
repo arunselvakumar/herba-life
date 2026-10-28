@@ -18,7 +18,7 @@ export function WeightTrend({ checkins }: { checkins: readonly Point[] }) {
   const change = first && last && points.length > 1 ? Math.round((last.weightKg - first.weightKg) * 10) / 10 : null;
 
   return (
-    <Card className="ring-stone/80">
+    <Card>
       <CardHeader>
         <CardTitle className="text-base font-bold">Weight trend</CardTitle>
         <CardDescription>
@@ -29,7 +29,7 @@ export function WeightTrend({ checkins }: { checkins: readonly Point[] }) {
       </CardHeader>
       <CardContent>
         {points.length < 2 ? (
-          <div className="flex h-40 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+          <div className="flex h-40 items-center justify-center rounded-xl border border-dashed text-sm text-muted-foreground">
             Not enough data yet
           </div>
         ) : (
@@ -78,11 +78,11 @@ function Chart({ points }: { points: { recordedOn: string; weightKg: number }[] 
           </text>
         </g>
       ))}
-      <path d={area} className="fill-brand-200/50" />
-      <path d={path} fill="none" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" className="stroke-brand-600" />
+      <path d={area} className="fill-accent-strong/20" />
+      <path d={path} fill="none" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" className="stroke-foreground" />
       {points.map((p, i) => (
         <g key={p.recordedOn + i}>
-          <circle cx={x(i)} cy={y(p.weightKg)} r={4} className="fill-card stroke-brand-600" strokeWidth={2} />
+          <circle cx={x(i)} cy={y(p.weightKg)} r={4} className="fill-card stroke-foreground" strokeWidth={2} />
           {i % labelEvery === 0 || i === points.length - 1 ? (
             <text x={x(i)} y={height - 8} textAnchor="middle" className="fill-muted-foreground text-[11px] font-medium">
               {formatDay(p.recordedOn).replace(/ \d{4}$/, "")}

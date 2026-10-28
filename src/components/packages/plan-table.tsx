@@ -12,9 +12,9 @@ import type { PlanRow } from "@/lib/packages/queries";
 export function PlanTable({ plans, canEdit }: { plans: PlanRow[]; canEdit: boolean }) {
   if (plans.length === 0) {
     return (
-      <Card className="ring-stone/80">
+      <Card>
         <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-          <span className="flex size-12 items-center justify-center rounded-full bg-brand-100 text-brand-700">
+          <span className="flex size-12 items-center justify-center rounded-full bg-muted text-foreground">
             <PackageIcon className="size-6" />
           </span>
           <p className="font-semibold">No packages yet</p>
@@ -32,7 +32,7 @@ export function PlanTable({ plans, canEdit }: { plans: PlanRow[]; canEdit: boole
   }
 
   return (
-    <Card className="ring-stone/80 py-0">
+    <Card className="py-0">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">

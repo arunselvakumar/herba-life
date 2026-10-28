@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 const TONE: Record<Period, string> = {
   morning: "bg-amber-100 text-amber-900",
   afternoon: "bg-teal-100 text-teal-900",
-  evening: "bg-brand-800 text-white",
+  evening: "bg-primary text-primary-foreground",
 };
 
 export function PeriodBadge({ period, className }: { period: Period; className?: string }) {

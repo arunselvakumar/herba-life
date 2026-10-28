@@ -23,7 +23,7 @@ export function KioskResult({
     result.status === "checked_in"
       ? "bg-brand-600 text-white"
       : result.status === "already"
-        ? "bg-brand-800 text-white"
+        ? "bg-primary text-primary-foreground"
         : "bg-destructive text-white";
 
   return (
@@ -52,7 +52,7 @@ export function KioskResult({
 
       {result.status === "checked_in" ? (
         <>
-          <h2 className="font-heading text-5xl font-extrabold tracking-tight md:text-7xl">Welcome, {result.firstName}!</h2>
+          <h2 className="font-heading text-5xl font-bold tracking-tight md:text-7xl">Welcome, {result.firstName}!</h2>
           <p className="text-2xl font-medium text-white/90 md:text-3xl">
             Checked in at {result.time}
             <span className="mx-3 text-white/50">·</span>
@@ -63,13 +63,13 @@ export function KioskResult({
         </>
       ) : result.status === "already" ? (
         <>
-          <h2 className="font-heading text-5xl font-extrabold tracking-tight md:text-7xl">You&rsquo;re already in, {result.firstName}</h2>
+          <h2 className="font-heading text-5xl font-bold tracking-tight md:text-7xl">You&rsquo;re already in, {result.firstName}</h2>
           <p className="text-2xl font-medium text-white/90 md:text-3xl">Checked in at {result.time} today. Nothing more to do.</p>
           <p className="mt-2 text-base text-white/60">Coming back later today? Check in again then.</p>
         </>
       ) : (
         <>
-          <h2 className="font-heading text-4xl font-extrabold tracking-tight md:text-6xl">Something went wrong</h2>
+          <h2 className="font-heading text-4xl font-bold tracking-tight md:text-6xl">Something went wrong</h2>
           <p className="max-w-xl text-2xl font-medium text-white/90">{result.message}</p>
           <p className="mt-2 text-base text-white/70">Please tell a staff member and they will mark you present.</p>
         </>

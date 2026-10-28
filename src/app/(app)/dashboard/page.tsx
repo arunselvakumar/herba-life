@@ -18,6 +18,9 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatCard, type Stat } from "@/components/dashboard/stat-card";
+import { StatGrid } from "@/components/dashboard/stat-grid";
+import { GhostTitle } from "@/components/motion/ghost-title";
+import { Reveal } from "@/components/motion/reveal";
 import { FollowUpDue, InquiryStatusBadge } from "@/components/inquiries/inquiry-badges";
 import { PackageBadge } from "@/components/members/package-badge";
 import { sourceLabel } from "@/lib/inquiries/format";
@@ -48,9 +51,9 @@ async function Greeting() {
   const greeting = greetingFor(new Date().getHours());
 
   return (
-    <div className="space-y-1">
-      <p className="text-eyebrow text-brand-600">Overview</p>
-      <h1 className="font-heading text-3xl font-extrabold tracking-tight md:text-4xl">
+    <div className="relative z-10 space-y-1.5">
+      <p className="text-eyebrow">Overview</p>
+      <h1 className="font-heading text-3xl font-semibold tracking-[-0.03em] md:text-[2.5rem] md:leading-[1.1]">
         {greeting}, {firstName}.
       </h1>
       <p className="text-sm text-muted-foreground">Here is how your members are doing today.</p>
@@ -71,11 +74,12 @@ function GreetingSkeleton() {
 export default function DashboardPage() {
   return (
     <>
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <Reveal className="relative isolate -mx-4 -my-8 flex flex-col gap-4 overflow-hidden px-4 py-8 md:-mx-8 md:flex-row md:items-end md:justify-between md:px-8">
+        <GhostTitle text="Dashboard" className="left-4 md:left-8" />
         <Suspense fallback={<GreetingSkeleton />}>
           <Greeting />
         </Suspense>
-        <div className="flex gap-2">
+        <div className="relative z-10 flex gap-2">
           <Button asChild variant="outline" size="lg">
             <Link href="/members">
               <UsersRoundIcon data-icon="inline-start" />
@@ -89,7 +93,7 @@ export default function DashboardPage() {
             </Link>
           </Button>
         </div>
-      </div>
+      </Reveal>
 
       <Suspense fallback={<OverviewSkeleton />}>
         <Overview />
@@ -112,6 +116,7 @@ async function Overview() {
       hint: `${data.newMembersThisMonth} joined in ${month}`,
       icon: UsersRoundIcon,
       tone: "brand",
+      href: "/members",
     },
     {
       id: "active",
@@ -120,6 +125,12 @@ async function Overview() {
       hint: "running today",
       icon: PackageCheckIcon,
       tone: "brand",
+      href: "/members?filter=active",
+      progress: {
+        value: data.totalMembers > 0 ? data.activePackages / data.totalMembers : 0,
+        tone: "ink",
+        label: "Share of members on a package",
+      },
     },
     {
       id: "expiring",
@@ -128,6 +139,12 @@ async function Overview() {
       hint: `within the next ${EXPIRING_SOON_DAYS} days`,
       icon: HourglassIcon,
       tone: data.expiringSoon > 0 ? "warning" : "default",
+      href: "/members?filter=expiring",
+      progress: {
+        value: data.activePackages > 0 ? data.expiringSoon / data.activePackages : 0,
+        tone: "leaf",
+        label: "Share of active packages ending soon",
+      },
     },
     {
       id: "checkins",
@@ -135,14 +152,16 @@ async function Overview() {
       value: data.checkinsThisMonth,
       hint: `recorded in ${month}`,
       icon: ClipboardListIcon,
+      href: "/members?filter=due",
     },
     {
       id: "inquiries",
-      label: "Open inquiries",
+      label: "Open enquiries",
       value: inquiries.open,
       hint: inquiries.due > 0 ? `${inquiries.due} to follow up today` : `${inquiries.convertedThisMonth} converted in ${month}`,
       icon: MessageSquareMoreIcon,
       tone: inquiries.due > 0 ? "warning" : "default",
+      href: "/inquiries",
     },
     {
       id: "attendance",
@@ -151,24 +170,25 @@ async function Overview() {
       hint: `${attendanceToday.members} member${attendanceToday.members === 1 ? "" : "s"} came in`,
       icon: CalendarCheckIcon,
       tone: "brand",
+      href: "/attendance",
     },
   ];
 
   return (
     <>
-      <section aria-label="Key metrics" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <StatGrid aria-label="Key metrics" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {stats.map((stat) => (
           <StatCard key={stat.id} stat={stat} />
         ))}
-      </section>
+      </StatGrid>
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        <Card className="ring-stone/80">
+      <Reveal delay={0.15} className="grid gap-4 xl:grid-cols-2">
+        <Card data-reveal>
           <CardHeader>
-            <CardTitle className="text-lg font-bold">Follow-up due</CardTitle>
+            <CardTitle className="text-lg font-semibold">Follow-up due</CardTitle>
             <CardDescription>On a package, but not measured in the last {FOLLOW_UP_INTERVAL_DAYS} days</CardDescription>
             <CardAction>
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="secondary" size="sm">
                 <Link href={{ pathname: "/members", query: { filter: "due" } }}>View all</Link>
               </Button>
             </CardAction>
@@ -205,12 +225,12 @@ async function Overview() {
           </CardContent>
         </Card>
 
-        <Card className="ring-stone/80">
+        <Card data-reveal>
           <CardHeader>
-            <CardTitle className="text-lg font-bold">Packages ending soon</CardTitle>
+            <CardTitle className="text-lg font-semibold">Packages ending soon</CardTitle>
             <CardDescription>Time to talk about renewals</CardDescription>
             <CardAction>
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="secondary" size="sm">
                 <Link href={{ pathname: "/members", query: { filter: "expiring" } }}>View all</Link>
               </Button>
             </CardAction>
@@ -257,22 +277,22 @@ async function Overview() {
             )}
           </CardContent>
         </Card>
-      </section>
+      </Reveal>
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        <Card className="ring-stone/80">
+      <Reveal delay={0.25} className="grid gap-4 xl:grid-cols-2">
+        <Card data-reveal>
           <CardHeader>
-            <CardTitle className="text-lg font-bold">Inquiries to follow up</CardTitle>
+            <CardTitle className="text-lg font-semibold">Enquiries to follow up</CardTitle>
             <CardDescription>Due today or overdue, plus new ones nobody has called yet</CardDescription>
             <CardAction>
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="secondary" size="sm">
                 <Link href={{ pathname: "/inquiries", query: { filter: "due" } }}>View all</Link>
               </Button>
             </CardAction>
           </CardHeader>
           <CardContent className="px-0">
             {inquiries.dueList.length === 0 ? (
-              <EmptyRow>Nothing due. Every open inquiry has a future follow-up.</EmptyRow>
+              <EmptyRow>Nothing due. Every open enquiry has a future follow-up.</EmptyRow>
             ) : (
               <Table>
                 <TableHeader>
@@ -305,28 +325,28 @@ async function Overview() {
           </CardContent>
         </Card>
 
-        <Card className="ring-stone/80">
+        <Card data-reveal>
           <CardHeader>
-            <CardTitle className="text-lg font-bold">Recent inquiries</CardTitle>
+            <CardTitle className="text-lg font-semibold">Recent enquiries</CardTitle>
             <CardDescription>
               {inquiries.newThisMonth} received in {month} · {inquiries.convertedThisMonth} converted
             </CardDescription>
             <CardAction>
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="secondary" size="sm">
                 <Link href="/inquiries">View all</Link>
               </Button>
             </CardAction>
           </CardHeader>
           <CardContent className="px-0">
             {inquiries.recent.length === 0 ? (
-              <EmptyRow>No open inquiries. Record one when someone asks about the programme.</EmptyRow>
+              <EmptyRow>No open enquiries. Record one when someone asks about the programme.</EmptyRow>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="pl-4">Person</TableHead>
                     <TableHead>Source</TableHead>
-                    <TableHead className="pr-4 text-right">Inquired</TableHead>
+                    <TableHead className="pr-4 text-right">Enquired</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -347,11 +367,12 @@ async function Overview() {
             )}
           </CardContent>
         </Card>
-      </section>
+      </Reveal>
 
-      <Card className="ring-stone/80">
+      <Reveal delay={0.35}>
+      <Card data-reveal>
         <CardHeader>
-          <CardTitle className="text-lg font-bold">Recent follow-ups</CardTitle>
+          <CardTitle className="text-lg font-semibold">Recent follow-ups</CardTitle>
           <CardDescription>Latest readings recorded across all members</CardDescription>
         </CardHeader>
         <CardContent className="px-0">
@@ -391,6 +412,7 @@ async function Overview() {
           )}
         </CardContent>
       </Card>
+      </Reveal>
     </>
   );
 }
@@ -402,14 +424,14 @@ function EmptyRow({ children }: { children: React.ReactNode }) {
 function OverviewSkeleton() {
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-32 rounded-xl" />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-40 rounded-3xl" />
         ))}
       </div>
       <div className="grid gap-4 xl:grid-cols-2">
-        <Skeleton className="h-64 rounded-xl" />
-        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-64 rounded-3xl" />
+        <Skeleton className="h-64 rounded-3xl" />
       </div>
     </>
   );

@@ -21,10 +21,10 @@ export async function AttendanceSummary({ memberId, today }: { memberId: string;
   const last = summary.last;
 
   return (
-    <Card className="ring-stone/80">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base font-bold">
-          <CalendarCheckIcon className="size-4 text-brand-600" />
+          <CalendarCheckIcon className="size-4 text-foreground" />
           Attendance
         </CardTitle>
         <CardDescription>
@@ -40,12 +40,12 @@ export async function AttendanceSummary({ memberId, today }: { memberId: string;
       <CardContent className="space-y-4">
         <dl className="grid grid-cols-2 gap-3">
           <div>
-            <dt className="text-eyebrow text-[0.6rem] text-muted-foreground">This month</dt>
-            <dd className="font-heading text-2xl font-extrabold tabular-nums">{summary.thisMonth}</dd>
+            <dt className="text-eyebrow">This month</dt>
+            <dd className="font-heading text-2xl font-semibold tabular-nums">{summary.thisMonth}</dd>
           </div>
           <div>
-            <dt className="text-eyebrow text-[0.6rem] text-muted-foreground">All time</dt>
-            <dd className="font-heading text-2xl font-extrabold tabular-nums">{summary.total}</dd>
+            <dt className="text-eyebrow">All time</dt>
+            <dd className="font-heading text-2xl font-semibold tabular-nums">{summary.total}</dd>
           </div>
         </dl>
         <div>
@@ -56,15 +56,15 @@ export async function AttendanceSummary({ memberId, today }: { memberId: string;
                 key={d.day}
                 title={`${formatDay(d.day)}: ${d.visits} visit${d.visits === 1 ? "" : "s"}`}
                 className={cn(
-                  "aspect-square rounded-sm",
-                  d.visits === 0 ? "bg-muted" : d.visits === 1 ? "bg-brand-400" : "bg-brand-600",
-                  d.day === today && "ring-2 ring-brand-500/40 ring-offset-1",
+                  "aspect-square rounded-[3px]",
+                  d.visits === 0 ? "bg-muted" : d.visits === 1 ? "bg-accent-strong" : "bg-foreground",
+                  d.day === today && "ring-2 ring-foreground/30 ring-offset-1",
                 )}
               />
             ))}
           </ol>
         </div>
-        <Link href={{ pathname: "/attendance", query: last ? { day: last.day } : {} }} className="text-xs font-medium text-brand-600 hover:underline">
+        <Link href={{ pathname: "/attendance", query: last ? { day: last.day } : {} }} className="text-xs font-medium text-foreground hover:underline">
           Open attendance
         </Link>
       </CardContent>

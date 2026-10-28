@@ -25,10 +25,10 @@ function revalidate(id?: string) {
   revalidatePath("/dashboard");
 }
 
-const GONE: FormState = { status: "error", message: "This inquiry no longer exists.", errors: {} };
+const GONE: FormState = { status: "error", message: "This enquiry no longer exists.", errors: {} };
 const CLOSED: FormState = {
   status: "error",
-  message: "This inquiry is closed. Reopen it to make changes.",
+  message: "This enquiry is closed. Reopen it to make changes.",
   errors: {},
 };
 
@@ -179,7 +179,7 @@ export async function reopenInquiry(inquiryId: string): Promise<void> {
   const currentUser = await requireUser();
   const id = assertId(inquiryId);
   const row = await db.query.inquiry.findFirst({ where: eq(inquiry.id, id), columns: { status: true } });
-  if (!row || row.status !== "lost") throw new Error("Only lost inquiries can be reopened.");
+  if (!row || row.status !== "lost") throw new Error("Only lost enquiries can be reopened.");
 
   await db.transaction(async (tx) => {
     await tx.update(inquiry).set({ status: "in_progress", closedAt: null }).where(eq(inquiry.id, id));
@@ -204,7 +204,7 @@ export async function convertInquiry(inquiryId: string, _prev: FormState, formDa
   const id = assertId(inquiryId);
   const existing = await openInquiry(id);
   if (!existing.ok) {
-    return existing.state === CLOSED ? { status: "error", message: "This inquiry is already closed.", errors: {} } : existing.state;
+    return existing.state === CLOSED ? { status: "error", message: "This enquiry is already closed.", errors: {} } : existing.state;
   }
 
   const parsed = intakeSchema.safeParse(formDataToObject(formData));
@@ -215,7 +215,7 @@ export async function convertInquiry(inquiryId: string, _prev: FormState, formDa
   if (plan && "status" in plan) return plan;
 
   const memberId = await db.transaction(async (tx) => {
-    const newId = await insertMember(tx, parsed.data, plan, currentUser.id, `Baseline from inquiry #${existing.row.serialNo}`);
+    const newId = await insertMember(tx, parsed.data, plan, currentUser.id, `Baseline from enquiry #${existing.row.serialNo}`);
     await tx
       .update(inquiry)
       .set({ status: "converted", convertedMemberId: newId, closedAt: new Date(), nextFollowUpOn: null })

@@ -29,8 +29,8 @@ export function DayNav({ day, today, range }: { day: string; today: string; rang
       <Button type="button" variant="outline" size="icon-lg" onClick={() => go(addDays(day, 1))} aria-label="Next day" disabled={day >= today}>
         <ChevronRightIcon />
       </Button>
-      <label className="relative flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-semibold">
-        <CalendarDaysIcon className="size-4 text-brand-600" />
+      <label className="relative flex h-9 items-center gap-2 rounded-xl border border-border bg-card px-3 text-sm font-semibold">
+        <CalendarDaysIcon className="size-4 text-foreground" />
         <span>{formatLongDate(day)}</span>
         {relative === "Today" || relative === "Yesterday" ? <span className="text-xs font-medium text-muted-foreground">{relative}</span> : null}
         <input

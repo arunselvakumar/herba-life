@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function EditMemberPage(props: PageProps<"/members/[id]/edit">) {
   return (
-    <Suspense fallback={<Skeleton className="h-[40rem] w-full rounded-xl" />}>
+    <Suspense fallback={<Skeleton className="h-[40rem] w-full rounded-3xl" />}>
       <EditMember params={props.params} />
     </Suspense>
   );

@@ -12,14 +12,14 @@ import { FollowUpDue, InquiryStatusBadge } from "./inquiry-badges";
 export function InquiryTable({ inquiries, today, emptyMessage }: { inquiries: InquiryListRow[]; today: string; emptyMessage: string }) {
   if (inquiries.length === 0) {
     return (
-      <Card className="ring-stone/80">
+      <Card>
         <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-          <span className="flex size-12 items-center justify-center rounded-full bg-brand-100 text-brand-700">
+          <span className="flex size-12 items-center justify-center rounded-full bg-muted text-foreground">
             <MessageSquarePlusIcon className="size-6" />
           </span>
           <p className="font-semibold">{emptyMessage}</p>
           <Button asChild variant="outline" size="sm">
-            <Link href="/inquiries/new">Record an inquiry</Link>
+            <Link href="/inquiries/new">Record an enquiry</Link>
           </Button>
         </CardContent>
       </Card>
@@ -27,7 +27,7 @@ export function InquiryTable({ inquiries, today, emptyMessage }: { inquiries: In
   }
 
   return (
-    <Card className="ring-stone/80 py-0">
+    <Card className="py-0">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
@@ -37,7 +37,7 @@ export function InquiryTable({ inquiries, today, emptyMessage }: { inquiries: In
             <TableHead className="hidden xl:table-cell">Looking for</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="hidden lg:table-cell">Next follow-up</TableHead>
-            <TableHead className="hidden sm:table-cell">Inquired</TableHead>
+            <TableHead className="hidden sm:table-cell">Enquired</TableHead>
             <TableHead className="w-10 pr-4" />
           </TableRow>
         </TableHeader>

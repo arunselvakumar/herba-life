@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { fullName, initials } from "@/lib/members/format";
 
-/** Initials in a brand-green circle; the kiosk and the attendance log use it to make names scannable. */
+/** Initials in a soft grey circle; the kiosk and the attendance log use it to make names scannable. */
 export function MemberAvatar({
   member,
   className,
@@ -13,7 +13,7 @@ export function MemberAvatar({
     <span
       aria-hidden
       className={cn(
-        "flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-100 font-heading text-sm font-extrabold text-brand-700",
+        "flex size-10 shrink-0 items-center justify-center rounded-full bg-stone/80 font-heading text-sm font-bold text-foreground",
         className,
       )}
     >

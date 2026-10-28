@@ -15,7 +15,7 @@ import { PeriodBadge } from "./period-badge";
 export function DayLog({ rows, day, today }: { rows: AttendanceRow[]; day: string; today: string }) {
   const label = relativeDay(day, today).toLowerCase();
   return (
-    <Card className="ring-stone/80">
+    <Card>
       <CardHeader>
         <CardTitle className="text-lg font-bold">Who came in {label === "today" || label === "yesterday" ? label : `on ${label}`}</CardTitle>
         <CardDescription>
@@ -24,7 +24,7 @@ export function DayLog({ rows, day, today }: { rows: AttendanceRow[]; day: strin
       </CardHeader>
       <CardContent className="px-0">
         {rows.length === 0 ? (
-          <p className="mx-4 rounded-lg border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
+          <p className="mx-4 rounded-xl border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
             Nothing yet. Members check themselves in from Attendance Mode, or use “Record a visit”.
           </p>
         ) : (

@@ -43,7 +43,7 @@ export function ActivityForm({
         ) : null}
         {state.status === "success" ? (
           <Alert className="border-brand-200 bg-brand-50 text-brand-800">
-            <CircleCheckIcon className="text-brand-600" />
+            <CircleCheckIcon className="text-foreground" />
             <AlertDescription className="text-brand-800">{state.message}</AlertDescription>
           </Alert>
         ) : null}

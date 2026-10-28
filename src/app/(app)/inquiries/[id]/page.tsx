@@ -42,7 +42,7 @@ import { UUID_RE } from "@/lib/members/form-defaults";
 import { displayAge, formatMoney, formatNumber, fullName, rangeVerdict } from "@/lib/members/format";
 
 export const metadata: Metadata = {
-  title: "Inquiry",
+  title: "Enquiry",
 };
 
 export default function InquiryPage(props: PageProps<"/inquiries/[id]">) {
@@ -70,7 +70,8 @@ async function InquiryDetailView({ params }: { params: PageProps<"/inquiries/[id
   return (
     <>
       <PageHeader
-        eyebrow={`Inquiry #${inquiry.serialNo}`}
+        eyebrow={`Enquiry #${inquiry.serialNo}`}
+        ghost={name}
         title={
           <span className="flex flex-wrap items-center gap-3">
             {name}
@@ -135,10 +136,10 @@ async function InquiryDetailView({ params }: { params: PageProps<"/inquiries/[id
               title={`Delete ${name}?`}
               description={
                 inquiry.convertedMember
-                  ? "This removes the inquiry and its follow-up log. The member record stays."
-                  : "This permanently removes the inquiry and its follow-up log."
+                  ? "This removes the enquiry and its follow-up log. The member record stays."
+                  : "This permanently removes the enquiry and its follow-up log."
               }
-              confirmLabel="Delete inquiry"
+              confirmLabel="Delete enquiry"
               destructive
               variant="outline"
               size="lg"
@@ -153,7 +154,7 @@ async function InquiryDetailView({ params }: { params: PageProps<"/inquiries/[id
 
       {inquiry.status === "converted" ? (
         <Alert className="border-brand-200 bg-brand-50 text-brand-900">
-          <UserRoundCheckIcon className="text-brand-600" />
+          <UserRoundCheckIcon className="text-foreground" />
           <AlertTitle>Converted to a member{inquiry.closedAt ? ` on ${formatDay(toDay(inquiry.closedAt))}` : ""}</AlertTitle>
           <AlertDescription className="text-brand-800">
             {inquiry.convertedMember ? (
@@ -197,29 +198,29 @@ async function InquiryDetailView({ params }: { params: PageProps<"/inquiries/[id
       ) : null}
 
       <section aria-label="Status" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Card className="ring-stone/80">
+        <Card>
           <CardHeader>
-            <CardDescription className="text-eyebrow text-[0.65rem]">Next follow-up</CardDescription>
+            <CardDescription className="text-eyebrow">Next follow-up</CardDescription>
             <CardTitle className="text-lg font-bold">
               {open ? <FollowUpDue nextFollowUpOn={inquiry.nextFollowUpOn} today={now} className="text-lg" /> : "—"}
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">
-            {open ? "Log a follow-up below to move it." : "Closed inquiries have no reminders."}
+            {open ? "Log a follow-up below to move it." : "Closed enquiries have no reminders."}
           </CardContent>
         </Card>
-        <Card className="ring-stone/80">
+        <Card>
           <CardHeader>
-            <CardDescription className="text-eyebrow text-[0.65rem]">Assigned to</CardDescription>
+            <CardDescription className="text-eyebrow">Assigned to</CardDescription>
             <CardTitle className="text-lg font-bold">{inquiry.assignedUser?.name ?? "Unassigned"}</CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">
             Recorded by {inquiry.createdByUser?.name ?? "—"}
           </CardContent>
         </Card>
-        <Card className="ring-stone/80">
+        <Card>
           <CardHeader>
-            <CardDescription className="text-eyebrow text-[0.65rem]">Interested in</CardDescription>
+            <CardDescription className="text-eyebrow">Interested in</CardDescription>
             <CardTitle className="text-lg font-bold">{inquiry.interestedPlan?.name ?? "Not decided"}</CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">
@@ -228,10 +229,10 @@ async function InquiryDetailView({ params }: { params: PageProps<"/inquiries/[id
               : "No package picked yet."}
           </CardContent>
         </Card>
-        <Card className="ring-stone/80">
+        <Card>
           <CardHeader>
-            <CardDescription className="text-eyebrow text-[0.65rem]">Follow-ups</CardDescription>
-            <CardTitle className="font-heading text-2xl font-extrabold tracking-tight tabular-nums">
+            <CardDescription className="text-eyebrow">Follow-ups</CardDescription>
+            <CardTitle className="font-heading text-2xl font-semibold tracking-tight tabular-nums">
               {inquiry.activities.filter((a) => a.type !== "status").length}
             </CardTitle>
           </CardHeader>
@@ -253,7 +254,7 @@ async function InquiryDetailView({ params }: { params: PageProps<"/inquiries/[id
           <HealthCard inquiry={inquiry} />
           <EatingHabitsCard inquiry={inquiry} />
           {inquiry.remarks ? (
-            <Card className="ring-stone/80">
+            <Card>
               <CardHeader>
                 <CardTitle className="text-base font-bold">Remarks</CardTitle>
               </CardHeader>
@@ -286,10 +287,10 @@ function DetailRow({ label, value }: { label: string; value: string | number | n
 function GoalsCard({ inquiry }: { inquiry: InquiryDetail }) {
   const goals = goalLabels(inquiry.goals);
   return (
-    <Card className="ring-stone/80">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base font-bold">
-          <TargetIcon className="size-4 text-brand-600" />
+          <TargetIcon className="size-4 text-foreground" />
           What they want
         </CardTitle>
       </CardHeader>
@@ -312,10 +313,10 @@ function GoalsCard({ inquiry }: { inquiry: InquiryDetail }) {
 
 function ContactCard({ inquiry }: { inquiry: InquiryDetail }) {
   return (
-    <Card className="ring-stone/80">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base font-bold">
-          <UserRoundIcon className="size-4 text-brand-600" />
+          <UserRoundIcon className="size-4 text-foreground" />
           Contact
         </CardTitle>
       </CardHeader>
@@ -363,10 +364,10 @@ function ContactCard({ inquiry }: { inquiry: InquiryDetail }) {
 function ReadingsCard({ inquiry }: { inquiry: InquiryDetail }) {
   const hasAny = inquiry.heightCm !== null || MEASUREMENTS.some((m) => inquiry[m.key] !== null);
   return (
-    <Card className="ring-stone/80">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base font-bold">
-          <ScaleIcon className="size-4 text-brand-600" />
+          <ScaleIcon className="size-4 text-foreground" />
           Free check readings
         </CardTitle>
         <CardDescription>Becomes the baseline follow-up when they join.</CardDescription>
@@ -377,12 +378,12 @@ function ReadingsCard({ inquiry }: { inquiry: InquiryDetail }) {
         ) : (
           <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
             <div>
-              <dt className="text-eyebrow text-[0.65rem] text-muted-foreground">Height</dt>
+              <dt className="text-eyebrow">Height</dt>
               <dd className="text-lg font-semibold tabular-nums">{inquiry.heightCm !== null ? `${formatNumber(inquiry.heightCm)} cm` : "—"}</dd>
             </div>
             {MEASUREMENTS.map((m) => (
               <div key={m.key}>
-                <dt className="text-eyebrow text-[0.65rem] text-muted-foreground">{m.label}</dt>
+                <dt className="text-eyebrow">{m.label}</dt>
                 <dd className="text-lg font-semibold">
                   <MeasurementValue
                     value={inquiry[m.key]}
@@ -411,10 +412,10 @@ function HealthCard({ inquiry }: { inquiry: InquiryDetail }) {
   const empty = conditions.length === 0 && symptoms.length === 0 && !inquiry.medicines && !inquiry.healthNotes;
 
   return (
-    <Card className="ring-stone/80">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base font-bold">
-          <HeartPulseIcon className="size-4 text-brand-600" />
+          <HeartPulseIcon className="size-4 text-foreground" />
           Health condition
         </CardTitle>
       </CardHeader>
@@ -462,10 +463,10 @@ function EatingHabitsCard({ inquiry }: { inquiry: InquiryDetail }) {
   ];
   const empty = rows.every(([, v]) => !v);
   return (
-    <Card className="ring-stone/80">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base font-bold">
-          <UtensilsIcon className="size-4 text-brand-600" />
+          <UtensilsIcon className="size-4 text-foreground" />
           Eating habits
         </CardTitle>
       </CardHeader>
@@ -498,8 +499,8 @@ function DetailSkeleton() {
         ))}
       </div>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(20rem,1fr)]">
-        <Skeleton className="h-96 rounded-xl" />
-        <Skeleton className="h-96 rounded-xl" />
+        <Skeleton className="h-96 rounded-3xl" />
+        <Skeleton className="h-96 rounded-3xl" />
       </div>
     </>
   );

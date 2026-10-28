@@ -45,7 +45,7 @@ export function MarkLostDialog({ action, name }: { action: FormAction; name: str
           <DialogHeader>
             <DialogTitle>Mark {name} as lost?</DialogTitle>
             <DialogDescription>
-              The inquiry stays on record and can be reopened later. Say briefly why they did not join.
+              The enquiry stays on record and can be reopened later. Say briefly why they did not join.
             </DialogDescription>
           </DialogHeader>
           {state.status === "error" && !errors.lostReason ? (

@@ -13,8 +13,8 @@ async function signIn(page: Page) {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
-test.describe("inquiries", () => {
-  test("records an inquiry, logs a follow-up, converts it to a member, then cleans up", async ({ page }) => {
+test.describe("enquiries", () => {
+  test("records an enquiry, logs a follow-up, converts it to a member, then cleans up", async ({ page }) => {
     await signIn(page);
 
     const stamp = Date.now().toString().slice(-6);
@@ -32,7 +32,7 @@ test.describe("inquiries", () => {
     await page.getByLabel("Goal notes").fill("Wants to lose 5 kg");
     await page.getByLabel("Height").fill("158");
     await page.getByLabel("Weight", { exact: true }).fill("68.5");
-    await page.getByRole("button", { name: "Save inquiry" }).click();
+    await page.getByRole("button", { name: "Save enquiry" }).click();
 
     await expect(page).toHaveURL(/\/inquiries\/[0-9a-f-]{36}$/);
     await expect(page.getByRole("heading", { name: `${firstName} Prospect` })).toBeVisible();
@@ -70,8 +70,8 @@ test.describe("inquiries", () => {
 
     await expect(page).toHaveURL(/\/members\/[0-9a-f-]{36}$/);
     await expect(page.getByRole("heading", { name: `${firstName} Prospect` })).toBeVisible();
-    await expect(page.getByText("Baseline from inquiry")).toBeVisible();
-    await expect(page.getByRole("link", { name: /Inquiry #\d+/ })).toBeVisible();
+    await expect(page.getByText("Baseline from enquiry")).toBeVisible();
+    await expect(page.getByRole("link", { name: /Enquiry #\d+/ })).toBeVisible();
 
     // The inquiry is now converted and links to the member.
     await page.goto(inquiryUrl);
@@ -88,18 +88,18 @@ test.describe("inquiries", () => {
     await page.goto(inquiryUrl);
     await expect(page.getByText("The member record has since been deleted.")).toBeVisible();
     await page.getByRole("button", { name: "Delete" }).first().click();
-    await page.getByRole("button", { name: "Delete inquiry" }).click();
+    await page.getByRole("button", { name: "Delete enquiry" }).click();
     await expect(page).toHaveURL(/\/inquiries$/);
   });
 
-  test("requires a reason to mark an inquiry lost, then allows reopening", async ({ page }) => {
+  test("requires a reason to mark an enquiry lost, then allows reopening", async ({ page }) => {
     await signIn(page);
     const stamp = Date.now().toString().slice(-6);
     const firstName = `Lost${stamp}`;
 
     await page.goto("/inquiries/new");
     await page.getByLabel("First name").fill(firstName);
-    await page.getByRole("button", { name: "Save inquiry" }).click();
+    await page.getByRole("button", { name: "Save enquiry" }).click();
     await expect(page).toHaveURL(/\/inquiries\/[0-9a-f-]{36}$/);
 
     await page.getByRole("button", { name: "Mark lost" }).click();
@@ -115,14 +115,14 @@ test.describe("inquiries", () => {
     await expect(page.getByText("In progress").first()).toBeVisible();
 
     await page.getByRole("button", { name: "Delete" }).first().click();
-    await page.getByRole("button", { name: "Delete inquiry" }).click();
+    await page.getByRole("button", { name: "Delete enquiry" }).click();
     await expect(page).toHaveURL(/\/inquiries$/);
   });
 
-  test("shows a validation error instead of saving an empty inquiry", async ({ page }) => {
+  test("shows a validation error instead of saving an empty enquiry", async ({ page }) => {
     await signIn(page);
     await page.goto("/inquiries/new");
-    await page.getByRole("button", { name: "Save inquiry" }).click();
+    await page.getByRole("button", { name: "Save enquiry" }).click();
     await expect(page.getByText("First name is required")).toBeVisible();
     await expect(page).toHaveURL(/\/inquiries\/new$/);
   });

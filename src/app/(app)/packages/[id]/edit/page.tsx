@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function EditPackagePage(props: PageProps<"/packages/[id]/edit">) {
   return (
-    <Suspense fallback={<Skeleton className="h-72 w-full rounded-xl" />}>
+    <Suspense fallback={<Skeleton className="h-72 w-full rounded-3xl" />}>
       <EditPlan params={props.params} />
     </Suspense>
   );

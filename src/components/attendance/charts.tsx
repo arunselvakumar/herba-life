@@ -58,15 +58,15 @@ function BarChart({
               width={barW}
               height={h}
               rx={Math.min(4, barW / 2)}
-              className={cn(b.selected ? "fill-brand-500" : "fill-brand-600", b.value === 0 && "fill-transparent")}
+              className={cn(b.selected ? "fill-brand-700" : "fill-foreground", b.value === 0 && "fill-transparent")}
             />
-            {sh > 0 ? <rect x={x} y={y(b.secondary ?? 0)} width={barW} height={sh} rx={Math.min(4, barW / 2)} className="fill-brand-200" /> : null}
+            {sh > 0 ? <rect x={x} y={y(b.secondary ?? 0)} width={barW} height={sh} rx={Math.min(4, barW / 2)} className="fill-accent-strong" /> : null}
             {i % labelEvery === 0 || i === bars.length - 1 ? (
               <text
                 x={x + barW / 2}
                 y={height - 8}
                 textAnchor="middle"
-                className={cn("text-[11px] font-medium", b.selected ? "fill-brand-700" : "fill-muted-foreground")}
+                className={cn("text-[11px] font-medium", b.selected ? "fill-foreground" : "fill-muted-foreground")}
               >
                 {b.label}
               </text>
@@ -102,10 +102,10 @@ export function VisitsChart({ series, unit, selectedKey }: { series: SeriesPoint
       <BarChart bars={bars} labelEvery={labelEvery} ariaLabel="Bar chart of check-ins over time" showSecondary />
       <p className="flex items-center gap-4 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block size-2.5 rounded-sm bg-brand-600" /> Check-ins
+          <span className="inline-block size-2.5 rounded-[3px] bg-foreground" /> Check-ins
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block size-2.5 rounded-sm bg-brand-200" /> Members (unique)
+          <span className="inline-block size-2.5 rounded-[3px] bg-accent-strong" /> Members (unique)
         </span>
       </p>
     </div>

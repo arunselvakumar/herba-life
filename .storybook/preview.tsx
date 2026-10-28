@@ -13,7 +13,7 @@ const preview: Preview = {
       options: {
         linen: { name: "Linen", value: "#f9f8f4" },
         white: { name: "White", value: "#ffffff" },
-        evergreen: { name: "Evergreen", value: "#0e2512" },
+        ink: { name: "Ink", value: "#111111" },
       },
     },
     a11y: {

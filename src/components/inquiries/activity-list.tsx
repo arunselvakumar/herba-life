@@ -24,7 +24,7 @@ export function ActivityList({
   activities: (InquiryActivity & { recordedByUser: { name: string } | null })[];
 }) {
   return (
-    <Card className="ring-stone/80">
+    <Card>
       <CardHeader>
         <CardTitle className="text-base font-bold">Follow-up log</CardTitle>
         <CardDescription>
@@ -33,7 +33,7 @@ export function ActivityList({
       </CardHeader>
       <CardContent>
         {activities.length === 0 ? (
-          <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+          <p className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
             Log the first call or visit above.
           </p>
         ) : (
@@ -42,7 +42,7 @@ export function ActivityList({
               const Icon = icons[a.type];
               const system = a.type === "status";
               return (
-                <li key={a.id} className="group flex gap-3 rounded-lg px-2 py-2.5 hover:bg-linen/60">
+                <li key={a.id} className="group flex gap-3 rounded-xl px-2 py-2.5 hover:bg-muted/60">
                   <span
                     className={cn(
                       "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full",

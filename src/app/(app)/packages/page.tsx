@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function PackagesPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-72 w-full rounded-xl" />}>
+    <Suspense fallback={<Skeleton className="h-72 w-full rounded-3xl" />}>
       <Packages />
     </Suspense>
   );

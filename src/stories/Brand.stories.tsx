@@ -14,20 +14,20 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const OnLinen: Story = {
+export const OnCanvas: Story = {
   args: { subtitle: "Internal", imageClassName: "h-10" },
 };
 
-export const OnEvergreen: Story = {
+export const OnInk: Story = {
   args: { tone: "white", subtitle: "Live your best life", imageClassName: "h-10" },
-  globals: { backgrounds: { value: "evergreen" } },
+  globals: { backgrounds: { value: "ink" } },
 };
 
 export const MarkOnly: Story = {
   render: () => <LogoMark className="h-16" />,
 };
 
-export const MarkOnEvergreen: Story = {
+export const MarkOnInk: Story = {
   render: () => <LogoMark className="h-16" tone="white" />,
-  globals: { backgrounds: { value: "evergreen" } },
+  globals: { backgrounds: { value: "ink" } },
 };

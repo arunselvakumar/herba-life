@@ -33,7 +33,7 @@ test.describe("authentication", () => {
     await expect(
       page.getByRole("heading", { name: /good (morning|afternoon|evening)/i }),
     ).toBeVisible();
-    await expect(page.getByTestId("app-sidebar")).toBeVisible();
+    await expect(page.getByTestId("app-nav")).toBeVisible();
   });
 
   test("signs out from the user menu", async ({ page }) => {

@@ -13,7 +13,7 @@ import { PackageBadge } from "./package-badge";
 
 export function PackageList({ memberId, packages, today }: { memberId: string; packages: MemberPackage[]; today: string }) {
   return (
-    <Card className="ring-stone/80">
+    <Card>
       <CardHeader>
         <CardTitle className="text-base font-bold">Packages</CardTitle>
         <CardDescription>Programmes the member has enrolled in</CardDescription>
@@ -28,7 +28,7 @@ export function PackageList({ memberId, packages, today }: { memberId: string; p
       </CardHeader>
       <CardContent className="space-y-3">
         {packages.length === 0 ? (
-          <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+          <p className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
             No package yet. Create one to start tracking the programme.
           </p>
         ) : (
@@ -48,7 +48,7 @@ function PackageItem({ memberId, pkg, today }: { memberId: string; pkg: MemberPa
   const isOpen = pkg.status === "active";
 
   return (
-    <div className="space-y-3 rounded-lg border bg-linen/60 p-4">
+    <div className="space-y-3 rounded-2xl border bg-muted/60 p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <div className="flex items-center gap-2">

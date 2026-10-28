@@ -17,12 +17,12 @@ import { fullName } from "@/lib/members/format";
 import { listActivePlans } from "@/lib/packages/queries";
 
 export const metadata: Metadata = {
-  title: "Convert inquiry",
+  title: "Convert enquiry",
 };
 
 export default function ConvertInquiryPage(props: PageProps<"/inquiries/[id]/convert">) {
   return (
-    <Suspense fallback={<Skeleton className="h-[40rem] w-full rounded-xl" />}>
+    <Suspense fallback={<Skeleton className="h-[40rem] w-full rounded-3xl" />}>
       <ConvertInquiry params={props.params} />
     </Suspense>
   );
@@ -45,18 +45,18 @@ async function ConvertInquiry({ params }: { params: PageProps<"/inquiries/[id]/c
   return (
     <>
       <PageHeader
-        eyebrow={`Inquiry #${inquiry.serialNo}`}
+        eyebrow={`Enquiry #${inquiry.serialNo}`}
         title={`Enrol ${name}`}
-        description="Everything captured on the inquiry is filled in below. Check it, add what is missing, and save to create the member."
+        description="Everything captured on the enquiry is filled in below. Check it, add what is missing, and save to create the member."
       />
       <Alert className="border-brand-200 bg-brand-50 text-brand-900">
-        <SparklesIcon className="text-brand-600" />
-        <AlertTitle>Converting inquiry #{inquiry.serialNo}</AlertTitle>
+        <SparklesIcon className="text-foreground" />
+        <AlertTitle>Converting enquiry #{inquiry.serialNo}</AlertTitle>
         <AlertDescription className="text-brand-800">
           Free-check readings become the baseline follow-up and the join date defaults to today.
           {inquiry.interestedPlan ? ` The ${inquiry.interestedPlan.name} package is pre-selected.` : ""}{" "}
           <Link href={`/inquiries/${inquiry.id}`} className="font-medium underline">
-            Back to the inquiry
+            Back to the enquiry
           </Link>
         </AlertDescription>
       </Alert>

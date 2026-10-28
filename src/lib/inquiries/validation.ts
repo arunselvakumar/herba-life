@@ -19,7 +19,7 @@ export const inquirySchema = personSchema.extend({
   inquiredOn: day,
   source: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-    z.enum(enumValues(INQUIRY_SOURCES), { error: "Choose where the inquiry came from" }),
+    z.enum(enumValues(INQUIRY_SOURCES), { error: "Choose where the enquiry came from" }),
   ),
   preferredContactTime: optionalText(120),
   referredByMemberId: optionalUuid,

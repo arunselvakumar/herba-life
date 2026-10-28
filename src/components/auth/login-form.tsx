@@ -73,7 +73,7 @@ export function LoginForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="h-11 bg-card"
+          className="h-12"
         />
       </div>
 
@@ -82,7 +82,7 @@ export function LoginForm() {
           <Label htmlFor="password">Password</Label>
           <button
             type="button"
-            className="text-xs font-medium text-brand-600 hover:underline"
+            className="text-xs font-medium text-foreground hover:underline"
             onClick={() => setShowPassword((v) => !v)}
             aria-pressed={showPassword}
           >
@@ -106,14 +106,14 @@ export function LoginForm() {
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="h-11 bg-card"
+          className="h-12"
         />
       </div>
 
       <Button
         type="submit"
         size="lg"
-        className="h-11 w-full text-base font-semibold"
+        className="h-12 w-full text-base"
         disabled={isPending || !email || !password}
       >
         {isPending ? (

@@ -107,9 +107,9 @@ async function MemberProfile({ params }: { params: PageProps<"/members/[id]">["p
       />
 
       <section aria-label="Current status" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <Card className="ring-stone/80 sm:col-span-2 xl:col-span-1">
+        <Card className="sm:col-span-2 xl:col-span-1">
           <CardHeader>
-            <CardDescription className="text-eyebrow text-[0.65rem]">Package</CardDescription>
+            <CardDescription className="text-eyebrow">Package</CardDescription>
             <CardTitle className="flex flex-wrap items-center gap-2 text-lg font-bold">
               {currentPackage ? currentPackage.name : "None"}
               <PackageBadge state={currentState} />
@@ -126,10 +126,10 @@ async function MemberProfile({ params }: { params: PageProps<"/members/[id]">["p
           </CardContent>
         </Card>
         {MEASUREMENTS.filter((m) => ["weightKg", "bodyFatPct", "bmi", "waistCm"].includes(m.key)).map((m) => (
-          <Card key={m.key} className="ring-stone/80">
+          <Card key={m.key}>
             <CardHeader>
-              <CardDescription className="text-eyebrow text-[0.65rem]">{m.label}</CardDescription>
-              <CardTitle className="font-heading text-2xl font-extrabold tracking-tight">
+              <CardDescription className="text-eyebrow">{m.label}</CardDescription>
+              <CardTitle className="font-heading text-2xl font-semibold tracking-tight">
                 <MeasurementValue
                   value={latest?.[m.key]}
                   verdict={rangeVerdict(m.key, latest?.[m.key], member.gender)}
@@ -169,7 +169,7 @@ async function MemberProfile({ params }: { params: PageProps<"/members/[id]">["p
           <HealthCard member={member} />
           <EatingHabitsCard member={member} />
           {member.remarks ? (
-            <Card className="ring-stone/80">
+            <Card>
               <CardHeader>
                 <CardTitle className="text-base font-bold">Remarks</CardTitle>
               </CardHeader>
@@ -200,10 +200,10 @@ function ContactCard({
   sourceInquiry: { id: string; serialNo: number; inquiredOn: string; source: Parameters<typeof sourceLabel>[0] } | null;
 }) {
   return (
-    <Card className="ring-stone/80">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base font-bold">
-          <UserRoundIcon className="size-4 text-brand-600" />
+          <UserRoundIcon className="size-4 text-foreground" />
           Details
         </CardTitle>
       </CardHeader>
@@ -244,7 +244,7 @@ function ContactCard({
                 <dt className="text-muted-foreground">Came from</dt>
                 <dd className="min-w-0">
                   <Link href={`/inquiries/${sourceInquiry.id}`} className="hover:underline">
-                    Inquiry #{sourceInquiry.serialNo}
+                    Enquiry #{sourceInquiry.serialNo}
                   </Link>
                   <span className="text-muted-foreground">
                     {" "}
@@ -271,10 +271,10 @@ function HealthCard({ member }: { member: MemberDetail }) {
   const empty = conditions.length === 0 && symptoms.length === 0 && !member.medicines && !member.healthNotes;
 
   return (
-    <Card className="ring-stone/80">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base font-bold">
-          <HeartPulseIcon className="size-4 text-brand-600" />
+          <HeartPulseIcon className="size-4 text-foreground" />
           Health condition
         </CardTitle>
       </CardHeader>
@@ -322,10 +322,10 @@ function EatingHabitsCard({ member }: { member: MemberDetail }) {
   ];
   const empty = rows.every(([, v]) => !v);
   return (
-    <Card className="ring-stone/80">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base font-bold">
-          <UtensilsIcon className="size-4 text-brand-600" />
+          <UtensilsIcon className="size-4 text-foreground" />
           Eating habits
         </CardTitle>
       </CardHeader>
@@ -358,8 +358,8 @@ function ProfileSkeleton() {
         ))}
       </div>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(20rem,1fr)]">
-        <Skeleton className="h-96 rounded-xl" />
-        <Skeleton className="h-96 rounded-xl" />
+        <Skeleton className="h-96 rounded-3xl" />
+        <Skeleton className="h-96 rounded-3xl" />
       </div>
     </>
   );

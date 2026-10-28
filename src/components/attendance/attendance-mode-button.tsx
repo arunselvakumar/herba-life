@@ -15,12 +15,13 @@ export function AttendanceModeButton({
   size = "lg",
   className,
   children,
+  ...rest
 }: {
   variant?: VariantProps<typeof buttonVariants>["variant"];
   size?: VariantProps<typeof buttonVariants>["size"];
   className?: string;
   children?: React.ReactNode;
-}) {
+} & Pick<React.ComponentProps<"button">, "aria-label" | "title">) {
   const router = useRouter();
 
   function start() {
@@ -34,8 +35,8 @@ export function AttendanceModeButton({
   }
 
   return (
-    <Button type="button" variant={variant} size={size} className={className} onClick={start}>
-      <MonitorCheckIcon data-icon="inline-start" />
+    <Button type="button" variant={variant} size={size} className={className} onClick={start} {...rest}>
+      <MonitorCheckIcon data-icon={size?.startsWith("icon") ? undefined : "inline-start"} />
       {children ?? "Attendance Mode"}
     </Button>
   );

@@ -122,7 +122,7 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/attendance
         ))}
       </section>
 
-      <Card className="ring-stone/80">
+      <Card>
         <CardHeader>
           <CardTitle className="text-lg font-bold">Check-ins over time</CardTitle>
           <CardDescription>
@@ -131,7 +131,7 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/attendance
               : `Each day from ${formatShortDay(data.rangeFrom)} to ${formatShortDay(data.rangeTo)}`}
           </CardDescription>
           <CardAction>
-            <nav aria-label="Chart range" className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
+            <nav aria-label="Chart range" className="flex flex-wrap gap-1.5">
               {RANGES.map((r) => {
                 const active = r.value === range;
                 const query: Record<string, string> = {};
@@ -142,8 +142,8 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/attendance
                     key={r.value}
                     href={{ pathname: "/attendance", query }}
                     className={cn(
-                      "rounded-md px-3 py-1.5 text-sm font-medium transition",
-                      active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                      "inline-flex h-8 items-center rounded-full px-3 text-[0.8rem] font-semibold ring-1 transition-[background-color,color,box-shadow] duration-200",
+                      active ? "bg-primary text-primary-foreground ring-primary" : "bg-card text-muted-foreground ring-border hover:text-foreground hover:ring-foreground/30",
                     )}
                     aria-current={active ? "page" : undefined}
                   >
@@ -160,7 +160,7 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/attendance
       </Card>
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <Card className="ring-stone/80">
+        <Card>
           <CardHeader>
             <CardTitle className="text-lg font-bold">Busy hours</CardTitle>
             <CardDescription>Check-ins by hour of the day over the last {spec.label.toLowerCase()}</CardDescription>
@@ -169,7 +169,7 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/attendance
             <HourChart byHour={data.byHour} />
           </CardContent>
         </Card>
-        <Card className="ring-stone/80">
+        <Card>
           <CardHeader>
             <CardTitle className="text-lg font-bold">By weekday</CardTitle>
             <CardDescription>Which days of the week bring people in</CardDescription>
@@ -181,7 +181,7 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/attendance
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <Card className="ring-stone/80">
+        <Card>
           <CardHeader>
             <CardTitle className="text-lg font-bold">Regulars</CardTitle>
             <CardDescription>Most visits in the last {spec.label.toLowerCase()}</CardDescription>
@@ -217,7 +217,7 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/attendance
           </CardContent>
         </Card>
 
-        <Card className="ring-stone/80">
+        <Card>
           <CardHeader>
             <CardTitle className="text-lg font-bold">Not seen lately</CardTitle>
             <CardDescription>On an active package but no visit in {NOT_SEEN_AFTER_DAYS} days or more. Worth a call.</CardDescription>
@@ -283,10 +283,10 @@ function OverviewSkeleton() {
           <Skeleton key={i} className="h-32 rounded-xl" />
         ))}
       </div>
-      <Skeleton className="h-72 rounded-xl" />
+      <Skeleton className="h-72 rounded-3xl" />
       <div className="grid gap-4 xl:grid-cols-2">
-        <Skeleton className="h-64 rounded-xl" />
-        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-64 rounded-3xl" />
+        <Skeleton className="h-64 rounded-3xl" />
       </div>
     </>
   );

@@ -76,7 +76,7 @@ export function RecordAttendanceDialog({ members, day, today }: { members: Optio
           ) : null}
           {state.status === "success" ? (
             <Alert className="border-brand-200 bg-brand-50 text-brand-800">
-              <UserRoundCheckIcon className="text-brand-600" />
+              <UserRoundCheckIcon className="text-foreground" />
               <AlertDescription className="text-brand-800">{state.message}</AlertDescription>
             </Alert>
           ) : null}

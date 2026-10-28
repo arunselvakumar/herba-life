@@ -52,9 +52,9 @@ export function PackageFields({
 
   if (plans.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+      <p className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
         No packages in the catalog yet.{" "}
-        <Link href="/packages/new" className="font-medium text-brand-600 hover:underline">
+        <Link href="/packages/new" className="font-medium text-foreground hover:underline">
           Create one under Packages
         </Link>{" "}
         first.
@@ -92,7 +92,7 @@ export function PackageFields({
         <Input id={n("extraDays")} name={n("extraDays")} type="number" min={0} inputMode="numeric" value={extra} onChange={(e) => setExtra(e.target.value)} placeholder="0" />
       </Field>
       <Field label="Valid until" className="sm:col-span-2">
-        <div className="flex h-8 items-center rounded-lg border border-dashed bg-muted/40 px-2.5 text-sm">
+        <div className="flex h-8 items-center rounded-xl border border-dashed bg-muted/40 px-2.5 text-sm">
           {endDate ? (
             <span>
               <span className="font-semibold">{formatDay(endDate)}</span>
@@ -107,7 +107,7 @@ export function PackageFields({
         </div>
       </Field>
       <Field label="Price" hint="from catalog">
-        <div className="flex h-8 items-center rounded-lg border border-dashed bg-muted/40 px-2.5 text-sm font-semibold tabular-nums">
+        <div className="flex h-8 items-center rounded-xl border border-dashed bg-muted/40 px-2.5 text-sm font-semibold tabular-nums">
           {plan ? formatMoney(plan.price) : <span className="font-normal text-muted-foreground">—</span>}
         </div>
       </Field>

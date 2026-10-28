@@ -11,9 +11,9 @@ import { PackageBadge } from "./package-badge";
 export function MemberTable({ members, emptyMessage }: { members: MemberListRow[]; emptyMessage: string }) {
   if (members.length === 0) {
     return (
-      <Card className="ring-stone/80">
+      <Card>
         <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-          <span className="flex size-12 items-center justify-center rounded-full bg-brand-100 text-brand-700">
+          <span className="flex size-12 items-center justify-center rounded-full bg-muted text-foreground">
             <UserRoundPlusIcon className="size-6" />
           </span>
           <p className="font-semibold">{emptyMessage}</p>
@@ -26,7 +26,7 @@ export function MemberTable({ members, emptyMessage }: { members: MemberListRow[
   }
 
   return (
-    <Card className="ring-stone/80 py-0">
+    <Card className="py-0">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">

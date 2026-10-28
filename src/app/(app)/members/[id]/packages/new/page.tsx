@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 export default function NewPackagePage(props: PageProps<"/members/[id]/packages/new">) {
   return (
-    <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
+    <Suspense fallback={<Skeleton className="h-96 w-full rounded-3xl" />}>
       <NewPackage params={props.params} />
     </Suspense>
   );

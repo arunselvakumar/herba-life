@@ -5,15 +5,15 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default function InquiryNotFound() {
   return (
-    <Card className="ring-stone/80">
+    <Card>
       <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
         <span className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <MessageSquareOffIcon className="size-6" />
         </span>
-        <p className="font-semibold">Inquiry not found</p>
-        <p className="max-w-sm text-sm text-muted-foreground">This inquiry may have been deleted, or the link is wrong.</p>
+        <p className="font-semibold">Enquiry not found</p>
+        <p className="max-w-sm text-sm text-muted-foreground">This enquiry may have been deleted, or the link is wrong.</p>
         <Button asChild variant="outline" size="sm">
-          <Link href="/inquiries">Back to inquiries</Link>
+          <Link href="/inquiries">Back to enquiries</Link>
         </Button>
       </CardContent>
     </Card>

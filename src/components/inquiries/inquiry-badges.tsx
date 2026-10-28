@@ -5,9 +5,9 @@ import { formatDay } from "@/lib/members/dates";
 import { cn } from "@/lib/utils";
 
 const statusStyles: Record<InquiryStatus, { label: string; className: string }> = {
-  new: { label: "New", className: "bg-info/15 text-brand-800" },
+  new: { label: "New", className: "bg-accent-soft/60 text-foreground" },
   in_progress: { label: "In progress", className: "bg-brand-100 text-brand-700" },
-  converted: { label: "Converted", className: "bg-brand-700 text-white" },
+  converted: { label: "Converted", className: "bg-primary text-primary-foreground" },
   lost: { label: "Lost", className: "bg-muted text-muted-foreground" },
 };
 

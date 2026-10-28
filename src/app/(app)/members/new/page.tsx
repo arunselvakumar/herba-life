@@ -19,7 +19,7 @@ export default function NewMemberPage() {
         title="New member"
         description="The digital wellness record. Fill in what you know now; everything can be updated later."
       />
-      <Suspense fallback={<Skeleton className="h-[40rem] w-full rounded-xl" />}>
+      <Suspense fallback={<Skeleton className="h-[40rem] w-full rounded-3xl" />}>
         <NewMemberForm />
       </Suspense>
     </>

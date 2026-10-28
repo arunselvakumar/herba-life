@@ -11,18 +11,18 @@ import { listActivePlans } from "@/lib/packages/queries";
 import { getCurrentUser } from "@/lib/session";
 
 export const metadata: Metadata = {
-  title: "New inquiry",
+  title: "New enquiry",
 };
 
 export default function NewInquiryPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Inquiries"
-        title="New inquiry"
+        eyebrow="Enquiries"
+        title="New enquiry"
         description="Capture what you learn in the first conversation. Only a first name is needed to save; add the rest as you go."
       />
-      <Suspense fallback={<Skeleton className="h-[40rem] w-full rounded-xl" />}>
+      <Suspense fallback={<Skeleton className="h-[40rem] w-full rounded-3xl" />}>
         <NewInquiryForm />
       </Suspense>
     </>

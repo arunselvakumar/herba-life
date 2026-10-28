@@ -135,23 +135,42 @@ bun run db:generate && bun run db:migrate
 
 ## Design system
 
-Brand tokens live in `src/app/globals.css`:
+The console is deliberately quiet: a warm grey canvas, white cards and ink
+black as the single strong colour. Tokens live in `src/app/globals.css`:
 
-| Token          | Hex       | Use                               |
-| -------------- | --------- | --------------------------------- |
-| Garden Green   | `#266431` | Primary (PMS 7733C)               |
-| Grass          | `#42A046` | Accent, success, focus ring       |
-| Mint           | `#B5E3BD` | Soft fills                        |
-| Succulent      | `#E5FFC5` | Highlight / accent background     |
-| Forest         | `#163E35` | Secondary foreground              |
-| Evergreen      | `#0E2512` | Sidebar, hero panels              |
-| Linen          | `#F9F8F4` | Page background                   |
-| Stone          | `#E0DFD9` | Borders, dividers                 |
+| Token    | Hex       | Use                                              |
+| -------- | --------- | ------------------------------------------------ |
+| Ink      | `#111111` | Primary buttons, active nav pill, chart bars     |
+| Canvas   | `#EFEEEC` | Page background                                  |
+| Paper    | `#FFFFFF` | Cards, inputs, popovers                          |
+| Mist     | `#F6F5F3` | Muted fills, secondary buttons, table hover      |
+| Hairline | `#E4E2DE` | Borders, dividers (also exposed as `stone`)      |
+| Graphite | `#6B6B68` | Muted text                                       |
+| Leaf     | `#B5E3BD` | Accent: soft badge fills, text selection         |
+| Grass    | `#42A046` | Accent: progress fills, chart series             |
 
-They are exposed to Tailwind as `brand-50…900`, `linen`, and `stone`, and
-mapped onto the shadcn semantic tokens (`primary`, `sidebar`, `accent`, …).
-Herbalife's brand face (GT Walsheim) is proprietary, so the app ships
-Plus Jakarta Sans via `next/font`.
+Herbalife's Garden Green (`#266431`) stays in the logo and in the `brand-50…900`
+scale, which is used for success states and green status badges.
+
+Shapes are soft: buttons, inputs, selects and badges are pills; cards and
+dialogs use a 28px radius. `font-semibold` is the heaviest weight in regular
+use. Herbalife's brand face (GT Walsheim) is proprietary, so the app ships
+Urbanist via `next/font`.
+
+### Motion
+
+Animations use GSAP through the `@gsap/react` hook. The helpers live in
+`src/components/motion/`: `Reveal` fades `[data-reveal]` children in with a
+stagger, `CountUp` rolls figures up, `GrowBar` fills progress tracks and
+`useHoverLift` lifts linked cards. Everything respects
+`prefers-reduced-motion`; an inline script in the root layout marks the
+document `js-motion` so reveal targets can start hidden without a flash.
+
+### Shell
+
+There is no sidebar. `AppHeader` renders the brand, the module pills
+(`TopNav`, whose ink indicator glides between items), search and the account
+menu; module actions such as "New member" live on the pages themselves.
 
 ### Brand assets
 

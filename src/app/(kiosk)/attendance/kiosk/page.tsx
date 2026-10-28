@@ -29,7 +29,7 @@ async function KioskLoader() {
 function KioskSkeleton() {
   return (
     <div className="flex flex-1 flex-col">
-      <div className="h-20 bg-brand-900" />
+      <div className="h-20 bg-foreground" />
       <div className="mx-auto w-full max-w-5xl flex-1 space-y-6 p-6">
         <Skeleton className="mx-auto h-8 w-72" />
         <Skeleton className="h-16 w-full rounded-2xl" />

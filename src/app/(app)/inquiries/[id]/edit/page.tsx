@@ -15,12 +15,12 @@ import { fullName } from "@/lib/members/format";
 import { listActivePlans, getPlan } from "@/lib/packages/queries";
 
 export const metadata: Metadata = {
-  title: "Edit inquiry",
+  title: "Edit enquiry",
 };
 
 export default function EditInquiryPage(props: PageProps<"/inquiries/[id]/edit">) {
   return (
-    <Suspense fallback={<Skeleton className="h-[40rem] w-full rounded-xl" />}>
+    <Suspense fallback={<Skeleton className="h-[40rem] w-full rounded-3xl" />}>
       <EditInquiry params={props.params} />
     </Suspense>
   );
@@ -44,7 +44,7 @@ async function EditInquiry({ params }: { params: PageProps<"/inquiries/[id]/edit
 
   return (
     <>
-      <PageHeader eyebrow={`Inquiry #${inquiry.serialNo}`} title={`Edit ${fullName(inquiry)}`} description="Update what you know about this person." />
+      <PageHeader eyebrow={`Enquiry #${inquiry.serialNo}`} title={`Edit ${fullName(inquiry)}`} description="Update what you know about this person." />
       <InquiryForm
         mode="edit"
         action={updateInquiry.bind(null, inquiry.id)}

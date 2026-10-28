@@ -65,9 +65,9 @@ export function InquiryForm({
         </Alert>
       ) : null}
 
-      <FormSection title="Inquiry" description="When and how this person reached the branch, and who is following up." icon={MessageSquareMoreIcon}>
+      <FormSection title="Enquiry" description="When and how this person reached the branch, and who is following up." icon={MessageSquareMoreIcon}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Inquired on" htmlFor="inquiredOn" error={errors.inquiredOn}>
+          <Field label="Enquired on" htmlFor="inquiredOn" error={errors.inquiredOn}>
             <Input id="inquiredOn" name="inquiredOn" type="date" defaultValue={read.text("inquiredOn") || today} max={today} required />
           </Field>
           <Field label="Source" htmlFor="source" error={errors.source}>
@@ -208,7 +208,7 @@ export function InquiryForm({
         </Button>
         <Button type="submit" size="lg" disabled={pending}>
           {pending ? <LoaderCircleIcon className="animate-spin" /> : null}
-          {mode === "create" ? "Save inquiry" : "Save changes"}
+          {mode === "create" ? "Save enquiry" : "Save changes"}
         </Button>
       </div>
     </form>

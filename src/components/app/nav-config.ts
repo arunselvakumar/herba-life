@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { CalendarCheckIcon, LayoutDashboardIcon, MessageSquareMoreIcon, MessageSquarePlusIcon, MonitorCheckIcon, PackageIcon, UserRoundPlusIcon, UsersRoundIcon } from "lucide-react";
+import { CalendarCheckIcon, LayoutDashboardIcon, MessageSquareMoreIcon, PackageIcon, UsersRoundIcon } from "lucide-react";
 
 export type NavItem = {
   title: string;
@@ -9,41 +9,17 @@ export type NavItem = {
   exact?: boolean;
 };
 
-export type NavGroup = {
-  label: string;
-  items: readonly NavItem[];
-};
-
-export const navigation: readonly NavGroup[] = [
-  {
-    label: "Overview",
-    items: [{ title: "Dashboard", href: "/dashboard", icon: LayoutDashboardIcon }],
-  },
-  {
-    label: "Members",
-    items: [
-      { title: "All members", href: "/members", icon: UsersRoundIcon },
-      { title: "New member", href: "/members/new", icon: UserRoundPlusIcon, exact: true },
-    ],
-  },
-  {
-    label: "Inquiries",
-    items: [
-      { title: "All inquiries", href: "/inquiries", icon: MessageSquareMoreIcon },
-      { title: "New inquiry", href: "/inquiries/new", icon: MessageSquarePlusIcon, exact: true },
-    ],
-  },
-  {
-    label: "Catalog",
-    items: [{ title: "Packages", href: "/packages", icon: PackageIcon }],
-  },
-  {
-    label: "Attendance",
-    items: [
-      { title: "Attendance", href: "/attendance", icon: CalendarCheckIcon, exact: true },
-      { title: "Attendance Mode", href: "/attendance/kiosk", icon: MonitorCheckIcon, exact: true },
-    ],
-  },
+/**
+ * The primary navigation: one pill per module, shown across the top of every
+ * admin screen. Creating records and Attendance Mode are actions inside the
+ * module pages rather than destinations of their own.
+ */
+export const navigation: readonly NavItem[] = [
+  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboardIcon },
+  { title: "Members", href: "/members", icon: UsersRoundIcon },
+  { title: "Enquiries", href: "/inquiries", icon: MessageSquareMoreIcon },
+  { title: "Packages", href: "/packages", icon: PackageIcon },
+  { title: "Attendance", href: "/attendance", icon: CalendarCheckIcon },
 ];
 
 export function isNavItemActive(item: NavItem, pathname: string): boolean {
@@ -53,13 +29,11 @@ export function isNavItemActive(item: NavItem, pathname: string): boolean {
 }
 
 export function findNavItem(pathname: string): NavItem | undefined {
-  // Prefer the most specific match so "/members/new" wins over "/members".
+  // Prefer the most specific match so a deeper href wins over its parent.
   let best: NavItem | undefined;
-  for (const group of navigation) {
-    for (const item of group.items) {
-      if (isNavItemActive(item, pathname) && (!best || item.href.length > best.href.length)) {
-        best = item;
-      }
+  for (const item of navigation) {
+    if (isNavItemActive(item, pathname) && (!best || item.href.length > best.href.length)) {
+      best = item;
     }
   }
   return best;

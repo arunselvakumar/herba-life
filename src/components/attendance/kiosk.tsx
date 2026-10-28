@@ -92,10 +92,10 @@ export function Kiosk({
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex items-center gap-4 bg-brand-900 px-5 py-3 text-white md:px-8">
+      <header className="flex items-center gap-4 bg-foreground px-5 py-3 text-white md:px-8">
         <LogoMark tone="white" className="h-9" />
         <div className="leading-tight">
-          <p className="text-eyebrow text-[0.6rem] text-white/50">Herbalife · Attendance</p>
+          <p className="text-xs font-medium text-white/50">Herbalife · Attendance</p>
           <p className="text-sm font-semibold">{now ? formatLongDate(today) : " "}</p>
         </div>
         <div className="ml-auto flex items-center gap-2 md:gap-4">
@@ -103,7 +103,7 @@ export function Kiosk({
             <UsersRoundIcon className="size-4" />
             <span className="tabular-nums">{todayVisits}</span> check-in{todayVisits === 1 ? "" : "s"} today
           </p>
-          <time className="font-heading text-2xl font-extrabold tracking-tight tabular-nums md:text-3xl" suppressHydrationWarning>
+          <time className="font-heading text-2xl font-semibold tracking-tight tabular-nums md:text-3xl" suppressHydrationWarning>
             {now ? formatTime(now) : " "}
           </time>
           <Button
@@ -122,7 +122,7 @@ export function Kiosk({
 
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-6 md:px-8 md:py-8">
         <div className="text-center">
-          <h1 className="font-heading text-3xl font-extrabold tracking-tight text-brand-800 md:text-4xl">Welcome! Tap your name to check in.</h1>
+          <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground md:text-4xl">Welcome! Tap your name to check in.</h1>
           <p className="mt-1 text-base text-muted-foreground md:text-lg">Start typing your name or your member number to find yourself faster.</p>
         </div>
 
@@ -141,7 +141,7 @@ export function Kiosk({
             autoCapitalize="words"
             spellCheck={false}
             enterKeyHint="search"
-            className="h-16 w-full rounded-2xl border-2 border-stone bg-card pr-16 pl-14 text-2xl font-medium shadow-sm outline-none placeholder:text-muted-foreground/70 focus-visible:border-brand-500 focus-visible:ring-4 focus-visible:ring-brand-500/20 [&::-webkit-search-cancel-button]:hidden"
+            className="h-16 w-full rounded-full border-2 border-stone bg-card pr-16 pl-14 text-2xl font-medium shadow-sm outline-none placeholder:text-muted-foreground/70 focus-visible:border-foreground focus-visible:ring-4 focus-visible:ring-foreground/10 [&::-webkit-search-cancel-button]:hidden"
           />
           {query ? (
             <button
@@ -169,7 +169,7 @@ export function Kiosk({
                 <button
                   type="button"
                   onClick={() => setView({ kind: "confirm", member })}
-                  className="flex min-h-24 w-full items-center gap-3 rounded-2xl border border-stone bg-card p-4 text-left shadow-sm transition active:scale-[0.98] active:bg-brand-50 hover:border-brand-300 focus-visible:border-brand-500 focus-visible:ring-4 focus-visible:ring-brand-500/20 focus-visible:outline-none"
+                  className="flex min-h-24 w-full items-center gap-3 rounded-2xl border border-stone bg-card p-4 text-left shadow-sm transition active:scale-[0.98] active:bg-muted hover:border-foreground/30 focus-visible:border-foreground focus-visible:ring-4 focus-visible:ring-foreground/10 focus-visible:outline-none"
                 >
                   <MemberAvatar member={member} className="size-12 text-base" />
                   <span className="min-w-0 flex-1">
@@ -192,7 +192,7 @@ export function Kiosk({
             <>
               <div className="flex flex-col items-center gap-3 text-center">
                 <MemberAvatar member={view.member} className="size-20 text-2xl" />
-                <DialogTitle className="font-heading text-3xl font-extrabold tracking-tight">{fullName(view.member)}</DialogTitle>
+                <DialogTitle className="font-heading text-3xl font-semibold tracking-tight">{fullName(view.member)}</DialogTitle>
                 <DialogDescription className="text-base">
                   Member #{view.member.serialNo}
                   {view.member.packageName

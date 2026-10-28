@@ -100,7 +100,7 @@ export function HealthSection({ read, errors }: { read: Reader; errors: FieldErr
             </div>
           </fieldset>
           {painSelected ? (
-            <fieldset className="space-y-2 rounded-lg border bg-linen/60 p-3">
+            <fieldset className="space-y-2 rounded-2xl border bg-muted/60 p-3">
               <legend className="px-1 text-sm font-medium">Where is the pain?</legend>
               <div className="flex flex-wrap gap-x-5 gap-y-2">
                 {PAIN_AREAS.map((p) => (
