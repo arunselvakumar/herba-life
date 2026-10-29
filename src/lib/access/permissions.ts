@@ -59,6 +59,7 @@ export const PERMISSION_MODULES = [
       { key: "delete", label: "Delete a member", hint: "Removes the member with all history" },
       { key: "followups", label: "Record follow-ups", hint: "Add and remove follow-up readings" },
       { key: "packages", label: "Manage member packages", hint: "Enrol, complete, cancel or delete a package" },
+      { key: "export", label: "Export to Excel", hint: "Download every member with packages, follow-ups and attendance" },
     ],
   },
   {
@@ -73,6 +74,7 @@ export const PERMISSION_MODULES = [
       { key: "delete", label: "Delete an enquiry" },
       { key: "activities", label: "Log follow-ups", hint: "Add and remove calls, messages and visits" },
       { key: "convert", label: "Convert to member", hint: "Also needs “Create a member”" },
+      { key: "export", label: "Export to Excel", hint: "Download every enquiry with its follow-up log" },
     ],
   },
   {
@@ -85,6 +87,7 @@ export const PERMISSION_MODULES = [
       { key: "create", label: "Create a package" },
       { key: "update", label: "Update a package", hint: "Edit, archive or restore" },
       { key: "delete", label: "Delete a package" },
+      { key: "export", label: "Export to Excel", hint: "Download the catalog and every enrolment" },
     ],
   },
   {
@@ -97,6 +100,7 @@ export const PERMISSION_MODULES = [
       { key: "record", label: "Record a visit by hand" },
       { key: "delete", label: "Remove a check-in" },
       { key: "kiosk", label: "Open Attendance Mode", hint: "Sign the tablet in for self check-in" },
+      { key: "export", label: "Export to Excel", hint: "Download every check-in" },
     ],
   },
   {
@@ -109,6 +113,7 @@ export const PERMISSION_MODULES = [
       { key: "create", label: "Create a user" },
       { key: "update", label: "Update a user", hint: "Change name, email, role or password; suspend or restore" },
       { key: "delete", label: "Delete a user" },
+      { key: "export", label: "Export to Excel", hint: "Download the list of accounts" },
     ],
   },
   {
@@ -121,6 +126,7 @@ export const PERMISSION_MODULES = [
       { key: "create", label: "Create a role" },
       { key: "update", label: "Update a role" },
       { key: "delete", label: "Delete a role" },
+      { key: "export", label: "Export to Excel", hint: "Download roles and their permissions" },
     ],
   },
 ] as const satisfies readonly PermissionModule[];

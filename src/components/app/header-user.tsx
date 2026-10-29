@@ -1,4 +1,5 @@
 import { can, canAny } from "@/lib/access/can";
+import { canExportAnything } from "@/lib/export/catalog";
 import { getCurrentUser } from "@/lib/session";
 import { Skeleton } from "@/components/ui/skeleton";
 import { visibleNavigation } from "./nav-config";
@@ -7,7 +8,7 @@ import { UserMenu } from "./user-menu";
 
 export async function HeaderUser() {
   const user = await getCurrentUser();
-  return <UserMenu user={user} canManageTeam={canAny(user, ["users.view", "roles.view"])} />;
+  return <UserMenu user={user} canManageTeam={canAny(user, ["users.view", "roles.view"])} canExport={canExportAnything(user)} />;
 }
 
 /** Deterministic skeleton: Cache Components reject random widths in fallbacks. */

@@ -82,6 +82,29 @@ Members mark their own visits on a tablet at the entrance:
 
 See `docs/attendance-module.md` for the full requirements.
 
+### Backup & export
+
+Every module can be taken out of the console as an Excel workbook, for a
+backup, for reporting, or to move to another system:
+
+- **Export buttons** on Members, Enquiries, Packages, Attendance, Users and
+  Roles download that module's workbook. A member's profile exports just that
+  member with their enrolments, follow-ups and attendance.
+- **Backup & export** (`/export`, from the account menu) lists every workbook
+  with live row counts and offers **Download everything**: one file with a
+  sheet per table (Members, Enrolments, Follow-ups, Attendance, Enquiries,
+  Enquiry log, Packages, Attendance by member, Users, Roles, Permissions).
+- Each workbook opens with an **About** sheet (who exported it, when, and a
+  row count per sheet). Dates are real Excel dates in branch-local time,
+  money has two decimals, and ID columns let rows be matched across sheets.
+  Passwords and session tokens are never exported.
+- Exporting is its own permission per module (`members.export`, …), so a role
+  can work with records without being able to download them all.
+
+Code lives in `src/lib/export/` (catalog, sheet builders, workbook helpers),
+`src/app/api/export/[module]/route.ts` (the download route),
+`src/components/app/export-button.tsx` and `src/app/(app)/export/`.
+
 ### Users and roles
 
 Who can sign in, and what each of them may do. `Team` in the top navigation

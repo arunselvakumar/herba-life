@@ -6,6 +6,7 @@ import { SearchIcon, UserRoundPlusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ExportButton } from "@/components/app/export-button";
 import { NoAccess } from "@/components/app/no-access";
 import { MemberTable } from "@/components/members/member-table";
 import { PageHeader, PageHeaderSkeleton } from "@/components/members/field";
@@ -51,6 +52,7 @@ async function Members({ searchParams }: { searchParams: PageProps<"/members">["
   const user = await getCurrentUser();
   if (!can(user, "members.view")) return <NoAccess permission="members.view" />;
   const canCreate = can(user, "members.create");
+  const canExport = can(user, "members.export");
 
   return (
     <>
@@ -58,13 +60,18 @@ async function Members({ searchParams }: { searchParams: PageProps<"/members">["
         title="Members"
         description="Everyone enrolled at this branch, with their current package and last follow-up."
         actions={
-          canCreate ? (
-            <Button asChild size="lg">
-              <Link href="/members/new">
-                <UserRoundPlusIcon data-icon="inline-start" />
-                New member
-              </Link>
-            </Button>
+          canCreate || canExport ? (
+            <>
+              {canExport ? <ExportButton module="members" /> : null}
+              {canCreate ? (
+                <Button asChild size="lg">
+                  <Link href="/members/new">
+                    <UserRoundPlusIcon data-icon="inline-start" />
+                    New member
+                  </Link>
+                </Button>
+              ) : null}
+            </>
           ) : undefined
         }
       />

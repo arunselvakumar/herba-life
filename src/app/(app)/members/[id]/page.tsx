@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ExportButton } from "@/components/app/export-button";
 import { NoAccess } from "@/components/app/no-access";
 import { CheckinForm } from "@/components/members/checkin-form";
 import { CheckinHistory } from "@/components/members/checkin-history";
@@ -59,6 +60,7 @@ async function MemberProfile({ params }: { params: PageProps<"/members/[id]">["p
   const canFollowUp = can(user, "members.followups");
   const canManagePackages = can(user, "members.packages");
   const canSeeAttendance = can(user, "attendance.view");
+  const canExport = can(user, "members.export");
 
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
@@ -93,8 +95,9 @@ async function MemberProfile({ params }: { params: PageProps<"/members/[id]">["p
           </span>
         }
         actions={
-          canUpdate || canDelete ? (
+          canUpdate || canDelete || canExport ? (
             <>
+              {canExport ? <ExportButton module="members" params={{ member: member.id }} /> : null}
               {canUpdate ? (
                 <Button asChild variant="outline" size="lg">
                   <Link href={`/members/${member.id}/edit`}>

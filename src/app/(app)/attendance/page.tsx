@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { CalendarCheckIcon, CalendarRangeIcon, SunMoonIcon, UserRoundXIcon } from "lucide-react";
+import { ExportButton } from "@/components/app/export-button";
 import { NoAccess } from "@/components/app/no-access";
 import { AttendanceModeButton } from "@/components/attendance/attendance-mode-button";
 import { HourChart, VisitsChart, WeekdayChart } from "@/components/attendance/charts";
@@ -57,6 +58,7 @@ async function Attendance({ searchParams }: { searchParams: PageProps<"/attendan
   const canRecord = can(user, "attendance.record");
   const canOpenKiosk = can(user, "attendance.kiosk");
   const canDelete = can(user, "attendance.delete");
+  const canExport = can(user, "attendance.export");
 
   return (
     <>
@@ -65,8 +67,9 @@ async function Attendance({ searchParams }: { searchParams: PageProps<"/attendan
         title="Attendance"
         description="Who came in for their shake, and how often. Members check themselves in from Attendance Mode on the tablet."
         actions={
-          canRecord || canOpenKiosk ? (
+          canRecord || canOpenKiosk || canExport ? (
             <>
+              {canExport ? <ExportButton module="attendance" /> : null}
               {canRecord ? (
                 <Suspense fallback={<Skeleton className="h-9 w-32" />}>
                   <RecordVisit searchParams={searchParams} />

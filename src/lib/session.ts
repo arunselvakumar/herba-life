@@ -85,3 +85,16 @@ export async function requireUser(): Promise<CurrentUser> {
   if (resolved === "suspended") throw new Error("Your account has been suspended.");
   return resolved;
 }
+
+/**
+ * For Route Handlers that serve files rather than pages: the signed-in user,
+ * or null when there is no usable session. The caller decides how to answer
+ * (a redirect to the login page, or a 401), since a download link cannot
+ * render a page.
+ */
+export async function findCurrentUser(): Promise<CurrentUser | null> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return null;
+  const resolved = await resolveUser(session.user.id);
+  return typeof resolved === "string" ? null : resolved;
+}

@@ -6,6 +6,7 @@ import { MessageSquarePlusIcon, SearchIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ExportButton } from "@/components/app/export-button";
 import { NoAccess } from "@/components/app/no-access";
 import { InquiryTable } from "@/components/inquiries/inquiry-table";
 import { PageHeader, PageHeaderSkeleton } from "@/components/members/field";
@@ -52,6 +53,7 @@ async function Inquiries({ searchParams }: { searchParams: PageProps<"/inquiries
   const user = await getCurrentUser();
   if (!can(user, "inquiries.view")) return <NoAccess permission="inquiries.view" />;
   const canCreate = can(user, "inquiries.create");
+  const canExport = can(user, "inquiries.export");
 
   return (
     <>
@@ -60,13 +62,18 @@ async function Inquiries({ searchParams }: { searchParams: PageProps<"/inquiries
         title="Enquiries"
         description="People who asked about the programme but have not joined yet. Keep following up until they do."
         actions={
-          canCreate ? (
-            <Button asChild size="lg">
-              <Link href="/inquiries/new">
-                <MessageSquarePlusIcon data-icon="inline-start" />
-                New enquiry
-              </Link>
-            </Button>
+          canCreate || canExport ? (
+            <>
+              {canExport ? <ExportButton module="inquiries" /> : null}
+              {canCreate ? (
+                <Button asChild size="lg">
+                  <Link href="/inquiries/new">
+                    <MessageSquarePlusIcon data-icon="inline-start" />
+                    New enquiry
+                  </Link>
+                </Button>
+              ) : null}
+            </>
           ) : undefined
         }
       />

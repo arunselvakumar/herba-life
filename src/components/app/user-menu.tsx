@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { ChevronDownIcon, LoaderCircleIcon, LogOutIcon, ShieldCheckIcon, ShieldUserIcon } from "lucide-react";
+import { ChevronDownIcon, FileSpreadsheetIcon, LoaderCircleIcon, LogOutIcon, ShieldCheckIcon, ShieldUserIcon } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import type { CurrentUser } from "@/lib/session";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,7 +26,7 @@ function initials(name: string): string {
     .join("");
 }
 
-export function UserMenu({ user, canManageTeam }: { user: CurrentUser; canManageTeam: boolean }) {
+export function UserMenu({ user, canManageTeam, canExport }: { user: CurrentUser; canManageTeam: boolean; canExport: boolean }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -76,6 +76,14 @@ export function UserMenu({ user, canManageTeam }: { user: CurrentUser; canManage
               <Link href="/team">
                 <ShieldUserIcon />
                 Users &amp; roles
+              </Link>
+            </DropdownMenuItem>
+          ) : null}
+          {canExport ? (
+            <DropdownMenuItem asChild>
+              <Link href="/export">
+                <FileSpreadsheetIcon />
+                Backup &amp; export
               </Link>
             </DropdownMenuItem>
           ) : null}

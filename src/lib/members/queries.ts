@@ -74,7 +74,7 @@ export async function listMembers({ q, filter = "all", today }: ListMembersParam
  * The package that matters right now: the latest active one, falling back to
  * the most recent of any status so the list can show "expired on …".
  */
-function pickCurrentPackage(packages: MemberPackage[], today: string): MemberPackage | null {
+export function pickCurrentPackage(packages: MemberPackage[], today: string): MemberPackage | null {
   const active = packages.filter((p) => p.status === "active");
   const running = active.find((p) => p.startDate <= today && p.endDate >= today);
   return running ?? active[0] ?? packages[0] ?? null;

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { UserRoundPlusIcon } from "lucide-react";
+import { ExportButton } from "@/components/app/export-button";
 import { NoAccess } from "@/components/app/no-access";
 import { PageHeader } from "@/components/members/field";
 import { TeamTabs } from "@/components/team/team-tabs";
@@ -32,6 +33,7 @@ async function Users() {
   const now = new Date();
   const users = await listUsers();
   const canCreate = can(user, "users.create");
+  const canExport = can(user, "users.export");
 
   return (
     <>
@@ -40,13 +42,18 @@ async function Users() {
         title="Users"
         description="Everyone who can sign in to this console, and the role that decides what they can do."
         actions={
-          canCreate ? (
-            <Button asChild size="lg">
-              <Link href="/team/users/new">
-                <UserRoundPlusIcon data-icon="inline-start" />
-                New user
-              </Link>
-            </Button>
+          canCreate || canExport ? (
+            <>
+              {canExport ? <ExportButton module="users" /> : null}
+              {canCreate ? (
+                <Button asChild size="lg">
+                  <Link href="/team/users/new">
+                    <UserRoundPlusIcon data-icon="inline-start" />
+                    New user
+                  </Link>
+                </Button>
+              ) : null}
+            </>
           ) : undefined
         }
       />

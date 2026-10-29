@@ -35,7 +35,7 @@ test.describe("users and roles", () => {
     await page.getByLabel("Description", { exact: true }).fill("Playwright role");
     await page.getByTitle("Allow everything in Enquiries").click();
     // Dashboard view is preselected; Members stays off.
-    await expect(page.getByText("7 of 29 allowed")).toBeVisible();
+    await expect(page.getByText("8 of 35 allowed")).toBeVisible();
     await page.getByRole("button", { name: "Create role" }).click();
     await expect(page).toHaveURL(/\/team\/roles$/);
     await expect(page.getByText(roleName)).toBeVisible();

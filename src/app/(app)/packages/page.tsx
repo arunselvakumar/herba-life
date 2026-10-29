@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { PackagePlusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ExportButton } from "@/components/app/export-button";
 import { NoAccess } from "@/components/app/no-access";
 import { PageHeader } from "@/components/members/field";
 import { PlanTable } from "@/components/packages/plan-table";
@@ -29,6 +30,7 @@ async function Packages() {
   const canCreate = can(user, "packages.create");
   const canUpdate = can(user, "packages.update");
   const canDelete = can(user, "packages.delete");
+  const canExport = can(user, "packages.export");
   const plans = await listPlans();
 
   return (
@@ -42,13 +44,18 @@ async function Packages() {
             : "The programmes this branch offers. Ask an administrator to add or change packages."
         }
         actions={
-          canCreate ? (
-            <Button asChild size="lg">
-              <Link href="/packages/new">
-                <PackagePlusIcon data-icon="inline-start" />
-                New package
-              </Link>
-            </Button>
+          canCreate || canExport ? (
+            <>
+              {canExport ? <ExportButton module="packages" /> : null}
+              {canCreate ? (
+                <Button asChild size="lg">
+                  <Link href="/packages/new">
+                    <PackagePlusIcon data-icon="inline-start" />
+                    New package
+                  </Link>
+                </Button>
+              ) : null}
+            </>
           ) : undefined
         }
       />
