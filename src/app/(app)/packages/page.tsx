@@ -4,8 +4,10 @@ import { Suspense } from "react";
 import { PackagePlusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NoAccess } from "@/components/app/no-access";
 import { PageHeader } from "@/components/members/field";
 import { PlanTable } from "@/components/packages/plan-table";
+import { can } from "@/lib/access/can";
 import { listPlans } from "@/lib/packages/queries";
 import { getCurrentUser } from "@/lib/session";
 
@@ -22,8 +24,12 @@ export default function PackagesPage() {
 }
 
 async function Packages() {
-  const [user, plans] = await Promise.all([getCurrentUser(), listPlans()]);
-  const canEdit = user.role === "admin";
+  const user = await getCurrentUser();
+  if (!can(user, "packages.view")) return <NoAccess permission="packages.view" />;
+  const canCreate = can(user, "packages.create");
+  const canUpdate = can(user, "packages.update");
+  const canDelete = can(user, "packages.delete");
+  const plans = await listPlans();
 
   return (
     <>
@@ -31,12 +37,12 @@ async function Packages() {
         eyebrow="Catalog"
         title="Packages"
         description={
-          canEdit
+          canCreate || canUpdate
             ? "The programmes this branch offers. Members are enrolled in one of these from their join date."
             : "The programmes this branch offers. Ask an administrator to add or change packages."
         }
         actions={
-          canEdit ? (
+          canCreate ? (
             <Button asChild size="lg">
               <Link href="/packages/new">
                 <PackagePlusIcon data-icon="inline-start" />
@@ -46,7 +52,7 @@ async function Packages() {
           ) : undefined
         }
       />
-      <PlanTable plans={plans} canEdit={canEdit} />
+      <PlanTable plans={plans} canCreate={canCreate} canUpdate={canUpdate} canDelete={canDelete} />
     </>
   );
 }

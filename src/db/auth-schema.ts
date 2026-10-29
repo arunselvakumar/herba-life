@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, index, uuid } from "drizzle-orm/pg-core";
+import { role } from "./access-schema";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -12,7 +13,10 @@ export const user = pgTable("user", {
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
-  role: text("role").default("staff"),
+  /** The role that decides what this user may do. Null means "no access" until an admin assigns one. */
+  roleId: uuid("role_id").references(() => role.id, { onDelete: "set null" }),
+  /** Suspended users keep their history but cannot sign in. */
+  isActive: boolean("is_active").default(true).notNull(),
 });
 
 export const session = pgTable(
@@ -74,9 +78,10 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
-export const userRelations = relations(user, ({ many }) => ({
+export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),
+  role: one(role, { fields: [user.roleId], references: [role.id] }),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({

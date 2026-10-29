@@ -1,3 +1,4 @@
+export * from "./access-schema";
 export * from "./auth-schema";
 export * from "./record-columns";
 export * from "./members-schema";

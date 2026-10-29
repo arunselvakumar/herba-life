@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NoAccess } from "@/components/app/no-access";
 import { PageHeader } from "@/components/members/field";
 import { PlanForm } from "@/components/packages/plan-form";
+import { can } from "@/lib/access/can";
 import { createPlan } from "@/lib/packages/actions";
 import { getCurrentUser } from "@/lib/session";
 
@@ -21,7 +22,7 @@ export default function NewPackagePage() {
 
 async function NewPlan() {
   const user = await getCurrentUser();
-  if (user.role !== "admin") redirect("/packages");
+  if (!can(user, "packages.create")) return <NoAccess permission="packages.create" />;
   return (
     <>
       <PageHeader eyebrow="Catalog" title="New package" description="Add a programme members can be enrolled in." />

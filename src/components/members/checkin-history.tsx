@@ -13,7 +13,14 @@ import { Delta, MeasurementValue } from "./measurement-value";
  * The digital version of the paper "Follow Up Record" grid: one row per visit,
  * newest first, with the change in weight against the previous visit.
  */
-export function CheckinHistory({ member }: { member: MemberDetail }) {
+export function CheckinHistory({
+  member,
+  canDelete,
+}: {
+  member: MemberDetail;
+  /** Shows the per-row delete button (members.followups). */
+  canDelete?: boolean;
+}) {
   const rows = member.checkins; // newest first
 
   return (
@@ -27,7 +34,7 @@ export function CheckinHistory({ member }: { member: MemberDetail }) {
       <CardContent className="px-0">
         {rows.length === 0 ? (
           <p className="mx-4 rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-            Use the form above to record the first visit.
+            {canDelete ? "Use the form above to record the first visit." : "No visits have been recorded for this member."}
           </p>
         ) : (
           <Table>
@@ -40,7 +47,7 @@ export function CheckinHistory({ member }: { member: MemberDetail }) {
                   </TableHead>
                 ))}
                 <TableHead className="min-w-40">Remarks</TableHead>
-                <TableHead className="w-10 pr-4" />
+                {canDelete ? <TableHead className="w-10 pr-4" /> : null}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -69,21 +76,23 @@ export function CheckinHistory({ member }: { member: MemberDetail }) {
                     <TableCell className="max-w-64 align-top whitespace-normal text-muted-foreground">
                       {row.remarks ?? ""}
                     </TableCell>
-                    <TableCell className="pr-4 align-top">
-                      <ConfirmAction
-                        action={deleteCheckin.bind(null, member.id, row.id)}
-                        title="Delete this follow-up?"
-                        description={`The visit on ${formatDay(row.recordedOn)} will be removed permanently.`}
-                        confirmLabel="Delete"
-                        destructive
-                        variant="ghost"
-                        size="icon-sm"
-                        className="text-muted-foreground"
-                      >
-                        <Trash2Icon />
-                        <span className="sr-only">Delete</span>
-                      </ConfirmAction>
-                    </TableCell>
+                    {canDelete ? (
+                      <TableCell className="pr-4 align-top">
+                        <ConfirmAction
+                          action={deleteCheckin.bind(null, member.id, row.id)}
+                          title="Delete this follow-up?"
+                          description={`The visit on ${formatDay(row.recordedOn)} will be removed permanently.`}
+                          confirmLabel="Delete"
+                          destructive
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-muted-foreground"
+                        >
+                          <Trash2Icon />
+                          <span className="sr-only">Delete</span>
+                        </ConfirmAction>
+                      </TableCell>
+                    ) : null}
                   </TableRow>
                 );
               })}

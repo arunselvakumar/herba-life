@@ -3,8 +3,10 @@ import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NoAccess } from "@/components/app/no-access";
 import { InquiryForm } from "@/components/inquiries/inquiry-form";
 import { PageHeader } from "@/components/members/field";
+import { can } from "@/lib/access/can";
 import { updateInquiry } from "@/lib/inquiries/actions";
 import { isOpenStatus } from "@/lib/inquiries/constants";
 import { inquiryToDefaults } from "@/lib/inquiries/form-defaults";
@@ -13,6 +15,7 @@ import { today } from "@/lib/members/dates";
 import { UUID_RE } from "@/lib/members/form-defaults";
 import { fullName } from "@/lib/members/format";
 import { listActivePlans, getPlan } from "@/lib/packages/queries";
+import { getCurrentUser } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: "Edit enquiry",
@@ -27,6 +30,8 @@ export default function EditInquiryPage(props: PageProps<"/inquiries/[id]/edit">
 }
 
 async function EditInquiry({ params }: { params: PageProps<"/inquiries/[id]/edit">["params"] }) {
+  const user = await getCurrentUser();
+  if (!can(user, "inquiries.update")) return <NoAccess permission="inquiries.update" />;
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
   const inquiry = await getInquiry(id);

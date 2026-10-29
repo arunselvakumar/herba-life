@@ -12,7 +12,18 @@ import { MemberAvatar } from "./member-avatar";
 import { PeriodBadge } from "./period-badge";
 
 /** Everyone who came in on the selected day, in order of arrival. */
-export function DayLog({ rows, day, today }: { rows: AttendanceRow[]; day: string; today: string }) {
+export function DayLog({
+  rows,
+  day,
+  today,
+  canDelete,
+}: {
+  rows: AttendanceRow[];
+  day: string;
+  today: string;
+  /** Shows the per-row remove button (attendance.delete). */
+  canDelete?: boolean;
+}) {
   const label = relativeDay(day, today).toLowerCase();
   return (
     <Card>
@@ -36,7 +47,7 @@ export function DayLog({ rows, day, today }: { rows: AttendanceRow[]; day: strin
                 <TableHead className="hidden sm:table-cell">Period</TableHead>
                 <TableHead className="hidden md:table-cell">Recorded</TableHead>
                 <TableHead className="hidden lg:table-cell">Note</TableHead>
-                <TableHead className="w-10 pr-4" />
+                {canDelete ? <TableHead className="w-10 pr-4" /> : null}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -65,21 +76,23 @@ export function DayLog({ rows, day, today }: { rows: AttendanceRow[]; day: strin
                     )}
                   </TableCell>
                   <TableCell className="hidden max-w-64 truncate text-muted-foreground lg:table-cell">{row.note ?? ""}</TableCell>
-                  <TableCell className="pr-4">
-                    <ConfirmAction
-                      action={deleteAttendance.bind(null, row.id)}
-                      title="Remove this check-in?"
-                      description={`${fullName(row.member)} at ${formatTime(row.checkedInAt)} will be removed from the attendance record.`}
-                      confirmLabel="Remove"
-                      destructive
-                      variant="ghost"
-                      size="icon-sm"
-                      className="text-muted-foreground"
-                    >
-                      <Trash2Icon />
-                      <span className="sr-only">Remove</span>
-                    </ConfirmAction>
-                  </TableCell>
+                  {canDelete ? (
+                    <TableCell className="pr-4">
+                      <ConfirmAction
+                        action={deleteAttendance.bind(null, row.id)}
+                        title="Remove this check-in?"
+                        description={`${fullName(row.member)} at ${formatTime(row.checkedInAt)} will be removed from the attendance record.`}
+                        confirmLabel="Remove"
+                        destructive
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-muted-foreground"
+                      >
+                        <Trash2Icon />
+                        <span className="sr-only">Remove</span>
+                      </ConfirmAction>
+                    </TableCell>
+                  ) : null}
                 </TableRow>
               ))}
             </TableBody>

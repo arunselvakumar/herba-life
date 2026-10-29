@@ -6,10 +6,13 @@ import { SearchIcon, UserRoundPlusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NoAccess } from "@/components/app/no-access";
 import { MemberTable } from "@/components/members/member-table";
-import { PageHeader } from "@/components/members/field";
+import { PageHeader, PageHeaderSkeleton } from "@/components/members/field";
+import { can } from "@/lib/access/can";
 import { today } from "@/lib/members/dates";
 import { listMembers, type MemberFilter } from "@/lib/members/queries";
+import { getCurrentUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -30,27 +33,55 @@ function isFilter(value: unknown): value is MemberFilter {
 
 export default function MembersPage(props: PageProps<"/members">) {
   return (
+    <Suspense
+      fallback={
+        <>
+          <PageHeaderSkeleton />
+          <ListSkeleton />
+        </>
+      }
+    >
+      <Members searchParams={props.searchParams} />
+    </Suspense>
+  );
+}
+
+/** Checks the role first so the header's buttons match what the person may do. */
+async function Members({ searchParams }: { searchParams: PageProps<"/members">["searchParams"] }) {
+  const user = await getCurrentUser();
+  if (!can(user, "members.view")) return <NoAccess permission="members.view" />;
+  const canCreate = can(user, "members.create");
+
+  return (
     <>
       <PageHeader
         title="Members"
         description="Everyone enrolled at this branch, with their current package and last follow-up."
         actions={
-          <Button asChild size="lg">
-            <Link href="/members/new">
-              <UserRoundPlusIcon data-icon="inline-start" />
-              New member
-            </Link>
-          </Button>
+          canCreate ? (
+            <Button asChild size="lg">
+              <Link href="/members/new">
+                <UserRoundPlusIcon data-icon="inline-start" />
+                New member
+              </Link>
+            </Button>
+          ) : undefined
         }
       />
       <Suspense fallback={<ListSkeleton />}>
-        <MemberList searchParams={props.searchParams} />
+        <MemberList searchParams={searchParams} canCreate={canCreate} />
       </Suspense>
     </>
   );
 }
 
-async function MemberList({ searchParams }: { searchParams: PageProps<"/members">["searchParams"] }) {
+async function MemberList({
+  searchParams,
+  canCreate,
+}: {
+  searchParams: PageProps<"/members">["searchParams"];
+  canCreate: boolean;
+}) {
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q : undefined;
   const filter: MemberFilter = isFilter(params.filter) ? params.filter : "all";
@@ -100,6 +131,7 @@ async function MemberList({ searchParams }: { searchParams: PageProps<"/members"
 
       <MemberTable
         members={members}
+        canCreate={canCreate}
         emptyMessage={q ? "No members match that search." : filter === "all" ? "No members yet." : "No members in this group."}
       />
     </div>

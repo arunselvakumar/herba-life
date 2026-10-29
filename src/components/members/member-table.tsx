@@ -8,7 +8,16 @@ import { daysLeft, formatNumber, fullName } from "@/lib/members/format";
 import type { MemberListRow } from "@/lib/members/queries";
 import { PackageBadge } from "./package-badge";
 
-export function MemberTable({ members, emptyMessage }: { members: MemberListRow[]; emptyMessage: string }) {
+export function MemberTable({
+  members,
+  emptyMessage,
+  canCreate,
+}: {
+  members: MemberListRow[];
+  emptyMessage: string;
+  /** Shows the "Add a member" link in the empty state. */
+  canCreate?: boolean;
+}) {
   if (members.length === 0) {
     return (
       <Card>
@@ -17,9 +26,11 @@ export function MemberTable({ members, emptyMessage }: { members: MemberListRow[
             <UserRoundPlusIcon className="size-6" />
           </span>
           <p className="font-semibold">{emptyMessage}</p>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/members/new">Add a member</Link>
-          </Button>
+          {canCreate ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/members/new">Add a member</Link>
+            </Button>
+          ) : null}
         </CardContent>
       </Card>
     );

@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NoAccess } from "@/components/app/no-access";
 import { ActivityForm } from "@/components/inquiries/activity-form";
 import { ActivityList } from "@/components/inquiries/activity-list";
 import { FollowUpDue, InquiryStatusBadge } from "@/components/inquiries/inquiry-badges";
@@ -32,6 +33,7 @@ import { MarkLostDialog } from "@/components/inquiries/mark-lost-dialog";
 import { ConfirmAction } from "@/components/members/confirm-action";
 import { PageHeader } from "@/components/members/field";
 import { MeasurementValue } from "@/components/members/measurement-value";
+import { can } from "@/lib/access/can";
 import { addActivity, deleteInquiry, markLost, reopenInquiry } from "@/lib/inquiries/actions";
 import { isOpenStatus } from "@/lib/inquiries/constants";
 import { goalLabels, sourceLabel } from "@/lib/inquiries/format";
@@ -40,6 +42,7 @@ import { DIETS, GENDERS, MEASUREMENTS, PAIN_AREAS, SYMPTOMS } from "@/lib/member
 import { formatDay, today } from "@/lib/members/dates";
 import { UUID_RE } from "@/lib/members/form-defaults";
 import { displayAge, formatMoney, formatNumber, fullName, rangeVerdict } from "@/lib/members/format";
+import { getCurrentUser } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: "Enquiry",
@@ -54,6 +57,14 @@ export default function InquiryPage(props: PageProps<"/inquiries/[id]">) {
 }
 
 async function InquiryDetailView({ params }: { params: PageProps<"/inquiries/[id]">["params"] }) {
+  const user = await getCurrentUser();
+  if (!can(user, "inquiries.view")) return <NoAccess permission="inquiries.view" />;
+  // Converting creates a member, so it needs both permissions.
+  const canConvert = can(user, "inquiries.convert") && can(user, "members.create");
+  const canUpdate = can(user, "inquiries.update");
+  const canDelete = can(user, "inquiries.delete");
+  const canLog = can(user, "inquiries.activities");
+
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
   const inquiry = await getInquiry(id);
@@ -101,14 +112,16 @@ async function InquiryDetailView({ params }: { params: PageProps<"/inquiries/[id
         }
         actions={
           <>
-            {open ? (
+            {open && canConvert ? (
+              <Button asChild size="lg">
+                <Link href={`/inquiries/${inquiry.id}/convert`}>
+                  <UserRoundCheckIcon data-icon="inline-start" />
+                  Convert to member
+                </Link>
+              </Button>
+            ) : null}
+            {open && canUpdate ? (
               <>
-                <Button asChild size="lg">
-                  <Link href={`/inquiries/${inquiry.id}/convert`}>
-                    <UserRoundCheckIcon data-icon="inline-start" />
-                    Convert to member
-                  </Link>
-                </Button>
                 <Button asChild variant="outline" size="lg">
                   <Link href={`/inquiries/${inquiry.id}/edit`}>
                     <PencilIcon data-icon="inline-start" />
@@ -118,7 +131,7 @@ async function InquiryDetailView({ params }: { params: PageProps<"/inquiries/[id
                 <MarkLostDialog action={markLost.bind(null, inquiry.id)} name={name} />
               </>
             ) : null}
-            {inquiry.status === "lost" ? (
+            {inquiry.status === "lost" && canUpdate ? (
               <ConfirmAction
                 action={reopenInquiry.bind(null, inquiry.id)}
                 title={`Reopen ${name}?`}
@@ -131,23 +144,25 @@ async function InquiryDetailView({ params }: { params: PageProps<"/inquiries/[id
                 Reopen
               </ConfirmAction>
             ) : null}
-            <ConfirmAction
-              action={deleteInquiry.bind(null, inquiry.id)}
-              title={`Delete ${name}?`}
-              description={
-                inquiry.convertedMember
-                  ? "This removes the enquiry and its follow-up log. The member record stays."
-                  : "This permanently removes the enquiry and its follow-up log."
-              }
-              confirmLabel="Delete enquiry"
-              destructive
-              variant="outline"
-              size="lg"
-              className="text-destructive"
-            >
-              <Trash2Icon data-icon="inline-start" />
-              Delete
-            </ConfirmAction>
+            {canDelete ? (
+              <ConfirmAction
+                action={deleteInquiry.bind(null, inquiry.id)}
+                title={`Delete ${name}?`}
+                description={
+                  inquiry.convertedMember
+                    ? "This removes the enquiry and its follow-up log. The member record stays."
+                    : "This permanently removes the enquiry and its follow-up log."
+                }
+                confirmLabel="Delete enquiry"
+                destructive
+                variant="outline"
+                size="lg"
+                className="text-destructive"
+              >
+                <Trash2Icon data-icon="inline-start" />
+                Delete
+              </ConfirmAction>
+            ) : null}
           </>
         }
       />
@@ -244,8 +259,8 @@ async function InquiryDetailView({ params }: { params: PageProps<"/inquiries/[id
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(20rem,1fr)]">
         <div className="min-w-0 space-y-6">
-          {open ? <ActivityForm action={addActivity.bind(null, inquiry.id)} today={now} nextFollowUpOn={inquiry.nextFollowUpOn} /> : null}
-          <ActivityList inquiryId={inquiry.id} activities={inquiry.activities} />
+          {open && canLog ? <ActivityForm action={addActivity.bind(null, inquiry.id)} today={now} nextFollowUpOn={inquiry.nextFollowUpOn} /> : null}
+          <ActivityList inquiryId={inquiry.id} activities={inquiry.activities} canDelete={canLog} />
           <ReadingsCard inquiry={inquiry} />
         </div>
         <div className="min-w-0 space-y-6">

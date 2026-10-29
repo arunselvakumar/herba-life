@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { memberPackage, packagePlan } from "@/db/schema";
-import { requireAdmin } from "@/lib/session";
+import { permissionFor, requirePermission } from "@/lib/access/guards";
 import type { FormState } from "@/lib/members/form-state";
 import { UUID_RE } from "@/lib/members/form-defaults";
 import { flattenErrors, formDataToObject } from "@/lib/members/validation";
@@ -23,7 +23,9 @@ function revalidate() {
 }
 
 export async function createPlan(_prev: FormState, formData: FormData): Promise<FormState> {
-  const user = await requireAdmin();
+  const guard = await permissionFor("packages.create");
+  if (!guard.ok) return guard.state;
+  const user = guard.user;
   const parsed = planSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) {
     return { status: "error", message: "Please fix the highlighted fields.", errors: flattenErrors(parsed.error) };
@@ -35,7 +37,8 @@ export async function createPlan(_prev: FormState, formData: FormData): Promise<
 }
 
 export async function updatePlan(planId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  await requireAdmin();
+  const guard = await permissionFor("packages.update");
+  if (!guard.ok) return guard.state;
   const id = assertId(planId);
   const parsed = planSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) {
@@ -53,14 +56,14 @@ export async function updatePlan(planId: string, _prev: FormState, formData: For
 }
 
 export async function setPlanActive(planId: string, isActive: boolean): Promise<void> {
-  await requireAdmin();
+  await requirePermission("packages.update");
   await db.update(packagePlan).set({ isActive }).where(eq(packagePlan.id, assertId(planId)));
   revalidate();
 }
 
 /** Only packages nobody has ever been enrolled in can be deleted; archive the rest. */
 export async function deletePlan(planId: string): Promise<void> {
-  await requireAdmin();
+  await requirePermission("packages.delete");
   const id = assertId(planId);
   const [used] = await db.select({ value: count() }).from(memberPackage).where(eq(memberPackage.planId, id));
   if ((used?.value ?? 0) > 0) {

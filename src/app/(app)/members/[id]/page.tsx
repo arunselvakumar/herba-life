@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NoAccess } from "@/components/app/no-access";
 import { CheckinForm } from "@/components/members/checkin-form";
 import { CheckinHistory } from "@/components/members/checkin-history";
 import { ConfirmAction } from "@/components/members/confirm-action";
@@ -26,7 +27,8 @@ import { Delta, MeasurementValue } from "@/components/members/measurement-value"
 import { PackageBadge } from "@/components/members/package-badge";
 import { PackageList } from "@/components/members/package-list";
 import { WeightTrend } from "@/components/members/weight-trend";
-import { AttendanceSummary } from "@/components/attendance/member-summary";
+import { MemberAttendance } from "@/components/attendance/member-attendance";
+import { can } from "@/lib/access/can";
 import { addCheckin, deleteMember } from "@/lib/members/actions";
 import { DIETS, EXPIRING_SOON_DAYS, GENDERS, MEASUREMENTS, PAIN_AREAS, SYMPTOMS } from "@/lib/members/constants";
 import { formatDay, today } from "@/lib/members/dates";
@@ -35,6 +37,7 @@ import { daysLeft, displayAge, formatNumber, fullName, packageState, rangeVerdic
 import { getMember, type MemberDetail } from "@/lib/members/queries";
 import { sourceLabel } from "@/lib/inquiries/format";
 import { getSourceInquiry } from "@/lib/inquiries/queries";
+import { getCurrentUser } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: "Member",
@@ -49,6 +52,14 @@ export default function MemberPage(props: PageProps<"/members/[id]">) {
 }
 
 async function MemberProfile({ params }: { params: PageProps<"/members/[id]">["params"] }) {
+  const user = await getCurrentUser();
+  if (!can(user, "members.view")) return <NoAccess permission="members.view" />;
+  const canUpdate = can(user, "members.update");
+  const canDelete = can(user, "members.delete");
+  const canFollowUp = can(user, "members.followups");
+  const canManagePackages = can(user, "members.packages");
+  const canSeeAttendance = can(user, "attendance.view");
+
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
   const member = await getMember(id);
@@ -82,27 +93,33 @@ async function MemberProfile({ params }: { params: PageProps<"/members/[id]">["p
           </span>
         }
         actions={
-          <>
-            <Button asChild variant="outline" size="lg">
-              <Link href={`/members/${member.id}/edit`}>
-                <PencilIcon data-icon="inline-start" />
-                Edit details
-              </Link>
-            </Button>
-            <ConfirmAction
-              action={deleteMember.bind(null, member.id)}
-              title={`Delete ${name}?`}
-              description="This permanently removes the member along with all packages and follow-ups."
-              confirmLabel="Delete member"
-              destructive
-              variant="outline"
-              size="lg"
-              className="text-destructive"
-            >
-              <Trash2Icon data-icon="inline-start" />
-              Delete
-            </ConfirmAction>
-          </>
+          canUpdate || canDelete ? (
+            <>
+              {canUpdate ? (
+                <Button asChild variant="outline" size="lg">
+                  <Link href={`/members/${member.id}/edit`}>
+                    <PencilIcon data-icon="inline-start" />
+                    Edit details
+                  </Link>
+                </Button>
+              ) : null}
+              {canDelete ? (
+                <ConfirmAction
+                  action={deleteMember.bind(null, member.id)}
+                  title={`Delete ${name}?`}
+                  description="This permanently removes the member along with all packages and follow-ups."
+                  confirmLabel="Delete member"
+                  destructive
+                  variant="outline"
+                  size="lg"
+                  className="text-destructive"
+                >
+                  <Trash2Icon data-icon="inline-start" />
+                  Delete
+                </ConfirmAction>
+              ) : null}
+            </>
+          ) : undefined
         }
       />
 
@@ -158,13 +175,13 @@ async function MemberProfile({ params }: { params: PageProps<"/members/[id]">["p
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(20rem,1fr)]">
         <div className="min-w-0 space-y-6">
-          <CheckinForm action={addCheckin.bind(null, member.id)} today={now} heightCm={member.heightCm} />
+          {canFollowUp ? <CheckinForm action={addCheckin.bind(null, member.id)} today={now} heightCm={member.heightCm} /> : null}
+          {canSeeAttendance ? <MemberAttendance memberId={member.id} today={now} joinedOn={member.joinedOn} /> : null}
           <WeightTrend checkins={member.checkins} />
-          <CheckinHistory member={member} />
+          <CheckinHistory member={member} canDelete={canFollowUp} />
         </div>
         <div className="min-w-0 space-y-6">
-          <PackageList memberId={member.id} packages={member.packages} today={now} />
-          <AttendanceSummary memberId={member.id} today={now} />
+          <PackageList memberId={member.id} packages={member.packages} today={now} canManage={canManagePackages} />
           <ContactCard member={member} sourceInquiry={sourceInquiry} />
           <HealthCard member={member} />
           <EatingHabitsCard member={member} />

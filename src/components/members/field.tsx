@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { GhostTitle } from "@/components/motion/ghost-title";
 import { Reveal } from "@/components/motion/reveal";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -99,5 +100,16 @@ export function PageHeader({
       </div>
       {actions ? <div className="relative z-10 flex flex-wrap gap-2">{actions}</div> : null}
     </Reveal>
+  );
+}
+
+/** Placeholder for a `PageHeader` that renders inside a Suspense boundary. */
+export function PageHeaderSkeleton() {
+  return (
+    <div className="space-y-2">
+      <Skeleton className="h-3 w-20" />
+      <Skeleton className="h-9 w-72" />
+      <Skeleton className="h-4 w-80" />
+    </div>
   );
 }

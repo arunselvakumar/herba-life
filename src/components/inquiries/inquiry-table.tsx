@@ -9,7 +9,18 @@ import { formatDay } from "@/lib/members/dates";
 import { fullName } from "@/lib/members/format";
 import { FollowUpDue, InquiryStatusBadge } from "./inquiry-badges";
 
-export function InquiryTable({ inquiries, today, emptyMessage }: { inquiries: InquiryListRow[]; today: string; emptyMessage: string }) {
+export function InquiryTable({
+  inquiries,
+  today,
+  emptyMessage,
+  canCreate,
+}: {
+  inquiries: InquiryListRow[];
+  today: string;
+  emptyMessage: string;
+  /** Shows the "Record an enquiry" link in the empty state. */
+  canCreate?: boolean;
+}) {
   if (inquiries.length === 0) {
     return (
       <Card>
@@ -18,9 +29,11 @@ export function InquiryTable({ inquiries, today, emptyMessage }: { inquiries: In
             <MessageSquarePlusIcon className="size-6" />
           </span>
           <p className="font-semibold">{emptyMessage}</p>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/inquiries/new">Record an enquiry</Link>
-          </Button>
+          {canCreate ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/inquiries/new">Record an enquiry</Link>
+            </Button>
+          ) : null}
         </CardContent>
       </Card>
     );

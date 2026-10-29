@@ -11,35 +11,58 @@ import { daysLeft, formatMoney, packageState } from "@/lib/members/format";
 import { ConfirmAction } from "./confirm-action";
 import { PackageBadge } from "./package-badge";
 
-export function PackageList({ memberId, packages, today }: { memberId: string; packages: MemberPackage[]; today: string }) {
+export function PackageList({
+  memberId,
+  packages,
+  today,
+  canManage,
+}: {
+  memberId: string;
+  packages: MemberPackage[];
+  today: string;
+  /** Shows "New package" and the complete / cancel / reopen / delete actions (members.packages). */
+  canManage?: boolean;
+}) {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base font-bold">Packages</CardTitle>
         <CardDescription>Programmes the member has enrolled in</CardDescription>
-        <CardAction>
-          <Button asChild size="sm">
-            <Link href={`/members/${memberId}/packages/new`}>
-              <PackagePlusIcon data-icon="inline-start" />
-              New package
-            </Link>
-          </Button>
-        </CardAction>
+        {canManage ? (
+          <CardAction>
+            <Button asChild size="sm">
+              <Link href={`/members/${memberId}/packages/new`}>
+                <PackagePlusIcon data-icon="inline-start" />
+                New package
+              </Link>
+            </Button>
+          </CardAction>
+        ) : null}
       </CardHeader>
       <CardContent className="space-y-3">
         {packages.length === 0 ? (
           <p className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-            No package yet. Create one to start tracking the programme.
+            {canManage ? "No package yet. Create one to start tracking the programme." : "No package yet."}
           </p>
         ) : (
-          packages.map((pkg) => <PackageItem key={pkg.id} memberId={memberId} pkg={pkg} today={today} />)
+          packages.map((pkg) => <PackageItem key={pkg.id} memberId={memberId} pkg={pkg} today={today} canManage={canManage ?? false} />)
         )}
       </CardContent>
     </Card>
   );
 }
 
-function PackageItem({ memberId, pkg, today }: { memberId: string; pkg: MemberPackage; today: string }) {
+function PackageItem({
+  memberId,
+  pkg,
+  today,
+  canManage,
+}: {
+  memberId: string;
+  pkg: MemberPackage;
+  today: string;
+  canManage: boolean;
+}) {
   const state = packageState(pkg, EXPIRING_SOON_DAYS, today);
   const total = pkg.durationDays + pkg.extraDays;
   const elapsed = Math.min(Math.max(daysBetween(pkg.startDate, today) + 1, 0), total);
@@ -81,49 +104,51 @@ function PackageItem({ memberId, pkg, today }: { memberId: string; pkg: MemberPa
 
       {pkg.notes ? <p className="text-sm text-muted-foreground">{pkg.notes}</p> : null}
 
-      <div className="flex flex-wrap gap-2">
-        {isOpen ? (
-          <>
+      {canManage ? (
+        <div className="flex flex-wrap gap-2">
+          {isOpen ? (
+            <>
+              <ConfirmAction
+                action={setPackageStatus.bind(null, memberId, pkg.id, "completed")}
+                title="Mark package as completed?"
+                description="The member finished this programme. You can still create a new package afterwards."
+                confirmLabel="Mark completed"
+              >
+                Mark completed
+              </ConfirmAction>
+              <ConfirmAction
+                action={setPackageStatus.bind(null, memberId, pkg.id, "cancelled")}
+                title="Cancel this package?"
+                description="The package stays on record but no longer counts as active."
+                confirmLabel="Cancel package"
+                destructive
+              >
+                Cancel
+              </ConfirmAction>
+            </>
+          ) : (
             <ConfirmAction
-              action={setPackageStatus.bind(null, memberId, pkg.id, "completed")}
-              title="Mark package as completed?"
-              description="The member finished this programme. You can still create a new package afterwards."
-              confirmLabel="Mark completed"
+              action={setPackageStatus.bind(null, memberId, pkg.id, "active")}
+              title="Reopen this package?"
+              confirmLabel="Reopen"
             >
-              Mark completed
+              Reopen
             </ConfirmAction>
-            <ConfirmAction
-              action={setPackageStatus.bind(null, memberId, pkg.id, "cancelled")}
-              title="Cancel this package?"
-              description="The package stays on record but no longer counts as active."
-              confirmLabel="Cancel package"
-              destructive
-            >
-              Cancel
-            </ConfirmAction>
-          </>
-        ) : (
+          )}
           <ConfirmAction
-            action={setPackageStatus.bind(null, memberId, pkg.id, "active")}
-            title="Reopen this package?"
-            confirmLabel="Reopen"
+            action={deletePackage.bind(null, memberId, pkg.id)}
+            title="Delete this package?"
+            description="This removes the package record permanently."
+            confirmLabel="Delete"
+            destructive
+            variant="ghost"
+            className="ml-auto text-muted-foreground"
           >
-            Reopen
+            <Trash2Icon />
+            Delete
           </ConfirmAction>
-        )}
-        <ConfirmAction
-          action={deletePackage.bind(null, memberId, pkg.id)}
-          title="Delete this package?"
-          description="This removes the package record permanently."
-          confirmLabel="Delete"
-          destructive
-          variant="ghost"
-          className="ml-auto text-muted-foreground"
-        >
-          <Trash2Icon />
-          Delete
-        </ConfirmAction>
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }

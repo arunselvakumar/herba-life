@@ -24,9 +24,12 @@ function useHydrated() {
  *
  * Reads the URL, so it must render inside a `<Suspense>` boundary.
  */
-export function TopNav({ className, testId }: { className?: string; testId?: string }) {
+export function TopNav({ hrefs, className, testId }: { hrefs: readonly string[]; className?: string | undefined; testId?: string | undefined }) {
+  // Icons are components, which cannot cross the server boundary, so the
+  // server sends the hrefs the role unlocks and the items are resolved here.
+  const items = navigation.filter((item) => hrefs.includes(item.href));
   const pathname = usePathname();
-  const activeHref = findNavItem(pathname)?.href ?? null;
+  const activeHref = findNavItem(items, pathname)?.href ?? null;
   const hydrated = useHydrated();
   const listRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLSpanElement>(null);
@@ -67,14 +70,14 @@ export function TopNav({ className, testId }: { className?: string; testId?: str
     <nav aria-label="Primary" data-testid={testId} className={cn("min-w-0", className)}>
       <div
         ref={listRef}
-        className="relative flex items-center gap-1 overflow-x-auto rounded-full bg-card/70 p-1 ring-1 ring-border/80 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="relative flex items-center gap-0.5 overflow-x-auto rounded-full bg-card/70 p-1 ring-1 ring-border/80 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         <span
           ref={pillRef}
           aria-hidden
           className="pointer-events-none absolute top-1 bottom-1 left-0 rounded-full bg-primary opacity-0 shadow-[0_10px_24px_-12px_rgb(17_17_17/0.6)]"
         />
-        {navigation.map((item) => {
+        {items.map((item) => {
           const active = item.href === activeHref;
           return (
             <Link
@@ -83,7 +86,7 @@ export function TopNav({ className, testId }: { className?: string; testId?: str
               data-active={active}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative z-10 flex h-9 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-semibold whitespace-nowrap transition-colors duration-300 outline-none focus-visible:ring-3 focus-visible:ring-ring/15",
+                "relative z-10 flex h-9 shrink-0 items-center gap-2 rounded-full px-3 text-sm font-semibold whitespace-nowrap transition-colors duration-300 outline-none focus-visible:ring-3 focus-visible:ring-ring/15",
                 active ? "text-primary-foreground" : "text-muted-foreground hover:bg-foreground/6 hover:text-foreground",
                 active && !hydrated && "bg-primary",
               )}
@@ -98,13 +101,13 @@ export function TopNav({ className, testId }: { className?: string; testId?: str
   );
 }
 
-/** Static fallback for Suspense: same pills, nothing highlighted. */
+/** Static fallback for Suspense: the full set of pills, nothing highlighted. */
 export function TopNavSkeleton({ className }: { className?: string }) {
   return (
     <nav aria-label="Primary" className={cn("min-w-0", className)}>
-      <div className="flex items-center gap-1 overflow-x-auto rounded-full bg-card/70 p-1 ring-1 ring-border/80 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {navigation.map((item) => (
-          <span key={item.href} className="flex h-9 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-semibold whitespace-nowrap text-muted-foreground">
+      <div className="flex items-center gap-0.5 overflow-x-auto rounded-full bg-card/70 p-1 ring-1 ring-border/80 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {navigation.slice(0, 5).map((item) => (
+          <span key={item.href} className="flex h-9 shrink-0 items-center gap-2 rounded-full px-3 text-sm font-semibold whitespace-nowrap text-muted-foreground">
             <item.icon className="size-4 opacity-80" />
             {item.title}
           </span>

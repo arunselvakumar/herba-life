@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NoAccess } from "@/components/app/no-access";
 import { PageHeader } from "@/components/members/field";
 import { PlanForm } from "@/components/packages/plan-form";
+import { can } from "@/lib/access/can";
 import { UUID_RE } from "@/lib/members/form-defaults";
 import { updatePlan } from "@/lib/packages/actions";
 import { getPlan } from "@/lib/packages/queries";
@@ -25,8 +27,8 @@ async function EditPlan({ params }: { params: PageProps<"/packages/[id]/edit">["
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
   const [user, plan] = await Promise.all([getCurrentUser(), getPlan(id)]);
+  if (!can(user, "packages.update")) return <NoAccess permission="packages.update" />;
   if (!plan) notFound();
-  if (user.role !== "admin") redirect("/packages");
 
   return (
     <>

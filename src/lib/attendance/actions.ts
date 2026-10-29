@@ -7,6 +7,7 @@ import { attendance, member } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { toDay } from "@/lib/members/dates";
 import type { FormState } from "@/lib/members/form-state";
+import { permissionFor, requirePermission } from "@/lib/access/guards";
 import { requireUser } from "@/lib/session";
 import { CHECKIN_COOLDOWN_MINUTES } from "./constants";
 import { countDay, countVisits, latestVisitSince } from "./queries";
@@ -45,7 +46,7 @@ export type KioskCheckInResult =
  * reported back as "already checked in" instead of creating another row.
  */
 export async function kioskCheckIn(memberId: string): Promise<KioskCheckInResult> {
-  const user = await requireUser();
+  const user = await requirePermission("attendance.kiosk");
   const parsedId = memberIdSchema.safeParse(memberId);
   if (!parsedId.success) return { status: "error", message: "That member could not be found." };
 
@@ -87,7 +88,9 @@ function invalid(errors: FieldErrors): FormState {
 
 /** Staff recording a visit by hand from the attendance page. */
 export async function recordAttendance(_prev: FormState, formData: FormData): Promise<FormState> {
-  const user = await requireUser();
+  const guard = await permissionFor("attendance.record");
+  if (!guard.ok) return guard.state;
+  const user = guard.user;
   const parsed = manualAttendanceSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) return invalid(flattenErrors(parsed.error));
 
@@ -113,7 +116,7 @@ export async function recordAttendance(_prev: FormState, formData: FormData): Pr
 }
 
 export async function deleteAttendance(id: string): Promise<void> {
-  await requireUser();
+  await requirePermission("attendance.delete");
   if (!UUID.test(id)) throw new Error("Invalid id");
   const [removed] = await db.delete(attendance).where(eq(attendance.id, id)).returning({ memberId: attendance.memberId });
   revalidateAttendance(removed?.memberId);

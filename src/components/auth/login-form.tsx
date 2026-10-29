@@ -14,18 +14,21 @@ function safeNextPath(value: string | null): string {
   if (value && value.startsWith("/") && !value.startsWith("//")) {
     return value;
   }
-  return "/dashboard";
+  return "/";
 }
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = safeNextPath(searchParams.get("next"));
+  const reason = searchParams.get("reason");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    reason === "suspended" ? "Your account has been suspended. Ask an administrator to restore it." : null,
+  );
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -41,9 +44,11 @@ export function LoginForm() {
 
       if (result.error) {
         setError(
-          result.error.status === 401 || result.error.status === 403
-            ? "That email and password combination is not valid."
-            : (result.error.message ?? "Unable to sign in right now."),
+          result.error.status === 403 && result.error.message?.includes("suspended")
+            ? "This account has been suspended. Ask an administrator to restore it."
+            : result.error.status === 401 || result.error.status === 403
+              ? "That email and password combination is not valid."
+              : (result.error.message ?? "Unable to sign in right now."),
         );
         return;
       }

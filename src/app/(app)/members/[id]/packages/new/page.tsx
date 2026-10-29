@@ -3,7 +3,9 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NoAccess } from "@/components/app/no-access";
 import { PageHeader } from "@/components/members/field";
+import { can } from "@/lib/access/can";
 import { PackageForm } from "@/components/members/package-form";
 import { createPackage } from "@/lib/members/actions";
 import { today } from "@/lib/members/dates";
@@ -11,6 +13,7 @@ import { UUID_RE } from "@/lib/members/form-defaults";
 import { fullName } from "@/lib/members/format";
 import { getMember } from "@/lib/members/queries";
 import { listActivePlans } from "@/lib/packages/queries";
+import { getCurrentUser } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: "New package",
@@ -25,6 +28,8 @@ export default function NewPackagePage(props: PageProps<"/members/[id]/packages/
 }
 
 async function NewPackage({ params }: { params: PageProps<"/members/[id]/packages/new">["params"] }) {
+  const user = await getCurrentUser();
+  if (!can(user, "members.packages")) return <NoAccess permission="members.packages" />;
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
   const member = await getMember(id);

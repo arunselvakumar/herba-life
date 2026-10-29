@@ -1,8 +1,12 @@
 import "server-only";
 
+import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cacheLife } from "next/cache";
+import { db } from "@/db";
+import { user as userTable } from "@/db/schema";
+import { ALL_PERMISSIONS, type Permission } from "@/lib/access/permissions";
 import { auth } from "./auth";
 
 export type CurrentUser = {
@@ -10,8 +14,39 @@ export type CurrentUser = {
   name: string;
   email: string;
   image: string | null;
-  role: string;
+  /** Null when no role has been assigned yet: the user can sign in but do nothing. */
+  roleId: string | null;
+  roleName: string | null;
+  /** True for the built-in Administrator role, which always holds every permission. */
+  isAdmin: boolean;
+  permissions: Permission[];
 };
+
+/**
+ * Resolve the signed-in user's role from the database rather than from the
+ * (cookie-cached) session, so a role change or a suspension takes effect on
+ * the next request instead of when the cookie cache expires.
+ */
+async function resolveUser(id: string): Promise<CurrentUser | "suspended" | "missing"> {
+  const row = await db.query.user.findFirst({
+    where: eq(userTable.id, id),
+    with: { role: true },
+  });
+  if (!row) return "missing";
+  if (!row.isActive) return "suspended";
+  const role = row.role;
+  const isAdmin = Boolean(role?.isSystem);
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    image: row.image ?? null,
+    roleId: role?.id ?? null,
+    roleName: role?.name ?? null,
+    isAdmin,
+    permissions: isAdmin ? [...ALL_PERMISSIONS] : ((role?.permissions ?? []) as Permission[]),
+  };
+}
 
 /**
  * Data Access Layer entry point for the signed-in user.
@@ -22,21 +57,18 @@ export type CurrentUser = {
  */
 export async function getCurrentUser(): Promise<CurrentUser> {
   "use cache: private";
-  cacheLife({ stale: 60, revalidate: 60, expire: 300 });
+  cacheLife({ stale: 30, revalidate: 30, expire: 300 });
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) {
     redirect("/login");
   }
-
-  const { user } = session;
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    image: user.image ?? null,
-    role: user.role ?? "staff",
-  };
+  const resolved = await resolveUser(session.user.id);
+  if (resolved === "missing") redirect("/login");
+  // Rendering cannot clear cookies, so a suspended user is sent through a
+  // route handler that signs them out properly.
+  if (resolved === "suspended") redirect("/signed-out?reason=suspended");
+  return resolved;
 }
 
 /**
@@ -48,21 +80,8 @@ export async function requireUser(): Promise<CurrentUser> {
   if (!session) {
     redirect("/login");
   }
-  const { user } = session;
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    image: user.image ?? null,
-    role: user.role ?? "staff",
-  };
-}
-
-/** Server Actions that change shared configuration (e.g. the package catalog). */
-export async function requireAdmin(): Promise<CurrentUser> {
-  const user = await requireUser();
-  if (user.role !== "admin") {
-    throw new Error("Only administrators can do this.");
-  }
-  return user;
+  const resolved = await resolveUser(session.user.id);
+  if (resolved === "missing") redirect("/login");
+  if (resolved === "suspended") throw new Error("Your account has been suspended.");
+  return resolved;
 }

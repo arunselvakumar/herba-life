@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { inquiry, inquiryActivity, member, packagePlan, user, type Inquiry } from "@/db/schema";
-import { requireUser } from "@/lib/session";
+import { deniedState, permissionFor, requirePermission } from "@/lib/access/guards";
+import { can } from "@/lib/access/can";
 import type { FormState } from "@/lib/members/form-state";
 import { UUID_RE } from "@/lib/members/form-defaults";
 import { today } from "@/lib/members/dates";
@@ -65,7 +66,9 @@ function rowValues(input: InquiryInput) {
 }
 
 export async function createInquiry(_prev: FormState, formData: FormData): Promise<FormState> {
-  const currentUser = await requireUser();
+  const guard = await permissionFor("inquiries.create");
+  if (!guard.ok) return guard.state;
+  const currentUser = guard.user;
   const parsed = inquirySchema.safeParse(formDataToObject(formData));
   if (!parsed.success) return invalid(flattenErrors(parsed.error));
 
@@ -88,7 +91,8 @@ export async function createInquiry(_prev: FormState, formData: FormData): Promi
 }
 
 export async function updateInquiry(inquiryId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  await requireUser();
+  const guard = await permissionFor("inquiries.update");
+  if (!guard.ok) return guard.state;
   const id = assertId(inquiryId);
   const existing = await openInquiry(id);
   if (!existing.ok) return existing.state;
@@ -104,7 +108,7 @@ export async function updateInquiry(inquiryId: string, _prev: FormState, formDat
 }
 
 export async function deleteInquiry(inquiryId: string): Promise<void> {
-  await requireUser();
+  await requirePermission("inquiries.delete");
   const id = assertId(inquiryId);
   await db.delete(inquiry).where(eq(inquiry.id, id));
   revalidate(id);
@@ -113,7 +117,9 @@ export async function deleteInquiry(inquiryId: string): Promise<void> {
 
 /** Log a call, message, visit or note and (re)schedule the next follow-up. */
 export async function addActivity(inquiryId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const currentUser = await requireUser();
+  const guard = await permissionFor("inquiries.activities");
+  if (!guard.ok) return guard.state;
+  const currentUser = guard.user;
   const id = assertId(inquiryId);
   const existing = await openInquiry(id);
   if (!existing.ok) return existing.state;
@@ -140,7 +146,7 @@ export async function addActivity(inquiryId: string, _prev: FormState, formData:
 }
 
 export async function deleteActivity(inquiryId: string, activityId: string): Promise<void> {
-  await requireUser();
+  await requirePermission("inquiries.activities");
   const id = assertId(inquiryId);
   await db
     .delete(inquiryActivity)
@@ -149,7 +155,9 @@ export async function deleteActivity(inquiryId: string, activityId: string): Pro
 }
 
 export async function markLost(inquiryId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const currentUser = await requireUser();
+  const guard = await permissionFor("inquiries.update");
+  if (!guard.ok) return guard.state;
+  const currentUser = guard.user;
   const id = assertId(inquiryId);
   const existing = await openInquiry(id);
   if (!existing.ok) return existing.state;
@@ -176,7 +184,7 @@ export async function markLost(inquiryId: string, _prev: FormState, formData: Fo
 }
 
 export async function reopenInquiry(inquiryId: string): Promise<void> {
-  const currentUser = await requireUser();
+  const currentUser = await requirePermission("inquiries.update");
   const id = assertId(inquiryId);
   const row = await db.query.inquiry.findFirst({ where: eq(inquiry.id, id), columns: { status: true } });
   if (!row || row.status !== "lost") throw new Error("Only lost enquiries can be reopened.");
@@ -200,7 +208,11 @@ export async function reopenInquiry(inquiryId: string): Promise<void> {
  * pre-filled from the inquiry.
  */
 export async function convertInquiry(inquiryId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const currentUser = await requireUser();
+  // Converting creates a member, so it needs the member permission as well.
+  const guard = await permissionFor("inquiries.convert");
+  if (!guard.ok) return guard.state;
+  const currentUser = guard.user;
+  if (!can(currentUser, "members.create")) return deniedState("members.create");
   const id = assertId(inquiryId);
   const existing = await openInquiry(id);
   if (!existing.ok) {

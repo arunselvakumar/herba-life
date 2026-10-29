@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { CalendarCheckIcon, CalendarRangeIcon, SunMoonIcon, UserRoundXIcon } from "lucide-react";
+import { NoAccess } from "@/components/app/no-access";
 import { AttendanceModeButton } from "@/components/attendance/attendance-mode-button";
 import { HourChart, VisitsChart, WeekdayChart } from "@/components/attendance/charts";
 import { DayLog } from "@/components/attendance/day-log";
@@ -10,16 +11,18 @@ import { DayNav } from "@/components/attendance/day-nav";
 import { MemberAvatar } from "@/components/attendance/member-avatar";
 import { RecordAttendanceDialog } from "@/components/attendance/record-attendance-dialog";
 import { StatCard, type Stat } from "@/components/dashboard/stat-card";
-import { PageHeader } from "@/components/members/field";
+import { PageHeader, PageHeaderSkeleton } from "@/components/members/field";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { can } from "@/lib/access/can";
 import { DEFAULT_RANGE, NOT_SEEN_AFTER_DAYS, RANGES, type Range } from "@/lib/attendance/constants";
 import { getAttendanceDashboard, listMemberOptions } from "@/lib/attendance/queries";
 import { formatMonth, formatShortDay, relativeDay } from "@/lib/attendance/time";
 import { formatDay, today } from "@/lib/members/dates";
 import { fullName } from "@/lib/members/format";
+import { getCurrentUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -34,22 +37,48 @@ function isRange(value: unknown): value is Range {
 
 export default function AttendancePage(props: PageProps<"/attendance">) {
   return (
+    <Suspense
+      fallback={
+        <>
+          <PageHeaderSkeleton />
+          <OverviewSkeleton />
+        </>
+      }
+    >
+      <Attendance searchParams={props.searchParams} />
+    </Suspense>
+  );
+}
+
+/** Checks the role first so the header's buttons match what the person may do. */
+async function Attendance({ searchParams }: { searchParams: PageProps<"/attendance">["searchParams"] }) {
+  const user = await getCurrentUser();
+  if (!can(user, "attendance.view")) return <NoAccess permission="attendance.view" />;
+  const canRecord = can(user, "attendance.record");
+  const canOpenKiosk = can(user, "attendance.kiosk");
+  const canDelete = can(user, "attendance.delete");
+
+  return (
     <>
       <PageHeader
         eyebrow="Attendance"
         title="Attendance"
         description="Who came in for their shake, and how often. Members check themselves in from Attendance Mode on the tablet."
         actions={
-          <>
-            <Suspense fallback={<Skeleton className="h-9 w-32" />}>
-              <RecordVisit searchParams={props.searchParams} />
-            </Suspense>
-            <AttendanceModeButton />
-          </>
+          canRecord || canOpenKiosk ? (
+            <>
+              {canRecord ? (
+                <Suspense fallback={<Skeleton className="h-9 w-32" />}>
+                  <RecordVisit searchParams={searchParams} />
+                </Suspense>
+              ) : null}
+              {canOpenKiosk ? <AttendanceModeButton /> : null}
+            </>
+          ) : undefined
         }
       />
       <Suspense fallback={<OverviewSkeleton />}>
-        <Overview searchParams={props.searchParams} />
+        <Overview searchParams={searchParams} canDelete={canDelete} />
       </Suspense>
     </>
   );
@@ -69,7 +98,13 @@ async function RecordVisit({ searchParams }: { searchParams: PageProps<"/attenda
   return <RecordAttendanceDialog members={members} day={day} today={now} />;
 }
 
-async function Overview({ searchParams }: { searchParams: PageProps<"/attendance">["searchParams"] }) {
+async function Overview({
+  searchParams,
+  canDelete,
+}: {
+  searchParams: PageProps<"/attendance">["searchParams"];
+  canDelete: boolean;
+}) {
   await connection();
   const now = today();
   const { day, range } = await readParams(searchParams, now);
@@ -265,7 +300,7 @@ async function Overview({ searchParams }: { searchParams: PageProps<"/attendance
         </Card>
       </section>
 
-      <DayLog rows={data.log} day={day} today={now} />
+      <DayLog rows={data.log} day={day} today={now} canDelete={canDelete} />
     </>
   );
 }

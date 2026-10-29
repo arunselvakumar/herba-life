@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { member, memberCheckin, memberPackage } from "@/db/schema";
-import { requireUser } from "@/lib/session";
+import { permissionFor, requirePermission } from "@/lib/access/guards";
 import type { FormState } from "./form-state";
 import { activePlan, enrolmentValues, hasAnyMeasurement, insertMember, invalid } from "./intake";
 import {
@@ -26,7 +26,9 @@ function assertId(id: string): string {
 }
 
 export async function createMember(_prev: FormState, formData: FormData): Promise<FormState> {
-  const user = await requireUser();
+  const guard = await permissionFor("members.create");
+  if (!guard.ok) return guard.state;
+  const user = guard.user;
   const parsed = intakeSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) return invalid(flattenErrors(parsed.error));
 
@@ -42,7 +44,8 @@ export async function createMember(_prev: FormState, formData: FormData): Promis
 }
 
 export async function updateMember(memberId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  await requireUser();
+  const guard = await permissionFor("members.update");
+  if (!guard.ok) return guard.state;
   const id = assertId(memberId);
   const parsed = memberSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) return invalid(flattenErrors(parsed.error));
@@ -62,7 +65,7 @@ export async function updateMember(memberId: string, _prev: FormState, formData:
 }
 
 export async function deleteMember(memberId: string): Promise<void> {
-  await requireUser();
+  await requirePermission("members.delete");
   const id = assertId(memberId);
   await db.delete(member).where(eq(member.id, id));
   revalidatePath("/members");
@@ -72,7 +75,9 @@ export async function deleteMember(memberId: string): Promise<void> {
 }
 
 export async function addCheckin(memberId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const user = await requireUser();
+  const guard = await permissionFor("members.followups");
+  if (!guard.ok) return guard.state;
+  const user = guard.user;
   const id = assertId(memberId);
   const parsed = checkinSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) return invalid(flattenErrors(parsed.error));
@@ -97,7 +102,7 @@ export async function addCheckin(memberId: string, _prev: FormState, formData: F
 }
 
 export async function deleteCheckin(memberId: string, checkinId: string): Promise<void> {
-  await requireUser();
+  await requirePermission("members.followups");
   const id = assertId(memberId);
   await db
     .delete(memberCheckin)
@@ -108,7 +113,9 @@ export async function deleteCheckin(memberId: string, checkinId: string): Promis
 }
 
 export async function createPackage(memberId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const user = await requireUser();
+  const guard = await permissionFor("members.packages");
+  if (!guard.ok) return guard.state;
+  const user = guard.user;
   const id = assertId(memberId);
   const parsed = packageSchema.safeParse(formDataToObject(formData));
   if (!parsed.success) return invalid(flattenErrors(parsed.error));
@@ -129,7 +136,7 @@ export async function createPackage(memberId: string, _prev: FormState, formData
 }
 
 export async function setPackageStatus(memberId: string, packageId: string, status: string): Promise<void> {
-  await requireUser();
+  await requirePermission("members.packages");
   const id = assertId(memberId);
   const parsedStatus = packageStatusSchema.parse(status);
   await db
@@ -142,7 +149,7 @@ export async function setPackageStatus(memberId: string, packageId: string, stat
 }
 
 export async function deletePackage(memberId: string, packageId: string): Promise<void> {
-  await requireUser();
+  await requirePermission("members.packages");
   const id = assertId(memberId);
   await db
     .delete(memberPackage)

@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { ChevronDownIcon, LoaderCircleIcon, LogOutIcon, ShieldCheckIcon, UserIcon } from "lucide-react";
+import { ChevronDownIcon, LoaderCircleIcon, LogOutIcon, ShieldCheckIcon, ShieldUserIcon } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import type { CurrentUser } from "@/lib/session";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,7 +26,7 @@ function initials(name: string): string {
     .join("");
 }
 
-export function UserMenu({ user }: { user: CurrentUser }) {
+export function UserMenu({ user, canManageTeam }: { user: CurrentUser; canManageTeam: boolean }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -67,13 +68,17 @@ export function UserMenu({ user }: { user: CurrentUser }) {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem disabled>
-            <UserIcon />
-            Profile
-          </DropdownMenuItem>
-          <DropdownMenuItem disabled>
             <ShieldCheckIcon />
-            Role: <span className="capitalize">{user.role}</span>
+            {user.roleName ? `Role: ${user.roleName}` : "No role assigned"}
           </DropdownMenuItem>
+          {canManageTeam ? (
+            <DropdownMenuItem asChild>
+              <Link href="/team">
+                <ShieldUserIcon />
+                Users &amp; roles
+              </Link>
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={handleSignOut} disabled={isPending}>

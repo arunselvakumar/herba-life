@@ -13,6 +13,8 @@ import {
   UsersRoundIcon,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/session";
+import { can } from "@/lib/access/can";
+import { NoAccess } from "@/components/app/no-access";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -73,36 +75,74 @@ function GreetingSkeleton() {
 
 export default function DashboardPage() {
   return (
+    <Suspense
+      fallback={
+        <>
+          <GreetingSkeleton />
+          <OverviewSkeleton />
+        </>
+      }
+    >
+      <Dashboard />
+    </Suspense>
+  );
+}
+
+/** What the role may open; links to modules it cannot view are left out. */
+type Reach = {
+  members: boolean;
+  createMember: boolean;
+  inquiries: boolean;
+  attendance: boolean;
+};
+
+async function Dashboard() {
+  const user = await getCurrentUser();
+  if (!can(user, "dashboard.view")) return <NoAccess permission="dashboard.view" />;
+  const reach: Reach = {
+    members: can(user, "members.view"),
+    createMember: can(user, "members.create"),
+    inquiries: can(user, "inquiries.view"),
+    attendance: can(user, "attendance.view"),
+  };
+
+  return (
     <>
       <Reveal className="relative isolate -mx-4 -my-8 flex flex-col gap-4 overflow-hidden px-4 py-8 md:-mx-8 md:flex-row md:items-end md:justify-between md:px-8">
         <GhostTitle text="Dashboard" className="left-4 md:left-8" />
         <Suspense fallback={<GreetingSkeleton />}>
           <Greeting />
         </Suspense>
-        <div className="relative z-10 flex gap-2">
-          <Button asChild variant="outline" size="lg">
-            <Link href="/members">
-              <UsersRoundIcon data-icon="inline-start" />
-              All members
-            </Link>
-          </Button>
-          <Button asChild size="lg">
-            <Link href="/members/new">
-              <UserRoundPlusIcon data-icon="inline-start" />
-              New member
-            </Link>
-          </Button>
-        </div>
+        {reach.members || reach.createMember ? (
+          <div className="relative z-10 flex gap-2">
+            {reach.members ? (
+              <Button asChild variant="outline" size="lg">
+                <Link href="/members">
+                  <UsersRoundIcon data-icon="inline-start" />
+                  All members
+                </Link>
+              </Button>
+            ) : null}
+            {reach.createMember ? (
+              <Button asChild size="lg">
+                <Link href="/members/new">
+                  <UserRoundPlusIcon data-icon="inline-start" />
+                  New member
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
       </Reveal>
 
       <Suspense fallback={<OverviewSkeleton />}>
-        <Overview />
+        <Overview reach={reach} />
       </Suspense>
     </>
   );
 }
 
-async function Overview() {
+async function Overview({ reach }: { reach: Reach }) {
   await connection();
   const now = today();
   const [data, inquiries, attendanceToday] = await Promise.all([getDashboardData(now), getInquiryDashboard(now), countDay(now)]);
@@ -116,7 +156,7 @@ async function Overview() {
       hint: `${data.newMembersThisMonth} joined in ${month}`,
       icon: UsersRoundIcon,
       tone: "brand",
-      href: "/members",
+      ...(reach.members ? { href: "/members" } : {}),
     },
     {
       id: "active",
@@ -125,7 +165,7 @@ async function Overview() {
       hint: "running today",
       icon: PackageCheckIcon,
       tone: "brand",
-      href: "/members?filter=active",
+      ...(reach.members ? { href: "/members?filter=active" } : {}),
       progress: {
         value: data.totalMembers > 0 ? data.activePackages / data.totalMembers : 0,
         tone: "ink",
@@ -139,7 +179,7 @@ async function Overview() {
       hint: `within the next ${EXPIRING_SOON_DAYS} days`,
       icon: HourglassIcon,
       tone: data.expiringSoon > 0 ? "warning" : "default",
-      href: "/members?filter=expiring",
+      ...(reach.members ? { href: "/members?filter=expiring" } : {}),
       progress: {
         value: data.activePackages > 0 ? data.expiringSoon / data.activePackages : 0,
         tone: "leaf",
@@ -152,7 +192,7 @@ async function Overview() {
       value: data.checkinsThisMonth,
       hint: `recorded in ${month}`,
       icon: ClipboardListIcon,
-      href: "/members?filter=due",
+      ...(reach.members ? { href: "/members?filter=due" } : {}),
     },
     {
       id: "inquiries",
@@ -161,7 +201,7 @@ async function Overview() {
       hint: inquiries.due > 0 ? `${inquiries.due} to follow up today` : `${inquiries.convertedThisMonth} converted in ${month}`,
       icon: MessageSquareMoreIcon,
       tone: inquiries.due > 0 ? "warning" : "default",
-      href: "/inquiries",
+      ...(reach.inquiries ? { href: "/inquiries" } : {}),
     },
     {
       id: "attendance",
@@ -170,7 +210,7 @@ async function Overview() {
       hint: `${attendanceToday.members} member${attendanceToday.members === 1 ? "" : "s"} came in`,
       icon: CalendarCheckIcon,
       tone: "brand",
-      href: "/attendance",
+      ...(reach.attendance ? { href: "/attendance" } : {}),
     },
   ];
 
@@ -187,11 +227,13 @@ async function Overview() {
           <CardHeader>
             <CardTitle className="text-lg font-semibold">Follow-up due</CardTitle>
             <CardDescription>On a package, but not measured in the last {FOLLOW_UP_INTERVAL_DAYS} days</CardDescription>
-            <CardAction>
-              <Button asChild variant="secondary" size="sm">
-                <Link href={{ pathname: "/members", query: { filter: "due" } }}>View all</Link>
-              </Button>
-            </CardAction>
+            {reach.members ? (
+              <CardAction>
+                <Button asChild variant="secondary" size="sm">
+                  <Link href={{ pathname: "/members", query: { filter: "due" } }}>View all</Link>
+                </Button>
+              </CardAction>
+            ) : null}
           </CardHeader>
           <CardContent className="px-0">
             {data.followUpsDue.length === 0 ? (
@@ -229,11 +271,13 @@ async function Overview() {
           <CardHeader>
             <CardTitle className="text-lg font-semibold">Packages ending soon</CardTitle>
             <CardDescription>Time to talk about renewals</CardDescription>
-            <CardAction>
-              <Button asChild variant="secondary" size="sm">
-                <Link href={{ pathname: "/members", query: { filter: "expiring" } }}>View all</Link>
-              </Button>
-            </CardAction>
+            {reach.members ? (
+              <CardAction>
+                <Button asChild variant="secondary" size="sm">
+                  <Link href={{ pathname: "/members", query: { filter: "expiring" } }}>View all</Link>
+                </Button>
+              </CardAction>
+            ) : null}
           </CardHeader>
           <CardContent className="px-0">
             {data.expiringPackages.length === 0 ? (
@@ -284,11 +328,13 @@ async function Overview() {
           <CardHeader>
             <CardTitle className="text-lg font-semibold">Enquiries to follow up</CardTitle>
             <CardDescription>Due today or overdue, plus new ones nobody has called yet</CardDescription>
-            <CardAction>
-              <Button asChild variant="secondary" size="sm">
-                <Link href={{ pathname: "/inquiries", query: { filter: "due" } }}>View all</Link>
-              </Button>
-            </CardAction>
+            {reach.inquiries ? (
+              <CardAction>
+                <Button asChild variant="secondary" size="sm">
+                  <Link href={{ pathname: "/inquiries", query: { filter: "due" } }}>View all</Link>
+                </Button>
+              </CardAction>
+            ) : null}
           </CardHeader>
           <CardContent className="px-0">
             {inquiries.dueList.length === 0 ? (
@@ -331,11 +377,13 @@ async function Overview() {
             <CardDescription>
               {inquiries.newThisMonth} received in {month} · {inquiries.convertedThisMonth} converted
             </CardDescription>
-            <CardAction>
-              <Button asChild variant="secondary" size="sm">
-                <Link href="/inquiries">View all</Link>
-              </Button>
-            </CardAction>
+            {reach.inquiries ? (
+              <CardAction>
+                <Button asChild variant="secondary" size="sm">
+                  <Link href="/inquiries">View all</Link>
+                </Button>
+              </CardAction>
+            ) : null}
           </CardHeader>
           <CardContent className="px-0">
             {inquiries.recent.length === 0 ? (

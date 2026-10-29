@@ -266,39 +266,6 @@ export async function getAttendanceDashboard(day: string, range: Range, today: s
   };
 }
 
-export type MemberAttendanceSummary = {
-  total: number;
-  thisMonth: number;
-  last: Attendance | null;
-  /** The last 28 days, oldest first, with the number of visits on each. */
-  recentDays: { day: string; visits: number }[];
-};
-
-export async function getMemberAttendanceSummary(memberId: string, today: string): Promise<MemberAttendanceSummary> {
-  const monthStart = `${today.slice(0, 7)}-01`;
-  const from = addDays(today, -27);
-  const [[total], [thisMonth], last, recent] = await Promise.all([
-    db.select({ value: count() }).from(attendance).where(eq(attendance.memberId, memberId)),
-    db
-      .select({ value: count() })
-      .from(attendance)
-      .where(and(eq(attendance.memberId, memberId), gte(attendance.day, monthStart))),
-    db.query.attendance.findFirst({ where: eq(attendance.memberId, memberId), orderBy: [desc(attendance.checkedInAt)] }),
-    db
-      .select({ day: attendance.day, visits: count() })
-      .from(attendance)
-      .where(and(eq(attendance.memberId, memberId), gte(attendance.day, from), lte(attendance.day, today)))
-      .groupBy(attendance.day),
-  ]);
-  const visitsByDay = new Map(recent.map((r) => [r.day, r.visits]));
-  return {
-    total: total?.value ?? 0,
-    thisMonth: thisMonth?.value ?? 0,
-    last: last ?? null,
-    recentDays: eachDay(from, today).map((day) => ({ day, visits: visitsByDay.get(day) ?? 0 })),
-  };
-}
-
 /** Members for the staff "record a visit" picker. */
 export async function listMemberOptions(): Promise<Pick<Member, "id" | "firstName" | "lastName" | "serialNo">[]> {
   return db

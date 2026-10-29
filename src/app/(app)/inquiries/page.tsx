@@ -6,10 +6,13 @@ import { MessageSquarePlusIcon, SearchIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NoAccess } from "@/components/app/no-access";
 import { InquiryTable } from "@/components/inquiries/inquiry-table";
-import { PageHeader } from "@/components/members/field";
+import { PageHeader, PageHeaderSkeleton } from "@/components/members/field";
+import { can } from "@/lib/access/can";
 import { listInquiries, type InquiryFilter } from "@/lib/inquiries/queries";
 import { today } from "@/lib/members/dates";
+import { getCurrentUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -31,28 +34,56 @@ function isFilter(value: unknown): value is InquiryFilter {
 
 export default function InquiriesPage(props: PageProps<"/inquiries">) {
   return (
+    <Suspense
+      fallback={
+        <>
+          <PageHeaderSkeleton />
+          <ListSkeleton />
+        </>
+      }
+    >
+      <Inquiries searchParams={props.searchParams} />
+    </Suspense>
+  );
+}
+
+/** Checks the role first so the header's buttons match what the person may do. */
+async function Inquiries({ searchParams }: { searchParams: PageProps<"/inquiries">["searchParams"] }) {
+  const user = await getCurrentUser();
+  if (!can(user, "inquiries.view")) return <NoAccess permission="inquiries.view" />;
+  const canCreate = can(user, "inquiries.create");
+
+  return (
     <>
       <PageHeader
         eyebrow="Enquiries"
         title="Enquiries"
         description="People who asked about the programme but have not joined yet. Keep following up until they do."
         actions={
-          <Button asChild size="lg">
-            <Link href="/inquiries/new">
-              <MessageSquarePlusIcon data-icon="inline-start" />
-              New enquiry
-            </Link>
-          </Button>
+          canCreate ? (
+            <Button asChild size="lg">
+              <Link href="/inquiries/new">
+                <MessageSquarePlusIcon data-icon="inline-start" />
+                New enquiry
+              </Link>
+            </Button>
+          ) : undefined
         }
       />
       <Suspense fallback={<ListSkeleton />}>
-        <InquiryList searchParams={props.searchParams} />
+        <InquiryList searchParams={searchParams} canCreate={canCreate} />
       </Suspense>
     </>
   );
 }
 
-async function InquiryList({ searchParams }: { searchParams: PageProps<"/inquiries">["searchParams"] }) {
+async function InquiryList({
+  searchParams,
+  canCreate,
+}: {
+  searchParams: PageProps<"/inquiries">["searchParams"];
+  canCreate: boolean;
+}) {
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q : undefined;
   // A search runs across everything unless a filter was chosen explicitly.
@@ -105,6 +136,7 @@ async function InquiryList({ searchParams }: { searchParams: PageProps<"/inquiri
       <InquiryTable
         inquiries={inquiries}
         today={now}
+        canCreate={canCreate}
         emptyMessage={
           q ? "No enquiries match that search." : filter === "all" ? "No enquiries yet." : filter === "due" ? "Nothing due. Nice." : "No enquiries in this group."
         }

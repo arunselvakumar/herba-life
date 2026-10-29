@@ -19,9 +19,12 @@ const icons: Record<InquiryActivity["type"], LucideIcon> = {
 export function ActivityList({
   inquiryId,
   activities,
+  canDelete,
 }: {
   inquiryId: string;
   activities: (InquiryActivity & { recordedByUser: { name: string } | null })[];
+  /** Shows the per-entry delete button (inquiries.activities). */
+  canDelete?: boolean;
 }) {
   return (
     <Card>
@@ -34,7 +37,7 @@ export function ActivityList({
       <CardContent>
         {activities.length === 0 ? (
           <p className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-            Log the first call or visit above.
+            {canDelete ? "Log the first call or visit above." : "No follow-ups have been logged."}
           </p>
         ) : (
           <ol className="space-y-1">
@@ -61,7 +64,7 @@ export function ActivityList({
                     </div>
                     {a.notes ? <p className="whitespace-pre-wrap text-sm text-muted-foreground">{a.notes}</p> : null}
                   </div>
-                  {!system ? (
+                  {!system && canDelete ? (
                     <ConfirmAction
                       action={deleteActivity.bind(null, inquiryId, a.id)}
                       title="Delete this entry?"

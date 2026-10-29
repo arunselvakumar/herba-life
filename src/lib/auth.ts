@@ -1,6 +1,8 @@
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { nextCookies } from "better-auth/next-js";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 
@@ -28,11 +30,32 @@ export const auth = betterAuth({
   },
   user: {
     additionalFields: {
-      role: {
+      roleId: {
         type: "string",
         required: false,
-        defaultValue: "staff",
         input: false,
+      },
+      isActive: {
+        type: "boolean",
+        required: false,
+        defaultValue: true,
+        input: false,
+      },
+    },
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        // Suspended accounts keep their history but must not get a new session.
+        before: async (session) => {
+          const row = await db.query.user.findFirst({
+            where: eq(schema.user.id, session.userId),
+            columns: { isActive: true },
+          });
+          if (row && !row.isActive) {
+            throw new APIError("FORBIDDEN", { message: "This account has been suspended." });
+          }
+        },
       },
     },
   },

@@ -74,8 +74,46 @@ Members mark their own visits on a tablet at the entrance:
   afternoon / evening split, a chart over 2 weeks to 12 months, busy hours,
   weekday pattern, regulars, members on a package who have not been seen for
   7+ days, the day's log, and a "Record a visit" fallback for staff.
+- **Member calendar** – on each member's profile, attendance is drawn as a
+  strip of month calendars, newest on the right, numbered days coloured green
+  by how many times the member came in that day. Hovering a day lists each
+  check-in with its time of day. The strip scrolls sideways and keeps loading
+  older months back to the month the member joined.
 
 See `docs/attendance-module.md` for the full requirements.
+
+### Users and roles
+
+Who can sign in, and what each of them may do. `Team` in the top navigation
+(`/team`) has two tabs:
+
+- **Users** (`/team/users`) – every staff account with its role, status and
+  last sign-in. Administrators create users (name, email, password, role),
+  edit them, set a new password, suspend or restore them, or delete them.
+  Suspending signs the person out everywhere and blocks sign-in while keeping
+  everything they recorded; deleting removes the account for good. You cannot
+  change your own role, suspend or delete yourself, or remove the last active
+  administrator.
+- **Roles** (`/team/roles`) – a role is a named set of permissions, for
+  example "Front desk manager". The editor lists every module with its actions
+  as checkboxes (view, create, update, delete, plus module-specific ones such
+  as "Record follow-ups" or "Open Attendance Mode"). Ticking any action in a
+  module also grants viewing it. The built-in **Administrator** role always
+  holds every permission and cannot be edited or deleted; the **Staff** role
+  is an ordinary editable starting point. A role in use cannot be deleted.
+
+The permission registry lives in `src/lib/access/permissions.ts`. Adding a
+module or an action there is all it takes for it to show up in the role
+editor; administrators get it automatically, every other role gets it when
+someone ticks it. Server Actions guard themselves with
+`requirePermission()` / `permissionFor()` from `src/lib/access/guards.ts`,
+pages render `<NoAccess />` for modules the role does not unlock, and the
+navigation only shows the modules the signed-in user can see. The current
+user's permissions are resolved from the database on every request
+(`src/lib/session.ts`), so a role change or a suspension applies immediately.
+
+Code lives in `src/db/access-schema.ts`, `src/lib/access/`,
+`src/components/team/` and `src/app/(app)/team/`.
 
 ## Prerequisites
 
@@ -104,8 +142,10 @@ development:
 | Email    | `admin@herbalife.local` |
 | Password | `Herbalife2026!`        |
 
-Edit `scripts/seed.ts` to add more accounts. The password is hashed through
-Better Auth's own helpers so it matches what the sign-in endpoint expects.
+The seed also creates the built-in Administrator role and a Staff role. Add
+further accounts from Team → Users inside the app; the password is hashed
+through Better Auth's own helpers so it matches what the sign-in endpoint
+expects.
 
 ### Database
 
@@ -185,14 +225,17 @@ are taken from herbalife.com.
 ## Authentication
 
 - `src/lib/auth.ts` – Better Auth server instance (Drizzle adapter, email +
-  password, sign-up disabled, `role` field on users).
+  password, sign-up disabled, `roleId` and `isActive` fields on users; a
+  database hook refuses new sessions for suspended accounts).
 - `src/lib/auth-member.ts` – React member.
 - `src/app/api/auth/[...all]/route.ts` – auth API routes.
 - `src/proxy.ts` – optimistic cookie check that redirects anonymous visitors
   to `/login`.
 - `src/lib/session.ts` – `getCurrentUser()`, the Data Access Layer entry point
-  (`use cache: private`). Always call this in server code; never trust the
-  cookie check alone.
+  (`use cache: private`), which also resolves the user's role and permissions.
+  Always call this in server code; never trust the cookie check alone.
+- `src/app/signed-out/route.ts` – clears the session cookies and lands on the
+  login page; where suspended users are sent.
 
 ## Tooling
 

@@ -6,8 +6,10 @@ import { connection } from "next/server";
 import { SparklesIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NoAccess } from "@/components/app/no-access";
 import { MemberForm } from "@/components/members/member-form";
 import { PageHeader } from "@/components/members/field";
+import { can } from "@/lib/access/can";
 import { convertInquiry } from "@/lib/inquiries/actions";
 import { inquiryToMemberDefaults } from "@/lib/inquiries/form-defaults";
 import { getInquiry } from "@/lib/inquiries/queries";
@@ -15,6 +17,7 @@ import { today } from "@/lib/members/dates";
 import { UUID_RE } from "@/lib/members/form-defaults";
 import { fullName } from "@/lib/members/format";
 import { listActivePlans } from "@/lib/packages/queries";
+import { getCurrentUser } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: "Convert enquiry",
@@ -29,6 +32,10 @@ export default function ConvertInquiryPage(props: PageProps<"/inquiries/[id]/con
 }
 
 async function ConvertInquiry({ params }: { params: PageProps<"/inquiries/[id]/convert">["params"] }) {
+  // Converting creates a member, so both permissions are needed; name the missing one.
+  const user = await getCurrentUser();
+  if (!can(user, "inquiries.convert")) return <NoAccess permission="inquiries.convert" />;
+  if (!can(user, "members.create")) return <NoAccess permission="members.create" />;
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
   const inquiry = await getInquiry(id);

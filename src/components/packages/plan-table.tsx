@@ -9,7 +9,21 @@ import { formatMoney } from "@/lib/members/format";
 import { deletePlan, setPlanActive } from "@/lib/packages/actions";
 import type { PlanRow } from "@/lib/packages/queries";
 
-export function PlanTable({ plans, canEdit }: { plans: PlanRow[]; canEdit: boolean }) {
+export function PlanTable({
+  plans,
+  canCreate,
+  canUpdate,
+  canDelete,
+}: {
+  plans: PlanRow[];
+  /** Shows the empty-state "Create the first package" link (packages.create). */
+  canCreate?: boolean;
+  /** Shows edit, archive and restore (packages.update). */
+  canUpdate?: boolean;
+  /** Shows delete for packages nobody was ever enrolled in (packages.delete). */
+  canDelete?: boolean;
+}) {
+  const hasActions = Boolean(canUpdate || canDelete);
   if (plans.length === 0) {
     return (
       <Card>
@@ -21,7 +35,7 @@ export function PlanTable({ plans, canEdit }: { plans: PlanRow[]; canEdit: boole
           <p className="max-w-sm text-sm text-muted-foreground">
             Packages are the programmes members enrol in, for example “3 months” for 90 days.
           </p>
-          {canEdit ? (
+          {canCreate ? (
             <Button asChild variant="outline" size="sm">
               <Link href="/packages/new">Create the first package</Link>
             </Button>
@@ -41,7 +55,7 @@ export function PlanTable({ plans, canEdit }: { plans: PlanRow[]; canEdit: boole
             <TableHead className="text-right">Price</TableHead>
             <TableHead className="hidden text-right sm:table-cell">Members</TableHead>
             <TableHead>Status</TableHead>
-            {canEdit ? <TableHead className="w-48 pr-4 text-right">Actions</TableHead> : null}
+            {hasActions ? <TableHead className="w-48 pr-4 text-right">Actions</TableHead> : null}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -64,15 +78,17 @@ export function PlanTable({ plans, canEdit }: { plans: PlanRow[]; canEdit: boole
                   <Badge variant="outline" className="rounded-full">Archived</Badge>
                 )}
               </TableCell>
-              {canEdit ? (
+              {hasActions ? (
                 <TableCell className="pr-4">
                   <div className="flex justify-end gap-1">
-                    <Button asChild variant="ghost" size="icon-sm" aria-label={`Edit ${plan.name}`}>
-                      <Link href={`/packages/${plan.id}/edit`}>
-                        <PencilIcon />
-                      </Link>
-                    </Button>
-                    {plan.isActive ? (
+                    {canUpdate ? (
+                      <Button asChild variant="ghost" size="icon-sm" aria-label={`Edit ${plan.name}`}>
+                        <Link href={`/packages/${plan.id}/edit`}>
+                          <PencilIcon />
+                        </Link>
+                      </Button>
+                    ) : null}
+                    {!canUpdate ? null : plan.isActive ? (
                       <ConfirmAction
                         action={setPlanActive.bind(null, plan.id, false)}
                         title={`Archive ${plan.name}?`}
@@ -96,7 +112,7 @@ export function PlanTable({ plans, canEdit }: { plans: PlanRow[]; canEdit: boole
                         <span className="sr-only">Restore</span>
                       </ConfirmAction>
                     )}
-                    {plan.enrolments === 0 ? (
+                    {canDelete && plan.enrolments === 0 ? (
                       <ConfirmAction
                         action={deletePlan.bind(null, plan.id)}
                         title={`Delete ${plan.name}?`}
