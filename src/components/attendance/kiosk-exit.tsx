@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { LoaderCircleIcon, LockKeyholeIcon } from "lucide-react";
+import { LoaderCircleIcon, LogOutIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -58,9 +58,9 @@ export function KioskExit({ staffName }: { staffName: string }) {
       }}
     >
       <DialogTrigger asChild>
-        <Button type="button" variant="ghost" size="sm" className="text-white/60 hover:bg-white/10 hover:text-white">
-          <LockKeyholeIcon data-icon="inline-start" />
-          Staff
+        <Button type="button" variant="ghost" size="sm" className="text-white/90 hover:bg-white/15 hover:text-white">
+          <LogOutIcon data-icon="inline-start" />
+          Exit
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm">

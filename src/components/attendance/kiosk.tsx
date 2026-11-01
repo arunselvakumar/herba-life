@@ -15,6 +15,7 @@ import { fullName } from "@/lib/members/format";
 import { KioskExit } from "./kiosk-exit";
 import { KioskResult } from "./kiosk-result";
 import { MemberAvatar } from "./member-avatar";
+import { MemberRail } from "./member-rail";
 
 type View = { kind: "search" } | { kind: "confirm"; member: KioskMember } | { kind: "result"; member: KioskMember; result: KioskCheckInResult };
 
@@ -92,10 +93,10 @@ export function Kiosk({
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex items-center gap-4 bg-foreground px-5 py-3 text-white md:px-8">
+      <header className="flex items-center gap-4 bg-brand-600 px-5 py-3 text-white md:px-8">
         <LogoMark tone="white" className="h-9" />
         <div className="leading-tight">
-          <p className="text-xs font-medium text-white/50">Herbalife · Attendance</p>
+          <p className="text-xs font-medium whitespace-nowrap text-white/70">Herbalife · Attendance</p>
           <p className="text-sm font-semibold">{now ? formatLongDate(today) : " "}</p>
         </div>
         <div className="ml-auto flex items-center gap-2 md:gap-4">
@@ -103,14 +104,14 @@ export function Kiosk({
             <UsersRoundIcon className="size-4" />
             <span className="tabular-nums">{todayVisits}</span> check-in{todayVisits === 1 ? "" : "s"} today
           </p>
-          <time className="font-heading text-2xl font-semibold tracking-tight tabular-nums md:text-3xl" suppressHydrationWarning>
+          <time className="font-heading text-2xl font-semibold tracking-tight whitespace-nowrap tabular-nums md:text-3xl" suppressHydrationWarning>
             {now ? formatTime(now) : " "}
           </time>
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="text-white/60 hover:bg-white/10 hover:text-white"
+            className="text-white/75 hover:bg-white/15 hover:text-white"
             onClick={toggleFullscreen}
             aria-label={fullscreen ? "Exit full screen" : "Full screen"}
           >
@@ -120,14 +121,14 @@ export function Kiosk({
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-4 py-6 md:px-8 md:py-8">
-        <div className="text-center">
+      <main className="flex flex-1 flex-col gap-6 py-6 md:py-8">
+        <div className="mx-auto w-full max-w-6xl px-4 text-center md:px-8">
           <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground md:text-4xl">Welcome! Tap your name to check in.</h1>
           <p className="mt-1 text-base text-muted-foreground md:text-lg">Start typing your name or your member number to find yourself faster.</p>
         </div>
 
-        <div className="relative">
-          <SearchIcon className="pointer-events-none absolute top-1/2 left-5 size-6 -translate-y-1/2 text-muted-foreground" />
+        <div className="relative mx-auto w-full max-w-6xl px-4 md:px-8">
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-9 size-6 -translate-y-1/2 text-muted-foreground md:left-13" />
           <input
             ref={inputRef}
             type="search"
@@ -141,7 +142,7 @@ export function Kiosk({
             autoCapitalize="words"
             spellCheck={false}
             enterKeyHint="search"
-            className="h-16 w-full rounded-full border-2 border-stone bg-card pr-16 pl-14 text-2xl font-medium shadow-sm outline-none placeholder:text-muted-foreground/70 focus-visible:border-foreground focus-visible:ring-4 focus-visible:ring-foreground/10 [&::-webkit-search-cancel-button]:hidden"
+            className="h-16 w-full rounded-full border border-stone bg-card pr-16 pl-14 text-2xl font-medium shadow-card transition-[border-color,box-shadow] duration-300 outline-none placeholder:text-muted-foreground/60 focus-visible:border-brand-500 focus-visible:ring-4 focus-visible:ring-brand-500/15 [&::-webkit-search-cancel-button]:hidden"
           />
           {query ? (
             <button
@@ -151,7 +152,7 @@ export function Kiosk({
                 inputRef.current?.focus();
               }}
               aria-label="Clear"
-              className="absolute top-1/2 right-3 flex size-10 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+              className="absolute top-1/2 right-7 flex size-10 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted md:right-11"
             >
               <XIcon className="size-5" />
             </button>
@@ -163,26 +164,8 @@ export function Kiosk({
         ) : matches.length === 0 ? (
           <Empty title={`No one called “${query}”`} body="Try your first name only, or your member number. Staff can also mark you present." />
         ) : (
-          <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4" aria-label="Members">
-            {matches.map((member) => (
-              <li key={member.id}>
-                <button
-                  type="button"
-                  onClick={() => setView({ kind: "confirm", member })}
-                  className="flex min-h-24 w-full items-center gap-3 rounded-2xl border border-stone bg-card p-4 text-left shadow-sm transition active:scale-[0.98] active:bg-muted hover:border-foreground/30 focus-visible:border-foreground focus-visible:ring-4 focus-visible:ring-foreground/10 focus-visible:outline-none"
-                >
-                  <MemberAvatar member={member} className="size-12 text-base" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-lg font-bold leading-tight">{fullName(member)}</span>
-                    <span className="block text-sm text-muted-foreground tabular-nums">
-                      #{member.serialNo}
-                      {member.mobileHint ? ` · ···· ${member.mobileHint}` : ""}
-                    </span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          // Keyed on the result set so a new search gets a fresh belt and entrance.
+          <MemberRail key={matches.map((m) => m.id).join("|")} members={matches} onPick={(member) => setView({ kind: "confirm", member })} />
         )}
       </main>
 
@@ -243,7 +226,7 @@ function describeDaysLeft(days: number | null): string {
 
 function Empty({ title, body }: { title: string; body: string }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-stone p-10 text-center">
+    <div className="mx-4 flex flex-1 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-stone p-10 text-center md:mx-8">
       <p className="text-xl font-bold">{title}</p>
       <p className="max-w-md text-muted-foreground">{body}</p>
     </div>

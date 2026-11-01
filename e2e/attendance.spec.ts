@@ -47,7 +47,7 @@ test.describe("attendance", () => {
     await page.getByRole("heading", { name: `You’re already in, ${firstName}` }).click();
 
     // Leaving needs the staff password.
-    await page.getByRole("button", { name: "Staff" }).click();
+    await page.getByRole("button", { name: "Exit" }).click();
     await page.getByLabel("Password").fill("definitely-wrong");
     await page.getByRole("button", { name: "Exit" }).click();
     await expect(page.getByText("That password is not right.")).toBeVisible();
