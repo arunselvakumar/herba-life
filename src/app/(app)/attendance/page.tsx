@@ -12,7 +12,8 @@ import { DayNav } from "@/components/attendance/day-nav";
 import { MemberAvatar } from "@/components/attendance/member-avatar";
 import { RecordAttendanceDialog } from "@/components/attendance/record-attendance-dialog";
 import { VisitsChart } from "@/components/attendance/visits-chart";
-import { StatCard, type Stat } from "@/components/dashboard/stat-card";
+import { StatCard, StatCardSkeleton, type Stat } from "@/components/dashboard/stat-card";
+import { StatGrid } from "@/components/dashboard/stat-grid";
 import { PageHeader, PageHeaderSkeleton } from "@/components/members/field";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -112,8 +113,7 @@ async function Overview({
   await connection();
   const now = today();
   const { day, range } = await readParams(searchParams, now);
-  const data = await getAttendanceDashboard(day, range, now);
-  const spec = RANGES.find((r) => r.value === range) ?? RANGES[1];
+  const data = await getAttendanceDashboard(day, range, now);  const spec = RANGES.find((r) => r.value === range) ?? RANGES[1];
   const dayLabel = relativeDay(day, now);
   const monthName = formatMonth(day.slice(0, 7));
 
@@ -155,11 +155,11 @@ async function Overview({
     <>
       <DayNav day={day} today={now} range={range} />
 
-      <section aria-label="Key metrics" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <StatGrid aria-label="Key metrics" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
           <StatCard key={stat.id} stat={stat} />
         ))}
-      </section>
+      </StatGrid>
 
       <DayLog rows={data.log} day={day} today={now} canDelete={canDelete} />
 
@@ -316,10 +316,10 @@ function EmptyRow({ children }: { children: React.ReactNode }) {
 function OverviewSkeleton() {
   return (
     <>
-      <Skeleton className="h-9 w-80" />
+      <Skeleton className="h-[50px] w-full max-w-[26rem] rounded-full" />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-32 rounded-xl" />
+          <StatCardSkeleton key={i} />
         ))}
       </div>
       <Skeleton className="h-72 rounded-3xl" />

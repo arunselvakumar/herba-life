@@ -103,13 +103,27 @@ export function PageHeader({
   );
 }
 
-/** Placeholder for a `PageHeader` that renders inside a Suspense boundary. */
-export function PageHeaderSkeleton() {
+/**
+ * Placeholder for a `PageHeader` that renders inside a Suspense boundary. It
+ * keeps the header's box and line heights so the page below doesn't shift;
+ * `descriptionLines` is how many lines the real description wraps to.
+ */
+export function PageHeaderSkeleton({ descriptionLines = 2 }: { descriptionLines?: number }) {
   return (
-    <div className="space-y-2">
-      <Skeleton className="h-3 w-20" />
-      <Skeleton className="h-9 w-72" />
-      <Skeleton className="h-4 w-80" />
+    <div aria-hidden className="-mx-4 -my-8 px-4 py-8 md:-mx-8 md:px-8">
+      <div className="space-y-1.5">
+        <div className="flex h-4 items-center">
+          <Skeleton className="h-3 w-20" />
+        </div>
+        <Skeleton className="h-9 w-72 md:h-11" />
+        <div>
+          {Array.from({ length: descriptionLines }).map((_, i) => (
+            <div key={i} className="flex h-5 items-center">
+              <Skeleton className={cn("h-3.5 w-full max-w-2xl", i === descriptionLines - 1 && "max-w-sm")} />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

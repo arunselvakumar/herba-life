@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { ArrowUpRightIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CountUp } from "@/components/motion/count-up";
 import { GrowBar } from "@/components/motion/grow-bar";
 
@@ -63,6 +64,33 @@ export function StatCard({ stat, className }: { stat: Stat; className?: string }
       <CardContent className="space-y-3">
         <p className="text-xs text-muted-foreground">{stat.hint}</p>
         {stat.progress ? <GrowBar value={stat.progress.value} tone={stat.progress.tone} label={stat.progress.label} /> : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * A StatCard's placeholder, built from the same card slots and line heights
+ * so the real card lands in exactly the space it held.
+ */
+export function StatCardSkeleton({ className }: { className?: string }) {
+  return (
+    <Card aria-hidden className={className}>
+      <CardHeader>
+        <CardDescription className="flex h-4 items-center">
+          <Skeleton className="h-3 w-28" />
+        </CardDescription>
+        <CardTitle className="mt-1">
+          <Skeleton className="h-8 w-16 md:h-9" />
+        </CardTitle>
+        <CardAction>
+          <Skeleton className="size-10 rounded-full" />
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        <div className="flex h-4 items-center">
+          <Skeleton className="h-3 w-40" />
+        </div>
       </CardContent>
     </Card>
   );

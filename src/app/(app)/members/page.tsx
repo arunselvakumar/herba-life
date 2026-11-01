@@ -37,7 +37,7 @@ export default function MembersPage(props: PageProps<"/members">) {
     <Suspense
       fallback={
         <>
-          <PageHeaderSkeleton />
+          <PageHeaderSkeleton descriptionLines={1} />
           <ListSkeleton />
         </>
       }
