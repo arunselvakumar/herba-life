@@ -2,13 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { MonitorCheckIcon } from "lucide-react";
-import { Button, type buttonVariants } from "@/components/ui/button";
+import type { buttonVariants } from "@/components/ui/button";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
 import type { VariantProps } from "class-variance-authority";
 
 /**
  * Opens Attendance Mode. Browsers only allow entering full screen from a user
  * gesture, so the request happens here on the click, before the client-side
  * navigation to the kiosk; the document stays full screen across it.
+ *
+ * A shimmer runs around its edge: white on the ink pill, leaf green on the
+ * white one, where a white spark would vanish.
  */
 export function AttendanceModeButton({
   variant = "default",
@@ -35,9 +39,17 @@ export function AttendanceModeButton({
   }
 
   return (
-    <Button type="button" variant={variant} size={size} className={className} onClick={start} {...rest}>
+    <ShimmerButton
+      type="button"
+      variant={variant}
+      size={size}
+      shimmerColor={variant === "outline" ? "var(--hl-leaf-deep)" : undefined}
+      className={className}
+      onClick={start}
+      {...rest}
+    >
       <MonitorCheckIcon data-icon={size?.startsWith("icon") ? undefined : "inline-start"} />
       {children ?? "Attendance Mode"}
-    </Button>
+    </ShimmerButton>
   );
 }
