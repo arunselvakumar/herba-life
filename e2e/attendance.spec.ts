@@ -36,7 +36,8 @@ test.describe("attendance", () => {
     await page.getByRole("button", { name: `${firstName} Visitor` }).click();
     await page.getByRole("button", { name: "Yes, check me in" }).click();
     await expect(page.getByRole("heading", { name: `Welcome, ${firstName}!` })).toBeVisible();
-    await expect(page.getByText("Visit 1 this month")).toBeVisible();
+    await expect(page.getByText("Visit this month")).toBeVisible();
+    await expect(page.getByText("1st", { exact: true })).toBeVisible();
 
     // Tap anywhere to go back, then try again: still inside the cooldown.
     await page.getByRole("heading", { name: `Welcome, ${firstName}!` }).click();

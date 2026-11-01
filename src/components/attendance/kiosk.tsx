@@ -205,11 +205,7 @@ export function Kiosk({
         <KioskResult
           result={view.result}
           seconds={KIOSK_WELCOME_SECONDS}
-          packageLine={
-            view.member.packageName
-              ? `Your ${view.member.packageName} package has ${describeDaysLeft(view.member.packageDaysLeft)}.`
-              : null
-          }
+          pkg={view.member.packageName ? { name: view.member.packageName, daysLeft: view.member.packageDaysLeft } : null}
           onDismiss={reset}
         />
       ) : null}
