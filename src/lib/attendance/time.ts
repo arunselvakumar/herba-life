@@ -14,6 +14,7 @@ const weekdayFormat = new Intl.DateTimeFormat("en-IN", { weekday: "long" });
 const shortDayFormat = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" });
 const monthFormat = new Intl.DateTimeFormat("en-IN", { month: "short", year: "2-digit" });
 const longDateFormat = new Intl.DateTimeFormat("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+const compactDateFormat = new Intl.DateTimeFormat("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
 /** "9:14 am" */
 export function formatTime(date: Date): string {
@@ -38,6 +39,11 @@ export function formatMonth(month: string): string {
 /** "Tuesday, 28 October 2026" */
 export function formatLongDate(day: string): string {
   return longDateFormat.format(parseDay(day));
+}
+
+/** "Tue, 28 Oct 2026" */
+export function formatCompactDate(day: string): string {
+  return compactDateFormat.format(parseDay(day));
 }
 
 /** "Today", "Yesterday" or the formatted day. */

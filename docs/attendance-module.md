@@ -89,8 +89,10 @@ Route: `/attendance`, with `?day=YYYY-MM-DD` and `?range=14d|30d|90d|12m`.
   (visits, members, average per open day), and the number of members on an
   active package not seen for 7+ days (`NOT_SEEN_AFTER_DAYS`).
 - **Check-ins over time**: bars per day (2 weeks, 30 days, 90 days) or per
-  month (12 months), ending on the selected day. Darker bar = check-ins,
-  lighter inner bar = unique members. The selected day is highlighted.
+  month (12 months), ending on the selected day. Checkboxes under the chart
+  pick the series: unique members (default), check-ins, or both — then the
+  darker bar is check-ins with unique members as the lighter inner bar. At
+  least one stays on. The selected day is highlighted.
 - **Busy hours** and **By weekday** for the same range.
 - **Regulars**: most visits in the range, with last visit.
 - **Not seen lately**: members on an active package whose last visit is

@@ -6,11 +6,12 @@ import { CalendarCheckIcon, CalendarRangeIcon, SunMoonIcon, UserRoundXIcon } fro
 import { ExportButton } from "@/components/app/export-button";
 import { NoAccess } from "@/components/app/no-access";
 import { AttendanceModeButton } from "@/components/attendance/attendance-mode-button";
-import { HourChart, VisitsChart, WeekdayChart } from "@/components/attendance/charts";
+import { HourChart, WeekdayChart } from "@/components/attendance/charts";
 import { DayLog } from "@/components/attendance/day-log";
 import { DayNav } from "@/components/attendance/day-nav";
 import { MemberAvatar } from "@/components/attendance/member-avatar";
 import { RecordAttendanceDialog } from "@/components/attendance/record-attendance-dialog";
+import { VisitsChart } from "@/components/attendance/visits-chart";
 import { StatCard, type Stat } from "@/components/dashboard/stat-card";
 import { PageHeader, PageHeaderSkeleton } from "@/components/members/field";
 import { Button } from "@/components/ui/button";
@@ -160,42 +161,7 @@ async function Overview({
         ))}
       </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-bold">Check-ins over time</CardTitle>
-          <CardDescription>
-            {spec.unit === "month"
-              ? `Monthly totals for the 12 months to ${formatMonth(day.slice(0, 7))}`
-              : `Each day from ${formatShortDay(data.rangeFrom)} to ${formatShortDay(data.rangeTo)}`}
-          </CardDescription>
-          <CardAction>
-            <nav aria-label="Chart range" className="flex flex-wrap gap-1.5">
-              {RANGES.map((r) => {
-                const active = r.value === range;
-                const query: Record<string, string> = {};
-                if (day !== now) query.day = day;
-                if (r.value !== DEFAULT_RANGE) query.range = r.value;
-                return (
-                  <Link
-                    key={r.value}
-                    href={{ pathname: "/attendance", query }}
-                    className={cn(
-                      "inline-flex h-8 items-center rounded-full px-3 text-[0.8rem] font-semibold ring-1 transition-[background-color,color,box-shadow] duration-200",
-                      active ? "bg-primary text-primary-foreground ring-primary" : "bg-card text-muted-foreground ring-border hover:text-foreground hover:ring-foreground/30",
-                    )}
-                    aria-current={active ? "page" : undefined}
-                  >
-                    {r.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          <VisitsChart series={data.series} unit={spec.unit} selectedKey={day} />
-        </CardContent>
-      </Card>
+      <DayLog rows={data.log} day={day} today={now} canDelete={canDelete} />
 
       <section className="grid gap-4 xl:grid-cols-2">
         <Card>
@@ -303,7 +269,42 @@ async function Overview({
         </Card>
       </section>
 
-      <DayLog rows={data.log} day={day} today={now} canDelete={canDelete} />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-bold">Check-ins over time</CardTitle>
+          <CardDescription>
+            {spec.unit === "month"
+              ? `Monthly totals for the 12 months to ${formatMonth(day.slice(0, 7))}`
+              : `Each day from ${formatShortDay(data.rangeFrom)} to ${formatShortDay(data.rangeTo)}`}
+          </CardDescription>
+          <CardAction>
+            <nav aria-label="Chart range" className="flex flex-wrap gap-1.5">
+              {RANGES.map((r) => {
+                const active = r.value === range;
+                const query: Record<string, string> = {};
+                if (day !== now) query.day = day;
+                if (r.value !== DEFAULT_RANGE) query.range = r.value;
+                return (
+                  <Link
+                    key={r.value}
+                    href={{ pathname: "/attendance", query }}
+                    className={cn(
+                      "inline-flex h-8 items-center rounded-full px-3 text-[0.8rem] font-semibold ring-1 transition-[background-color,color,box-shadow] duration-200",
+                      active ? "bg-primary text-primary-foreground ring-primary" : "bg-card text-muted-foreground ring-border hover:text-foreground hover:ring-foreground/30",
+                    )}
+                    aria-current={active ? "page" : undefined}
+                  >
+                    {r.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <VisitsChart series={data.series} unit={spec.unit} selectedKey={day} />
+        </CardContent>
+      </Card>
     </>
   );
 }

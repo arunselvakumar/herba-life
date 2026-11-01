@@ -1,26 +1,28 @@
-import type { SeriesPoint } from "@/lib/attendance/queries";
-import { formatMonth, formatShortDay } from "@/lib/attendance/time";
 import { cn } from "@/lib/utils";
 
 /**
  * Dependency-free SVG charts for the attendance page. They render on the
- * server; hovering a bar shows its value through a plain <title>.
+ * server; hovering a bar shows its value through a plain <title>. The
+ * visits chart (visits-chart.tsx) wraps BarChart in a client series toggle.
  */
 
-type Bar = { key: string; label: string; value: number; secondary?: number; selected?: boolean; title: string };
+export type Bar = { key: string; label: string; value: number; secondary?: number; selected?: boolean; title: string };
 
-function BarChart({
+export function BarChart({
   bars,
   height = 220,
   labelEvery = 1,
   ariaLabel,
   showSecondary = false,
+  tone = "foreground",
 }: {
   bars: Bar[];
   height?: number;
   labelEvery?: number;
   ariaLabel: string;
   showSecondary?: boolean;
+  /** Colour of the main bars: the default ink, or the accent green when they plot members. */
+  tone?: "foreground" | "accent";
 }) {
   const width = 720;
   const pad = { top: 12, right: 8, bottom: 26, left: 30 };
@@ -58,7 +60,10 @@ function BarChart({
               width={barW}
               height={h}
               rx={Math.min(4, barW / 2)}
-              className={cn(b.selected ? "fill-brand-700" : "fill-foreground", b.value === 0 && "fill-transparent")}
+              className={cn(
+                b.selected ? (tone === "accent" ? "fill-foreground" : "fill-brand-700") : tone === "accent" ? "fill-accent-strong" : "fill-foreground",
+                b.value === 0 && "fill-transparent",
+              )}
             />
             {sh > 0 ? <rect x={x} y={y(b.secondary ?? 0)} width={barW} height={sh} rx={Math.min(4, barW / 2)} className="fill-accent-strong" /> : null}
             {i % labelEvery === 0 || i === bars.length - 1 ? (
@@ -84,32 +89,6 @@ function niceCeil(value: number): number {
   const magnitude = 10 ** Math.floor(Math.log10(value));
   const step = magnitude / 2;
   return Math.ceil(value / step) * step;
-}
-
-/** Visits per day (or per month in the 12-month view), with unique members as the lighter inner bar. */
-export function VisitsChart({ series, unit, selectedKey }: { series: SeriesPoint[]; unit: "day" | "month"; selectedKey: string }) {
-  const bars: Bar[] = series.map((p) => ({
-    key: p.key,
-    label: unit === "month" ? formatMonth(p.key) : formatShortDay(p.key),
-    value: p.visits,
-    secondary: p.members,
-    selected: unit === "month" ? p.key === selectedKey.slice(0, 7) : p.key === selectedKey,
-    title: `${unit === "month" ? formatMonth(p.key) : formatShortDay(p.key)}: ${p.visits} check-in${p.visits === 1 ? "" : "s"}, ${p.members} member${p.members === 1 ? "" : "s"}`,
-  }));
-  const labelEvery = unit === "month" ? 1 : series.length > 60 ? 10 : series.length > 20 ? 5 : series.length > 14 ? 2 : 1;
-  return (
-    <div className="space-y-2">
-      <BarChart bars={bars} labelEvery={labelEvery} ariaLabel="Bar chart of check-ins over time" showSecondary />
-      <p className="flex items-center gap-4 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block size-2.5 rounded-[3px] bg-foreground" /> Check-ins
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block size-2.5 rounded-[3px] bg-accent-strong" /> Members (unique)
-        </span>
-      </p>
-    </div>
-  );
 }
 
 const hourLabel = (h: number) => (h === 0 ? "12am" : h < 12 ? `${h}am` : h === 12 ? "12pm" : `${h - 12}pm`);
