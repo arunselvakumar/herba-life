@@ -57,3 +57,14 @@ export const editUserSchema = z.object({
   password: z.preprocess(blankToNull, password.nullable()).default(null),
 });
 export type EditUserInput = z.infer<typeof editUserSchema>;
+
+export const changePasswordSchema = z
+  .object({
+    password,
+    confirmPassword: z.string(),
+  })
+  .refine((v) => v.password === v.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "The passwords do not match",
+  });
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

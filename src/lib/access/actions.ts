@@ -2,9 +2,10 @@
 
 import { and, eq, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { role, user } from "@/db/schema";
+import { role, session, user } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import type { FormState } from "@/lib/members/form-state";
 import { UUID_RE } from "@/lib/members/form-defaults";
@@ -12,7 +13,7 @@ import { flattenErrors, formDataToObject, type FieldErrors } from "@/lib/members
 import { can } from "./can";
 import { permissionFor, requirePermission } from "./guards";
 import { countActiveAdmins } from "./queries";
-import { editUserSchema, newUserSchema, roleSchema } from "./validation";
+import { changePasswordSchema, editUserSchema, newUserSchema, roleSchema } from "./validation";
 
 function assertId(id: string): string {
   if (!UUID_RE.test(id)) throw new Error("Invalid id");
@@ -217,6 +218,26 @@ export async function deleteUser(userId: string): Promise<void> {
   // Sessions and the credential account cascade; records they created keep a null author.
   await db.delete(user).where(eq(user.id, id));
   revalidateTeam();
+}
+
+// ---------------------------------------------------------------------------
+// Own account
+
+/** Any signed-in user may change their own password; no permission is needed. */
+export async function changeOwnPassword(_prev: FormState, formData: FormData): Promise<FormState> {
+  const current = await auth.api.getSession({ headers: await headers() });
+  if (!current) redirect("/login");
+  const parsed = changePasswordSchema.safeParse(formDataToObject(formData));
+  if (!parsed.success) return invalid(flattenErrors(parsed.error));
+
+  const ctx = await auth.$context;
+  await ctx.internalAdapter.updatePassword(current.user.id, await ctx.password.hash(parsed.data.password));
+  // Other devices signed in with the old password are signed out; this one stays.
+  await db
+    .delete(session)
+    .where(and(eq(session.userId, current.user.id), ne(session.token, current.session.token)));
+
+  return { status: "success", message: "Your password has been changed." };
 }
 
 export { can };
