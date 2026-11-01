@@ -70,7 +70,7 @@ export function Logo({
         )}
       />
       {subtitle ? (
-        <span className="text-eyebrow text-[0.6rem] opacity-70">{subtitle}</span>
+        <span className={cn("text-eyebrow text-[0.6rem]", tone === "white" ? "text-white/70" : "opacity-70")}>{subtitle}</span>
       ) : null}
     </div>
   );

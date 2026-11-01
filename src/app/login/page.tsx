@@ -3,15 +3,12 @@ import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/login-form";
 import { Logo, LogoMark } from "@/components/brand/logo";
 import { Reveal } from "@/components/motion/reveal";
+import { BackgroundBeams } from "@/components/ui/background-beams";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const metadata: Metadata = {
   title: "Sign in",
 };
-
-// Matches the notice on herbalife.com; the page is statically prerendered,
-// so the year is a constant rather than read from the clock at render time.
-const COPYRIGHT_YEAR = 2026;
 
 const HIGHLIGHTS = [
   "Member wellness records and follow-ups",
@@ -24,21 +21,18 @@ export default function LoginPage() {
     <main className="grid min-h-dvh lg:grid-cols-[1.1fr_1fr]">
       {/* Brand panel */}
       <section className="relative hidden overflow-hidden bg-foreground text-white lg:flex lg:flex-col lg:justify-between lg:p-12">
+        <BackgroundBeams />
+        {/* Scrim: darkest behind the copy on the left, so the beams show at full strength only where there is no text. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_45%_at_15%_10%,rgba(233,201,164,0.22),transparent_70%),radial-gradient(45%_40%_at_90%_95%,rgba(255,255,255,0.08),transparent_70%)]"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(17,17,17,0.72)_0%,rgba(17,17,17,0.5)_55%,rgba(17,17,17,0.1)_100%)]"
         />
-        <div aria-hidden className="pointer-events-none absolute -right-24 -bottom-32 size-[32rem] rounded-full border border-white/10" />
-        <div aria-hidden className="pointer-events-none absolute -right-8 -bottom-16 size-[20rem] rounded-full border border-white/10" />
 
         <Reveal className="relative">
           <Logo tone="white" imageClassName="h-9" subtitle="Live your best life" />
         </Reveal>
 
-        <Reveal className="relative max-w-md space-y-8" delay={0.1}>
-          <p data-reveal className="text-xs font-medium text-white/60">
-            Management console
-          </p>
+        <Reveal className="relative my-auto max-w-md space-y-8" delay={0.1}>
           <h1 data-reveal className="font-heading text-4xl leading-[1.05] font-semibold tracking-[-0.03em] text-balance xl:text-[3.5rem]">
             Make wellness a movement.
           </h1>
@@ -55,10 +49,6 @@ export default function LoginPage() {
             ))}
           </ul>
         </Reveal>
-
-        <p className="relative max-w-md text-xs leading-relaxed text-white/40">
-          Copyright &copy; {COPYRIGHT_YEAR} Herbalife International of America, Inc. All Rights Reserved. For authorised personnel only.
-        </p>
       </section>
 
       {/* Form panel */}
