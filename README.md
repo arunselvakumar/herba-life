@@ -186,6 +186,34 @@ Code lives in `src/db/access-schema.ts`, `src/lib/access/`,
 - Node 20+ (the dev server runs under Node; Bun is the package manager)
 - Docker with a Postgres container running
 
+## Deployment
+
+Production runs on Vercel (project `herba-life`, functions in Singapore) with
+a Neon Postgres (project `herba-life`, database `herba-life`). Merging to
+`main` triggers [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml),
+which typechecks and lints, applies pending Drizzle migrations to the
+production database, then builds and deploys to Vercel production. Deploys
+never overlap.
+
+The workflow needs four repository secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`,
+`VERCEL_PROJECT_ID` and `DATABASE_URL_UNPOOLED` (Neon's direct connection
+string, used only for migrations). The app itself reads `DATABASE_URL` (the
+pooled Neon string) and `BETTER_AUTH_SECRET` from the Vercel project's
+production environment; the auth base URL falls back to Vercel's own
+`VERCEL_PROJECT_PRODUCTION_URL`, so `BETTER_AUTH_URL` is only needed once a
+custom domain is in use.
+
+A fresh database has no accounts and public sign-up is disabled. Create the
+first administrator once, with nothing else seeded:
+
+```bash
+DATABASE_URL=… ADMIN_EMAIL=… ADMIN_PASSWORD=… bun run scripts/create-admin.ts
+```
+
+Everyone else is then added from Team → Users inside the app. The product
+catalog can be loaded later with `bun run db:seed` if the branch wants the
+price list pre-filled.
+
 ## Getting started
 
 ```bash

@@ -6,9 +6,18 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 
+/**
+ * Where the app is served from. Set BETTER_AUTH_URL explicitly, or on Vercel
+ * fall back to the project's production domain so sign-in works whatever
+ * `*.vercel.app` name the project ends up with.
+ */
+export const appUrl =
+  process.env.BETTER_AUTH_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined);
+
 export const auth = betterAuth({
   appName: "Herbalife Internal",
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL: appUrl,
   secret: process.env.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, {
     provider: "pg",
