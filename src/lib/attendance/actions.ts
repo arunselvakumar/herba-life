@@ -2,15 +2,17 @@
 
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { db } from "@/db";
 import { attendance, member } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { toDay } from "@/lib/members/dates";
+import { daysBetween, toDay } from "@/lib/members/dates";
 import type { FormState } from "@/lib/members/form-state";
 import { permissionFor, requirePermission } from "@/lib/access/guards";
 import { requireUser } from "@/lib/session";
+import { sendCheckInMessage } from "@/lib/whatsapp/send";
 import { CHECKIN_COOLDOWN_MINUTES } from "./constants";
-import { countDay, countVisits, findKioskMemberIdsByMobile, hasRunningPackage, latestVisitSince } from "./queries";
+import { countDay, countVisits, findKioskMemberIdsByMobile, latestVisitSince, runningPackageOn } from "./queries";
 import { mobileNeedle } from "./search";
 import { combineDayAndTime, formatTime, periodFor } from "./time";
 import {
@@ -29,6 +31,25 @@ function revalidateAttendance(memberId?: string) {
   revalidatePath("/attendance/kiosk");
   revalidatePath("/dashboard");
   if (memberId) revalidatePath(`/members/${memberId}`);
+}
+
+/** Sends the WhatsApp confirmation once the response is on its way, so nobody waits on it. */
+function notifyCheckIn(
+  found: { id: string; firstName: string; mobile: string | null },
+  pkg: { name: string; endDate: string },
+  at: Date,
+  day: string,
+) {
+  after(() =>
+    sendCheckInMessage({
+      memberId: found.id,
+      mobile: found.mobile,
+      firstName: found.firstName,
+      at,
+      packageName: pkg.name,
+      daysLeft: daysBetween(day, pkg.endDate),
+    }),
+  );
 }
 
 export type KioskCheckInResult =
@@ -56,13 +77,14 @@ export async function kioskCheckIn(memberId: string): Promise<KioskCheckInResult
 
   const found = await db.query.member.findFirst({
     where: eq(member.id, parsedId.data),
-    columns: { id: true, firstName: true },
+    columns: { id: true, firstName: true, mobile: true },
   });
   if (!found) return { status: "error", message: "That member could not be found." };
 
   const now = new Date();
   const day = toDay(now);
-  if (!(await hasRunningPackage(found.id, day))) return { status: "no_package", firstName: found.firstName };
+  const pkg = await runningPackageOn(found.id, day);
+  if (!pkg) return { status: "no_package", firstName: found.firstName };
 
   const since = new Date(now.getTime() - CHECKIN_COOLDOWN_MINUTES * 60_000);
   const recent = await latestVisitSince(found.id, since);
@@ -79,6 +101,7 @@ export async function kioskCheckIn(memberId: string): Promise<KioskCheckInResult
     source: "kiosk",
     recordedBy: user.id,
   });
+  notifyCheckIn(found, pkg, now, day);
 
   const [visitsThisMonth, { visits: todayVisits }] = await Promise.all([
     countVisits(found.id, `${day.slice(0, 7)}-01`, day),
@@ -111,9 +134,10 @@ export async function recordAttendance(_prev: FormState, formData: FormData): Pr
   const at = combineDayAndTime(day, time);
   if (at.getTime() > Date.now() + 60_000) return invalid({ time: ["That time is in the future."] });
 
-  const found = await db.query.member.findFirst({ where: eq(member.id, memberId), columns: { id: true, firstName: true } });
+  const found = await db.query.member.findFirst({ where: eq(member.id, memberId), columns: { id: true, firstName: true, mobile: true } });
   if (!found) return invalid({ memberId: ["That member no longer exists."] });
-  if (!(await hasRunningPackage(memberId, day))) return invalid({ memberId: [`${found.firstName} has no active package on that day.`] });
+  const pkg = await runningPackageOn(memberId, day);
+  if (!pkg) return invalid({ memberId: [`${found.firstName} has no active package on that day.`] });
 
   await db.insert(attendance).values({
     memberId,
@@ -124,6 +148,8 @@ export async function recordAttendance(_prev: FormState, formData: FormData): Pr
     note,
     recordedBy: user.id,
   });
+  // The message says "thanks for coming in today", so a backdated visit gets none.
+  if (day === toDay(new Date())) notifyCheckIn(found, pkg, at, day);
 
   revalidateAttendance(memberId);
   return { status: "success", message: `${found.firstName} marked present at ${formatTime(at)}.` };
