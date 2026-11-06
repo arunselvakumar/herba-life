@@ -52,12 +52,31 @@ async function signIn(page: Page) {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
-async function createMember(page: Page, firstName: string, mobile: string): Promise<string> {
+async function createPlan(page: Page, name: string) {
+  await page.goto("/packages/new");
+  await page.getByLabel("Name").fill(name);
+  await page.getByLabel("Duration").fill("90");
+  await page.getByLabel("Price").fill("12000");
+  await page.getByRole("button", { name: "Create package" }).click();
+  await expect(page).toHaveURL(/\/packages$/);
+}
+
+async function deletePlan(page: Page, name: string) {
+  await page.goto("/packages");
+  await page.getByRole("row").filter({ hasText: name }).getByRole("button", { name: "Delete" }).click();
+  await page.getByRole("button", { name: "Delete", exact: true }).last().click();
+  await expect(page.getByText(name)).toHaveCount(0);
+}
+
+/** A member a week into `planName`, so they can be marked present today and yesterday. */
+async function createMember(page: Page, firstName: string, mobile: string, planName: string): Promise<string> {
   await page.goto("/members/new");
   await page.getByLabel("First name").fill(firstName);
   await page.getByLabel("Last name").fill("Zone");
-  await page.getByLabel("Joined on").fill("2026-10-01");
+  await page.getByLabel("Joined on").fill(shiftDay(india().day, -7));
   await page.getByLabel("Mobile").fill(mobile);
+  await page.getByText("Start a package now").click();
+  await page.getByLabel("Package", { exact: true }).selectOption({ label: `${planName} · 90 days · ₹12,000` });
   await page.getByRole("button", { name: "Save member" }).click();
   await expect(page).toHaveURL(/\/members\/[0-9a-f-]{36}$/);
   return page.url();
@@ -65,7 +84,7 @@ async function createMember(page: Page, firstName: string, mobile: string): Prom
 
 async function deleteMember(page: Page, url: string) {
   await page.goto(url);
-  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("button", { name: "Delete", exact: true }).first().click();
   await page.getByRole("button", { name: "Delete member" }).click();
   await expect(page).toHaveURL(/\/members$/);
 }
@@ -147,14 +166,16 @@ test.describe("on the tablet in India", () => {
     await signIn(page);
     const stamp = Date.now().toString().slice(-6);
     const firstName = `Zone${stamp}`;
-    const memberUrl = await createMember(page, firstName, `7${stamp}4321`);
+    const planName = `Zone plan ${stamp}`;
+    await createPlan(page, planName);
+    const memberUrl = await createMember(page, firstName, `7${stamp}4321`, planName);
 
     await page.goto("/attendance");
     const hoursBefore = await chartCounts(page, "Bar chart of check-ins by hour of day");
     const weekdaysBefore = await chartCounts(page, "Bar chart of check-ins by weekday");
 
     await page.goto("/attendance/kiosk");
-    await page.getByLabel("Find your name").fill(firstName);
+    await page.getByLabel("Search by name, mobile or member number").fill(firstName);
     await page.getByRole("button", { name: `${firstName} Zone` }).click();
     const before = india();
     await page.getByRole("button", { name: "Yes, check me in" }).click();
@@ -179,13 +200,16 @@ test.describe("on the tablet in India", () => {
     expect(grew(weekdaysBefore, await chartCounts(page, "Bar chart of check-ins by weekday"))).toEqual([after.weekday]);
 
     await deleteMember(page, memberUrl);
+    await deletePlan(page, planName);
   });
 
   test("staff can record a visit for just now, and for 9:14 am yesterday", async ({ page }) => {
     await signIn(page);
     const stamp = Date.now().toString().slice(-6);
     const firstName = `Staff${stamp}`;
-    const memberUrl = await createMember(page, firstName, `6${stamp}4321`);
+    const planName = `Staff plan ${stamp}`;
+    await createPlan(page, planName);
+    const memberUrl = await createMember(page, firstName, `6${stamp}4321`, planName);
 
     // Off India time this was "in the future": 8 pm read as UTC is 1:30 am tomorrow.
     await page.goto("/attendance");
@@ -210,6 +234,7 @@ test.describe("on the tablet in India", () => {
     await expect(row).toContainText("Morning");
 
     await deleteMember(page, memberUrl);
+    await deletePlan(page, planName);
   });
 });
 

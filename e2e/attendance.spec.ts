@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { toDay } from "../src/lib/members/dates";
 
 const ADMIN = {
   email: "admin@herbalife.local",
@@ -11,12 +12,6 @@ async function signIn(page: Page) {
   await page.getByLabel("Password").fill(ADMIN.password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
-}
-
-function localDay(date = new Date()): string {
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 async function createPlan(page: Page, name: string) {
@@ -40,7 +35,7 @@ async function createMember(page: Page, member: { firstName: string; lastName: s
   await page.goto("/members/new");
   await page.getByLabel("First name").fill(member.firstName);
   await page.getByLabel("Last name").fill(member.lastName);
-  await page.getByLabel("Joined on").fill(localDay());
+  await page.getByLabel("Joined on").fill(toDay(new Date()));
   await page.getByLabel("Mobile").fill(member.mobile);
   if (member.planName) {
     await page.getByText("Start a package now").click();
@@ -211,7 +206,7 @@ test.describe("attendance", () => {
     await picker.selectOption({ label: (await picker.locator("option").filter({ hasText: active }).innerText()).trim() });
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    await page.getByLabel("Day", { exact: true }).fill(localDay(yesterday));
+    await page.getByLabel("Day", { exact: true }).fill(toDay(yesterday));
     await page.getByLabel("Time", { exact: true }).fill("09:00");
     await page.getByRole("button", { name: "Mark present" }).click();
     await expect(page.getByText(`${active} has no active package on that day.`)).toBeVisible();
