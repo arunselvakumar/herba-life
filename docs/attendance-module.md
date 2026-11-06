@@ -85,7 +85,26 @@ Leaving: the **Staff** button asks for the signed-in staff member's password.
 It is verified against the stored hash without touching the session, so a
 member at the tablet cannot wander into the admin screens by tapping around.
 
-## 5. Attendance page (admin)
+## 5. WhatsApp confirmation
+
+Each recorded visit sends the member the approved `checkin` WhatsApp template
+through MSG91, filled with their first name, the check-in time in India, their
+package and the days remaining.
+
+- **Sent for**: kiosk check-ins, and staff-recorded visits for today.
+- **Not sent for**: a repeat tap inside the cooldown (nothing is recorded), and
+  backdated visits, because the message says "thanks for coming in today".
+- **Numbers**: a ten-digit mobile is treated as Indian. A number with another
+  country code must be saved with a leading `+`. Members with no usable number
+  are skipped, and the skip is logged.
+- **Failures**: the message goes out after the check-in has finished, so a
+  failure never blocks or undoes it. Failures appear only in the server logs.
+- **Switching it on**: nothing is sent unless `MSG91_AUTH_KEY` is set. It is
+  left out locally so development and tests never message anyone. The sender
+  number, template name and namespace are in
+  `src/lib/whatsapp/checkin-message.ts`.
+
+## 6. Attendance page (admin)
 
 Route: `/attendance`, with `?day=YYYY-MM-DD` and `?range=14d|30d|90d|12m`.
 
@@ -112,7 +131,7 @@ Route: `/attendance`, with `?day=YYYY-MM-DD` and `?range=14d|30d|90d|12m`.
 The dashboard gets a "Check-ins today" stat; the member profile gets an
 Attendance card (this month, all time, last visit, a 4-week day strip).
 
-## 6. Rules
+## 7. Rules
 
 - Check-ins can only be recorded for existing members; deleting a member
   deletes their attendance.
@@ -127,7 +146,7 @@ Attendance card (this month, all time, last visit, a 4-week day strip).
 - The day and period are computed in the server's local time zone, which is
   assumed to be the branch's.
 
-## 7. Non-goals (for now)
+## 8. Non-goals (for now)
 
 - Linking attendance to package consumption (e.g. counting shakes against a
   package).
@@ -135,7 +154,7 @@ Attendance card (this month, all time, last visit, a 4-week day strip).
 - QR / card scanning.
 - Notifications to members who have gone quiet.
 
-## 8. Open questions
+## 9. Open questions
 
 1. Is 45 minutes the right duplicate window, or should morning and evening be
    the only two slots per day?

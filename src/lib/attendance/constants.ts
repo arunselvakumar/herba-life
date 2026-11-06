@@ -10,6 +10,9 @@ export const PERIODS = [
 ] as const;
 export type Period = (typeof PERIODS)[number]["value"];
 
+/** Where the branch is, for anything that must show its local time whatever the server's clock says. */
+export const BRANCH_TIME_ZONE = "Asia/Kolkata";
+
 /** Local hour (0–23) at which the afternoon and the evening begin. */
 export const AFTERNOON_STARTS_AT = 12;
 export const EVENING_STARTS_AT = 16;
