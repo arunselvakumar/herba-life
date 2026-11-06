@@ -67,9 +67,10 @@ and `src/app/(app)/packages/`.
 Members mark their own visits on a tablet at the entrance:
 
 - **Attendance Mode** (`/attendance/kiosk`) – full-screen, member-facing
-  kiosk. Find your name, tap, confirm; a welcome screen shows the time and the
-  visit count for the month. A second tap within 45 minutes is treated as the
-  same visit. Leaving the kiosk requires the signed-in staff member's password.
+  kiosk for members on an active package. Search by name, mobile or member
+  number, tap, confirm; a welcome screen shows the time and the visit count for
+  the month. A second tap within 45 minutes is treated as the same visit.
+  Leaving the kiosk requires the signed-in staff member's password.
 - **Attendance** (`/attendance`) – per-day view with check-ins, morning /
   afternoon / evening split, a chart over 2 weeks to 12 months, busy hours,
   weekday pattern, regulars, members on a package who have not been seen for

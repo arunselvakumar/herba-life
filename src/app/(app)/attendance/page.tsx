@@ -99,7 +99,8 @@ async function readParams(searchParams: PageProps<"/attendance">["searchParams"]
 async function RecordVisit({ searchParams }: { searchParams: PageProps<"/attendance">["searchParams"] }) {
   await connection();
   const now = today();
-  const [{ day }, members] = await Promise.all([readParams(searchParams, now), listMemberOptions()]);
+  const { day } = await readParams(searchParams, now);
+  const members = await listMemberOptions(day);
   return <RecordAttendanceDialog members={members} day={day} today={now} />;
 }
 

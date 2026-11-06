@@ -8,7 +8,7 @@ import type { KioskCheckInResult } from "@/lib/attendance/actions";
 import { cn } from "@/lib/utils";
 import { ResultBadge } from "./result-badge";
 
-export type KioskPackage = { name: string; daysLeft: number | null };
+export type KioskPackage = { name: string; daysLeft: number };
 
 /**
  * Full-screen confirmation after a tap. The badge draws itself in, then the
@@ -23,14 +23,14 @@ export function KioskResult({
 }: {
   result: KioskCheckInResult;
   seconds: number;
-  pkg: KioskPackage | null;
+  pkg: KioskPackage;
   onDismiss: () => void;
 }) {
   const ref = useRef<HTMLButtonElement>(null);
   const tone =
     result.status === "checked_in"
       ? "bg-brand-600 text-white"
-      : result.status === "already"
+      : result.status === "already" || result.status === "no_package"
         ? "bg-primary text-primary-foreground"
         : "bg-destructive text-white";
 
@@ -76,7 +76,7 @@ export function KioskResult({
           <div className="flex flex-wrap items-stretch justify-center gap-3 md:gap-4">
             <StatTile icon={ClockIcon} value={result.time} label="Checked in" />
             <StatTile icon={CalendarCheckIcon} value={ordinal(result.visitsThisMonth)} label="Visit this month" />
-            {pkg ? <StatTile icon={TicketIcon} value={packageValue(pkg.daysLeft)} label={`${pkg.name} package`} /> : null}
+            <StatTile icon={TicketIcon} value={packageValue(pkg.daysLeft)} label={`${pkg.name} package`} />
           </div>
           <p data-reveal className="text-base text-white/60">
             Enjoy your shake. Tap anywhere to continue.
@@ -92,6 +92,15 @@ export function KioskResult({
           </div>
           <p data-reveal className="text-base text-white/60">
             Nothing more to do. Coming back later today? Check in again then.
+          </p>
+        </>
+      ) : result.status === "no_package" ? (
+        <>
+          <h2 data-reveal className="font-heading text-5xl font-bold tracking-tight md:text-7xl">
+            No active package, {result.firstName}
+          </h2>
+          <p data-reveal className="max-w-xl text-2xl font-medium text-white/90">
+            We could not check you in. Please speak to a staff member about your package.
           </p>
         </>
       ) : (
@@ -138,8 +147,7 @@ function ordinal(n: number): string {
   return `${n}${suffix}`;
 }
 
-function packageValue(daysLeft: number | null): string {
-  if (daysLeft === null) return "Active";
+function packageValue(daysLeft: number): string {
   if (daysLeft === 0) return "Last day";
   return `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`;
 }

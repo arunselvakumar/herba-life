@@ -6,10 +6,17 @@ import { CheckIcon, LoaderCircleIcon, MaximizeIcon, MinimizeIcon, SearchIcon, Us
 import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { kioskCheckIn, type KioskCheckInResult } from "@/lib/attendance/actions";
-import { KIOSK_IDLE_SECONDS, KIOSK_REFRESH_MINUTES, KIOSK_WELCOME_SECONDS } from "@/lib/attendance/constants";
+import { findKioskMobileMatches, kioskCheckIn, type KioskCheckInResult } from "@/lib/attendance/actions";
+import {
+  KIOSK_IDLE_SECONDS,
+  KIOSK_REFRESH_MINUTES,
+  KIOSK_SEARCH_LIMIT,
+  KIOSK_WELCOME_SECONDS,
+  MOBILE_SEARCH_DEBOUNCE_MS,
+  MOBILE_SEARCH_MIN_DIGITS,
+} from "@/lib/attendance/constants";
 import type { KioskMember } from "@/lib/attendance/queries";
-import { matchMembers } from "@/lib/attendance/search";
+import { matchMembers, mobileNeedle, numberDigits } from "@/lib/attendance/search";
 import { formatLongDate, formatTime } from "@/lib/attendance/time";
 import { fullName } from "@/lib/members/format";
 import { KioskExit } from "./kiosk-exit";
@@ -21,7 +28,8 @@ type View = { kind: "search" } | { kind: "confirm"; member: KioskMember } | { ki
 
 /**
  * Attendance Mode: the member-facing, full-screen check-in screen that runs
- * on the tablet at the entrance. Find your name, tap, done.
+ * on the tablet at the entrance. Find yourself by name, mobile or member
+ * number, tap, done. Only members on a running package are listed.
  *
  * Everything the screen needs is passed in from the server component; the
  * member list is re-fetched every few minutes with `router.refresh()` so new
@@ -45,7 +53,11 @@ export function Kiosk({
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
   const todayVisits = todayOverride ?? initialTodayVisits;
-  const matches = matchMembers(members, query, query ? 24 : members.length);
+  const [mobileLookup, setMobileLookup] = useState<{ needle: string; ids: ReadonlySet<string> } | null>(null);
+  const needle = mobileNeedle(query);
+  const mobileMatches = needle && mobileLookup?.needle === needle ? mobileLookup.ids : undefined;
+  const lookingUp = Boolean(needle) && !mobileMatches;
+  const matches = matchMembers(members, query, query ? KIOSK_SEARCH_LIMIT : members.length, mobileMatches);
 
   const now = useClock();
   const fullscreen = useFullscreen();
@@ -59,6 +71,22 @@ export function Kiosk({
     }, KIOSK_REFRESH_MINUTES * 60_000);
     return () => clearInterval(id);
   }, [router]);
+
+  // Full mobile numbers stay on the server, so longer numbers are looked up there.
+  useEffect(() => {
+    if (!needle) return;
+    let stale = false;
+    const finish = (ids: string[]) => {
+      if (!stale) setMobileLookup({ needle, ids: new Set(ids) });
+    };
+    const id = setTimeout(() => {
+      findKioskMobileMatches(needle).then(finish, () => finish([]));
+    }, MOBILE_SEARCH_DEBOUNCE_MS);
+    return () => {
+      stale = true;
+      clearTimeout(id);
+    };
+  }, [needle]);
 
   // Back to the search screen after the welcome message, or if someone walks
   // away from the confirmation step.
@@ -78,7 +106,9 @@ export function Kiosk({
   function confirm(member: KioskMember) {
     startTransition(async () => {
       const result = await kioskCheckIn(member.id);
-      if (result.status !== "error") setTodayOverride(result.todayVisits);
+      if ("todayVisits" in result) setTodayOverride(result.todayVisits);
+      // Their package ended since the list loaded, so take them off the screen.
+      if (result.status === "no_package") router.refresh();
       setView({ kind: "result", member, result });
     });
   }
@@ -124,7 +154,7 @@ export function Kiosk({
       <main className="flex flex-1 flex-col gap-6 py-6 md:py-8">
         <div className="mx-auto w-full max-w-6xl px-4 text-center md:px-8">
           <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground md:text-4xl">Welcome! Tap your name to check in.</h1>
-          <p className="mt-1 text-base text-muted-foreground md:text-lg">Start typing your name or your member number to find yourself faster.</p>
+          <p className="mt-1 text-base text-muted-foreground md:text-lg">Search by your name, mobile number or member number.</p>
         </div>
 
         <div className="relative mx-auto w-full max-w-6xl px-4 md:px-8">
@@ -134,8 +164,8 @@ export function Kiosk({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Your name or member number"
-            aria-label="Find your name"
+            placeholder="Name, mobile or member number"
+            aria-label="Search by name, mobile or member number"
             autoFocus
             autoComplete="off"
             autoCorrect="off"
@@ -160,9 +190,9 @@ export function Kiosk({
         </div>
 
         {members.length === 0 ? (
-          <Empty title="No members yet" body="Ask a staff member to add you, then come back and check in." />
+          <Empty title="No active members yet" body="Only members with an active package can check in here. Please speak to a staff member." />
         ) : matches.length === 0 ? (
-          <Empty title={`No one called “${query}”`} body="Try your first name only, or your member number. Staff can also mark you present." />
+          <NoMatch query={query} lookingUp={lookingUp} />
         ) : (
           // Keyed on the result set so a new search gets a fresh belt and entrance.
           <MemberRail key={matches.map((m) => m.id).join("|")} members={matches} onPick={(member) => setView({ kind: "confirm", member })} />
@@ -178,9 +208,8 @@ export function Kiosk({
                 <DialogTitle className="font-heading text-3xl font-semibold tracking-tight">{fullName(view.member)}</DialogTitle>
                 <DialogDescription className="text-base">
                   Member #{view.member.serialNo}
-                  {view.member.packageName
-                    ? ` · ${view.member.packageName} package, ${describeDaysLeft(view.member.packageDaysLeft)}`
-                    : " · no active package"}
+                  {view.member.mobileHint ? ` · mobile ending ${view.member.mobileHint}` : null}
+                  {` · ${view.member.packageName} package, ${describeDaysLeft(view.member.packageDaysLeft)}`}
                 </DialogDescription>
               </div>
               <Button
@@ -205,7 +234,7 @@ export function Kiosk({
         <KioskResult
           result={view.result}
           seconds={KIOSK_WELCOME_SECONDS}
-          pkg={view.member.packageName ? { name: view.member.packageName, daysLeft: view.member.packageDaysLeft } : null}
+          pkg={{ name: view.member.packageName, daysLeft: view.member.packageDaysLeft }}
           onDismiss={reset}
         />
       ) : null}
@@ -213,11 +242,25 @@ export function Kiosk({
   );
 }
 
-function describeDaysLeft(days: number | null): string {
-  if (days === null) return "";
+function describeDaysLeft(days: number): string {
   if (days === 0) return "its last day today";
   if (days === 1) return "1 day left";
   return `${days} days left`;
+}
+
+/** What to say when a search finds nobody, which depends on what was typed. */
+function NoMatch({ query, lookingUp }: { query: string; lookingUp: boolean }) {
+  if (lookingUp) return <Empty title="Searching…" body="Looking up that number." />;
+  const digits = numberDigits(query);
+  if (digits && digits.length < MOBILE_SEARCH_MIN_DIGITS) {
+    return <Empty title="Keep typing" body={`Enter your member number, or at least ${MOBILE_SEARCH_MIN_DIGITS} digits of your mobile.`} />;
+  }
+  return (
+    <Empty
+      title={`No one found for “${query}”`}
+      body="Check the spelling or number and try again. Only members with an active package can check in here, so if you still cannot find yourself, please speak to a staff member."
+    />
+  );
 }
 
 function Empty({ title, body }: { title: string; body: string }) {

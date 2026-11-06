@@ -36,6 +36,12 @@ export const KIOSK_WELCOME_SECONDS = 6;
 export const KIOSK_IDLE_SECONDS = 30;
 /** How often the kiosk refreshes its member list from the server. */
 export const KIOSK_REFRESH_MINUTES = 10;
+/** Most tiles a kiosk search shows. */
+export const KIOSK_SEARCH_LIMIT = 24;
+/** Digits needed before a number is also looked up as a mobile. */
+export const MOBILE_SEARCH_MIN_DIGITS = 4;
+/** Pause in typing before that lookup goes to the server. */
+export const MOBILE_SEARCH_DEBOUNCE_MS = 250;
 
 export const RANGES = [
   { value: "14d", label: "2 weeks", days: 14, unit: "day" },
