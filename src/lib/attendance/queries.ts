@@ -25,13 +25,14 @@ function runningOn(day: string) {
   return and(eq(memberPackage.status, "active"), lte(memberPackage.startDate, day), gte(memberPackage.endDate, day));
 }
 
-/** Attendance is only for members on a running package. */
-export async function hasRunningPackage(memberId: string, day: string): Promise<boolean> {
+/** Attendance is only for members on a running package; this is the one that ends last, if any. */
+export async function runningPackageOn(memberId: string, day: string): Promise<{ name: string; endDate: string } | null> {
   const row = await db.query.memberPackage.findFirst({
     where: and(eq(memberPackage.memberId, memberId), runningOn(day)),
-    columns: { id: true },
+    columns: { name: true, endDate: true },
+    orderBy: [desc(memberPackage.endDate)],
   });
-  return Boolean(row);
+  return row ?? null;
 }
 
 /** Only members who can check in today are listed. */
