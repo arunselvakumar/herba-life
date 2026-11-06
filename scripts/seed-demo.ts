@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../src/db";
 import { attendance, inquiry, inquiryActivity, member, memberCheckin, memberPackage, packagePlan, user } from "../src/db/schema";
 import { addDays, packageEndDate, parseDay, today } from "../src/lib/members/dates";
-import { periodFor } from "../src/lib/attendance/time";
+import { combineDayAndTime, periodFor } from "../src/lib/attendance/time";
 
 /**
  * Sample members for local development only. Never run this against a real
@@ -280,8 +280,7 @@ async function main(): Promise<void> {
         if (random() > chance) continue;
         const visits = random() < habit.twice ? [habit.morningHour, habit.eveningHour] : [random() < 0.7 ? habit.morningHour : habit.eveningHour];
         for (const hour of visits) {
-          const at = parseDay(day);
-          at.setHours(hour, Math.floor(random() * 60), 0, 0);
+          const at = combineDayAndTime(day, `${hour}:${Math.floor(random() * 60)}`);
           if (at.getTime() > Date.now()) continue;
           rows.push({ memberId, checkedInAt: at, day, period: periodFor(at), source: "kiosk", recordedBy: createdBy });
         }

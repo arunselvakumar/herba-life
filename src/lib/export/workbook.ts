@@ -1,6 +1,7 @@
 import "server-only";
 
 import ExcelJS from "exceljs";
+import { branchAsUtc } from "@/lib/members/dates";
 
 /**
  * A thin layer over ExcelJS so every export looks the same: a bold header
@@ -58,38 +59,32 @@ const NUM_FMT: Partial<Record<CellKind, string>> = {
 const HEADER_FILL: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF111111" } };
 const HEADER_FONT: Partial<ExcelJS.Font> = { bold: true, color: { argb: "FFFFFFFF" } };
 
-/**
- * ExcelJS writes a JS Date using its UTC components, so a check-in at
- * 9:14 am branch time would show as 3:44 am. Rebuilding the date from the
- * server's local components keeps the spreadsheet on branch time, which is
- * what every screen in the console shows.
- */
-export function localAsUtc(date: Date): Date {
-  return new Date(
-    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()),
-  );
-}
-
 /** `YYYY-MM-DD` (how Postgres `date` columns round-trip) → an Excel date with no time part. */
 export function dayAsDate(day: string): Date {
   const [y, m, d] = day.split("-").map(Number);
   return new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1));
 }
 
+/**
+ * ExcelJS writes a JS Date using its UTC components, so a check-in at
+ * 9:14 am branch time would show as 3:44 am. `branchAsUtc` rebuilds the date
+ * from the branch's wall clock, which is what every screen in the console
+ * shows.
+ */
 function toCell(value: ReturnType<Column<unknown>["get"]>, kind: CellKind): ExcelJS.CellValue {
   if (value === null || value === undefined || value === "") return null;
   switch (kind) {
     case "bool":
       return value ? "Yes" : "No";
     case "date":
-      return typeof value === "string" ? dayAsDate(value) : value instanceof Date ? localAsUtc(value) : String(value);
+      return typeof value === "string" ? dayAsDate(value) : value instanceof Date ? branchAsUtc(value) : String(value);
     case "datetime":
-      return value instanceof Date ? localAsUtc(value) : typeof value === "string" ? dayAsDate(value) : String(value);
+      return value instanceof Date ? branchAsUtc(value) : typeof value === "string" ? dayAsDate(value) : String(value);
     case "number":
     case "money":
       return typeof value === "number" ? value : Number(value);
     default:
-      return typeof value === "boolean" ? (value ? "Yes" : "No") : value instanceof Date ? localAsUtc(value) : value;
+      return typeof value === "boolean" ? (value ? "Yes" : "No") : value instanceof Date ? branchAsUtc(value) : value;
   }
 }
 
@@ -145,7 +140,7 @@ export function addAboutSheet(workbook: ExcelJS.Workbook, meta: ExportMeta, shee
   const title = sheet.addRow([meta.title]);
   title.font = { bold: true, size: 16 };
   sheet.addRow([]);
-  sheet.addRow(["Exported on", localAsUtc(meta.exportedAt)]).getCell(2).numFmt = "dddd, dd mmmm yyyy hh:mm";
+  sheet.addRow(["Exported on", branchAsUtc(meta.exportedAt)]).getCell(2).numFmt = "dddd, dd mmmm yyyy hh:mm";
   sheet.addRow(["Exported by", meta.exportedBy]);
   sheet.addRow(["Application", "Herbalife Internal"]);
   sheet.addRow([]);

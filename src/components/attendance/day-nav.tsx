@@ -8,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Range } from "@/lib/attendance/constants";
 import { formatCompactDate, formatLongDate, relativeDay } from "@/lib/attendance/time";
-import { addDays, parseDay, toDay } from "@/lib/members/dates";
+import { addDays, calendarDay, parseDay } from "@/lib/members/dates";
 import { cn } from "@/lib/utils";
 
 /** How far back the month/year dropdowns reach. */
@@ -69,7 +69,7 @@ export function DayNav({ day, today, range }: { day: string; today: string; rang
               mode="single"
               required
               selected={parseDay(day)}
-              onSelect={(date) => go(toDay(date))}
+              onSelect={(date) => go(calendarDay(date))}
               defaultMonth={parseDay(day)}
               captionLayout="dropdown"
               startMonth={new Date(todayDate.getFullYear() - YEARS_BACK, 0)}
