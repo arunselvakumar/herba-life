@@ -4,6 +4,7 @@ import { db } from "../src/db";
 import { role, user } from "../src/db/schema";
 import { DEFAULT_ROLES } from "../src/db/access-seed";
 import { auth } from "../src/lib/auth";
+import { ensureProducts } from "../src/lib/stock/seed";
 
 type SeedUser = {
   name: string;
@@ -83,6 +84,10 @@ async function main(): Promise<void> {
 
     console.log(`✓ created ${seed.email} (${seed.role})`);
   }
+
+  // The Herbalife price list. Products already in the catalog are left alone.
+  const added = await ensureProducts(db);
+  console.log(added > 0 ? `✓ added ${added} products from the price list` : "• product catalog already seeded, skipping");
 }
 
 main()

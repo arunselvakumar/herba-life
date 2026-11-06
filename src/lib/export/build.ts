@@ -11,7 +11,11 @@ import {
   memberCheckin,
   memberPackage,
   packagePlan,
+  product,
   role,
+  sale,
+  saleItem,
+  stockMovement,
   user,
   type Attendance,
   type Inquiry,
@@ -19,6 +23,10 @@ import {
   type Member,
   type MemberCheckin,
   type MemberPackage,
+  type Product,
+  type Sale,
+  type SaleItem,
+  type StockMovement,
 } from "@/db/schema";
 import { can } from "@/lib/access/can";
 import { PERMISSION_MODULES, type Permission } from "@/lib/access/permissions";
@@ -32,6 +40,7 @@ import { addDays, today } from "@/lib/members/dates";
 import { daysLeft, displayAge, fullName, packageState } from "@/lib/members/format";
 import { pickCurrentPackage } from "@/lib/members/queries";
 import { listPlans, type PlanRow } from "@/lib/packages/queries";
+import { MOVEMENT_KINDS, PAYMENT_MODES, PRICE_LEVELS, STOCK_STATE_LABELS, stockState } from "@/lib/stock/format";
 import type { CurrentUser } from "@/lib/session";
 import { EVERYTHING_KEY, EXPORTS, exportableModules, findExport, type ExportDefinition } from "./catalog";
 import { addAboutSheet, addSheet, createWorkbook, toBuffer, type Column, type SheetSpec } from "./workbook";
@@ -422,6 +431,126 @@ async function packagesSheet(ctx: Context): Promise<SheetSpec<PlanRow>> {
 }
 
 // ---------------------------------------------------------------------------
+// Stock: the catalog with on-hand counts, the ledger, and sales.
+
+type ProductRow = Product & { onHand: number };
+
+async function loadProducts(): Promise<ProductRow[]> {
+  const rows = await db
+    .select({ product, onHand: sql<number>`coalesce(sum(${stockMovement.quantity}), 0)`.mapWith(Number) })
+    .from(product)
+    .leftJoin(stockMovement, eq(stockMovement.productId, product.id))
+    .groupBy(product.id)
+    .orderBy(asc(product.sortOrder), asc(product.category), asc(product.name));
+  return rows.map((r) => ({ ...r.product, onHand: r.onHand }));
+}
+
+async function productsSheet(ctx: Context): Promise<SheetSpec<ProductRow>> {
+  const rows = await loadProducts();
+  const columns: Column<ProductRow>[] = [
+    { header: "Stock no", width: 10, get: (r) => r.stockNo },
+    { header: "Product", width: 44, get: (r) => r.name },
+    { header: "Category", width: 24, get: (r) => r.category },
+    { header: "On hand", kind: "number", width: 9, get: (r) => r.onHand },
+    { header: "Reorder level", kind: "number", width: 13, get: (r) => r.reorderLevel },
+    { header: "Status", width: 13, get: (r) => STOCK_STATE_LABELS[stockState(r)] },
+    { header: "Volume points", kind: "number", width: 13, get: (r) => r.volumePoints },
+    { header: "MRP", kind: "money", get: (r) => r.mrp },
+    { header: "Bronze", kind: "money", get: (r) => r.bronzePrice },
+    { header: "Silver", kind: "money", get: (r) => r.silverPrice },
+    { header: "Gold", kind: "money", get: (r) => r.goldPrice },
+    { header: "Stock value at MRP", kind: "money", width: 18, get: (r) => Math.max(r.onHand, 0) * r.mrp },
+    { header: "Sort order", kind: "number", width: 10, get: (r) => r.sortOrder },
+    { header: "Created by", get: (r) => (r.createdBy ? ctx.staff.get(r.createdBy) : null) },
+    { header: "Created at", kind: "datetime", get: (r) => r.createdAt },
+    { header: "Updated at", kind: "datetime", get: (r) => r.updatedAt },
+    { header: "Product ID", width: 38, get: (r) => r.id },
+  ];
+  return { name: "Products", description: "the catalog with prices and what is on the shelf, including archived products", columns, rows };
+}
+
+type MovementExportRow = StockMovement & { product: Pick<Product, "stockNo" | "name">; sale: Pick<Sale, "serialNo"> | null };
+
+async function stockMovementsSheet(ctx: Context): Promise<SheetSpec<MovementExportRow>> {
+  const rows = await db.query.stockMovement.findMany({
+    with: { product: { columns: { stockNo: true, name: true } }, sale: { columns: { serialNo: true } } },
+    orderBy: [asc(stockMovement.movedOn), asc(stockMovement.createdAt)],
+  });
+  const columns: Column<MovementExportRow>[] = [
+    { header: "Date", kind: "date", get: (r) => r.movedOn },
+    { header: "Stock no", width: 10, get: (r) => r.product.stockNo },
+    { header: "Product", width: 44, get: (r) => r.product.name },
+    { header: "Kind", width: 12, get: (r) => (r.kind === "sold" && r.quantity > 0 ? "Sale voided" : label(MOVEMENT_KINDS, r.kind)) },
+    { header: "Change", kind: "number", width: 9, get: (r) => r.quantity },
+    { header: "Unit cost", kind: "money", get: (r) => r.unitCost },
+    { header: "Sale no.", kind: "number", width: 9, get: (r) => r.sale?.serialNo },
+    { header: "Note", width: 40, get: (r) => r.note },
+    { header: "Recorded by", get: (r) => (r.recordedBy ? ctx.staff.get(r.recordedBy) : null) },
+    { header: "Recorded at", kind: "datetime", get: (r) => r.createdAt },
+    { header: "Movement ID", width: 38, get: (r) => r.id },
+    { header: "Product ID", width: 38, get: (r) => r.productId },
+    { header: "Sale ID", width: 38, get: (r) => r.saleId },
+  ];
+  return { name: "Stock movements", description: "every delivery, sale line and correction, oldest first", columns, rows };
+}
+
+type SaleExportRow = Sale & { items: Pick<SaleItem, "quantity">[]; member: Named | null };
+
+async function salesSheet(ctx: Context): Promise<SheetSpec<SaleExportRow>> {
+  const rows = await db.query.sale.findMany({
+    with: { items: { columns: { quantity: true } }, member: { columns: { serialNo: true, firstName: true, lastName: true } } },
+    orderBy: [asc(sale.soldOn), asc(sale.createdAt)],
+  });
+  const columns: Column<SaleExportRow>[] = [
+    { header: "Sale no.", kind: "number", width: 9, get: (r) => r.serialNo },
+    { header: "Sold on", kind: "date", get: (r) => r.soldOn },
+    { header: "Buyer", width: 24, get: (r) => r.buyerName },
+    { header: "Member no.", kind: "number", width: 11, get: (r) => r.member?.serialNo },
+    { header: "Member", width: 24, get: (r) => memberLabel(r.member) },
+    { header: "Price level", width: 11, get: (r) => label(PRICE_LEVELS, r.priceLevel) },
+    { header: "Units", kind: "number", width: 8, get: (r) => r.items.reduce((sum, i) => sum + i.quantity, 0) },
+    { header: "Total", kind: "money", get: (r) => r.total },
+    { header: "Amount paid", kind: "money", get: (r) => r.amountPaid },
+    { header: "Balance", kind: "money", get: (r) => r.total - r.amountPaid },
+    { header: "Payment mode", width: 13, get: (r) => label(PAYMENT_MODES, r.paymentMode) },
+    { header: "Status", width: 10, get: (r) => (r.voidedAt ? "Voided" : "Standing") },
+    { header: "Void reason", width: 32, get: (r) => r.voidReason },
+    { header: "Voided at", kind: "datetime", get: (r) => r.voidedAt },
+    { header: "Voided by", get: (r) => (r.voidedBy ? ctx.staff.get(r.voidedBy) : null) },
+    { header: "Notes", width: 32, get: (r) => r.notes },
+    { header: "Sold by", get: (r) => (r.soldBy ? ctx.staff.get(r.soldBy) : null) },
+    { header: "Recorded at", kind: "datetime", get: (r) => r.createdAt },
+    { header: "Sale ID", width: 38, get: (r) => r.id },
+    { header: "Member ID", width: 38, get: (r) => r.memberId },
+  ];
+  return { name: "Sales", description: "one row per sale, standing or voided, oldest first", columns, rows };
+}
+
+type SaleItemExportRow = SaleItem & { sale: Pick<Sale, "serialNo" | "soldOn" | "buyerName" | "voidedAt"> };
+
+async function saleItemsSheet(): Promise<SheetSpec<SaleItemExportRow>> {
+  const rows = await db.query.saleItem.findMany({
+    with: { sale: { columns: { serialNo: true, soldOn: true, buyerName: true, voidedAt: true } } },
+  });
+  rows.sort((a, b) => a.sale.serialNo - b.sale.serialNo || a.name.localeCompare(b.name));
+  const columns: Column<SaleItemExportRow>[] = [
+    { header: "Sale no.", kind: "number", width: 9, get: (r) => r.sale.serialNo },
+    { header: "Sold on", kind: "date", get: (r) => r.sale.soldOn },
+    { header: "Buyer", width: 24, get: (r) => r.sale.buyerName },
+    { header: "Stock no", width: 10, get: (r) => r.stockNo },
+    { header: "Product", width: 44, get: (r) => r.name },
+    { header: "Quantity", kind: "number", width: 9, get: (r) => r.quantity },
+    { header: "Unit price", kind: "money", get: (r) => r.unitPrice },
+    { header: "Line total", kind: "money", get: (r) => r.lineTotal },
+    { header: "Sale status", width: 11, get: (r) => (r.sale.voidedAt ? "Voided" : "Standing") },
+    { header: "Line ID", width: 38, get: (r) => r.id },
+    { header: "Sale ID", width: 38, get: (r) => r.saleId },
+    { header: "Product ID", width: 38, get: (r) => r.productId },
+  ];
+  return { name: "Sale items", description: "every line on every sale", columns, rows };
+}
+
+// ---------------------------------------------------------------------------
 // Team: users, roles and the permission matrix.
 
 async function usersSheet(): Promise<SheetSpec<UserRow>> {
@@ -492,6 +621,10 @@ const BUILDERS: Record<string, SheetBuilder> = {
   Enquiries: inquiriesSheet as SheetBuilder,
   "Enquiry log": inquiryLogSheet as SheetBuilder,
   Packages: packagesSheet as SheetBuilder,
+  Products: productsSheet as SheetBuilder,
+  "Stock movements": stockMovementsSheet as SheetBuilder,
+  Sales: salesSheet as SheetBuilder,
+  "Sale items": saleItemsSheet as SheetBuilder,
   Users: usersSheet as SheetBuilder,
   Roles: rolesSheet as SheetBuilder,
   Permissions: permissionsSheet as SheetBuilder,
@@ -583,10 +716,10 @@ export const EXPORT_KEYS: readonly string[] = [...EXPORTS.map((e) => e.key), EVE
  */
 export async function countExportRows(): Promise<Record<string, number>> {
   const [counts, [visitors]] = await Promise.all([
-    Promise.all([member, memberPackage, memberCheckin, attendance, inquiry, inquiryActivity, packagePlan, user, role].map(countRows)),
+    Promise.all([member, memberPackage, memberCheckin, attendance, inquiry, inquiryActivity, packagePlan, product, stockMovement, sale, saleItem, user, role].map(countRows)),
     db.select({ value: sql<number>`count(distinct ${attendance.memberId})`.mapWith(Number) }).from(attendance),
   ]);
-  const [members, enrolments, followUps, visits, inquiries, activities, plans, users, roles] = counts;
+  const [members, enrolments, followUps, visits, inquiries, activities, plans, products, movements, sales, saleItems, users, roles] = counts;
   return {
     Members: members ?? 0,
     Enrolments: enrolments ?? 0,
@@ -596,6 +729,10 @@ export async function countExportRows(): Promise<Record<string, number>> {
     Enquiries: inquiries ?? 0,
     "Enquiry log": activities ?? 0,
     Packages: plans ?? 0,
+    Products: products ?? 0,
+    "Stock movements": movements ?? 0,
+    Sales: sales ?? 0,
+    "Sale items": saleItems ?? 0,
     Users: users ?? 0,
     Roles: roles ?? 0,
     Permissions: PERMISSION_MODULES.reduce((n, m) => n + m.actions.length, 0),

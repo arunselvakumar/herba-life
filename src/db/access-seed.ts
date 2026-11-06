@@ -14,7 +14,7 @@ export const DEFAULT_ROLES: readonly { name: string; description: string; isSyst
   },
   {
     name: "Staff",
-    description: "Day-to-day front-desk work: members, enquiries, follow-ups and attendance.",
+    description: "Day-to-day front-desk work: members, enquiries, follow-ups, attendance and stock.",
     isSystem: false,
     permissions: [
       "dashboard.view",
@@ -32,6 +32,9 @@ export const DEFAULT_ROLES: readonly { name: string; description: string; isSyst
       "attendance.view",
       "attendance.record",
       "attendance.kiosk",
+      "stock.view",
+      "stock.receive",
+      "stock.sell",
     ],
   },
 ];

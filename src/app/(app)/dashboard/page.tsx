@@ -3,12 +3,14 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import {
+  BoxesIcon,
   CalendarCheckIcon,
   CalendarClockIcon,
   ClipboardListIcon,
   HourglassIcon,
   MessageSquareMoreIcon,
   PackageCheckIcon,
+  ShoppingBagIcon,
   UserRoundPlusIcon,
   UsersRoundIcon,
 } from "lucide-react";
@@ -29,9 +31,10 @@ import { sourceLabel } from "@/lib/inquiries/format";
 import { getInquiryDashboard } from "@/lib/inquiries/queries";
 import { EXPIRING_SOON_DAYS, FOLLOW_UP_INTERVAL_DAYS } from "@/lib/members/constants";
 import { daysBetween, formatDay, today } from "@/lib/members/dates";
-import { formatNumber, fullName } from "@/lib/members/format";
+import { formatMoney, formatNumber, fullName } from "@/lib/members/format";
 import { getDashboardData } from "@/lib/members/queries";
 import { countDay } from "@/lib/attendance/queries";
+import { getStockDashboard } from "@/lib/stock/queries";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -94,6 +97,7 @@ type Reach = {
   createMember: boolean;
   inquiries: boolean;
   attendance: boolean;
+  stock: boolean;
 };
 
 async function Dashboard() {
@@ -104,6 +108,7 @@ async function Dashboard() {
     createMember: can(user, "members.create"),
     inquiries: can(user, "inquiries.view"),
     attendance: can(user, "attendance.view"),
+    stock: can(user, "stock.view"),
   };
 
   return (
@@ -145,7 +150,7 @@ async function Dashboard() {
 async function Overview({ reach }: { reach: Reach }) {
   await connection();
   const now = today();
-  const [data, inquiries, attendanceToday] = await Promise.all([getDashboardData(now), getInquiryDashboard(now), countDay(now)]);
+  const [data, inquiries, attendanceToday, stock] = await Promise.all([getDashboardData(now), getInquiryDashboard(now), countDay(now), getStockDashboard(now)]);
   const month = monthLabel.format(new Date());
 
   const stats: Stat[] = [
@@ -212,11 +217,34 @@ async function Overview({ reach }: { reach: Reach }) {
       tone: "brand",
       ...(reach.attendance ? { href: "/attendance" } : {}),
     },
+    {
+      id: "stock-low",
+      label: "Running low",
+      value: stock.low + stock.out,
+      hint:
+        stock.out > 0
+          ? `${stock.out} out of stock · ${stock.low} nearly`
+          : stock.low > 0
+            ? `${stock.low} at or below the reorder level`
+            : `${stock.products} products on the shelf`,
+      icon: BoxesIcon,
+      tone: stock.out > 0 ? "warning" : "default",
+      ...(reach.stock ? { href: "/stock?filter=low" } : {}),
+    },
+    {
+      id: "sales",
+      label: "Product sales",
+      value: stock.salesThisMonth,
+      hint: `${formatMoney(stock.revenueThisMonth)} in ${month}`,
+      icon: ShoppingBagIcon,
+      tone: "brand",
+      ...(reach.stock ? { href: "/stock/sales?filter=month" } : {}),
+    },
   ];
 
   return (
     <>
-      <StatGrid aria-label="Key metrics" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <StatGrid aria-label="Key metrics" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
           <StatCard key={stat.id} stat={stat} />
         ))}

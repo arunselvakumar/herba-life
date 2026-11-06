@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  BoxesIcon,
   CalendarCheckIcon,
   LayoutDashboardIcon,
   MessageSquareMoreIcon,
@@ -32,6 +33,7 @@ export const navigation: readonly NavItem[] = [
   { title: "Enquiries", href: "/inquiries", icon: MessageSquareMoreIcon, permissions: ["inquiries.view"] },
   { title: "Packages", href: "/packages", icon: PackageIcon, permissions: ["packages.view"] },
   { title: "Attendance", href: "/attendance", icon: CalendarCheckIcon, permissions: ["attendance.view"] },
+  { title: "Stock", href: "/stock", icon: BoxesIcon, permissions: ["stock.view"] },
   { title: "Team", href: "/team", icon: ShieldUserIcon, permissions: ["users.view", "roles.view"] },
 ];
 

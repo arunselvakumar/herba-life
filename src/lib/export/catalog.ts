@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  BoxesIcon,
   CalendarCheckIcon,
   MessageSquareMoreIcon,
   PackageIcon,
@@ -63,6 +64,14 @@ export const EXPORTS = [
     sheets: ["Attendance", "Attendance by member"],
     permission: "attendance.export",
     icon: CalendarCheckIcon,
+  },
+  {
+    key: "stock",
+    label: "Stock",
+    description: "Every product with its prices and on-hand count, every stock movement, and every sale with its lines.",
+    sheets: ["Products", "Stock movements", "Sales", "Sale items"],
+    permission: "stock.export",
+    icon: BoxesIcon,
   },
   {
     key: "users",

@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  BoxesIcon,
   CalendarCheckIcon,
   LayoutDashboardIcon,
   MessageSquareMoreIcon,
@@ -101,6 +102,21 @@ export const PERMISSION_MODULES = [
       { key: "delete", label: "Remove a check-in" },
       { key: "kiosk", label: "Open Attendance Mode", hint: "Sign the tablet in for self check-in" },
       { key: "export", label: "Export to Excel", hint: "Download every check-in" },
+    ],
+  },
+  {
+    key: "stock",
+    label: "Stock",
+    description: "Products on the shelf, deliveries received, and sales to members and walk-ins.",
+    icon: BoxesIcon,
+    actions: [
+      { key: "view", label: "View stock", hint: "On-hand counts, product histories and the sales list" },
+      { key: "receive", label: "Receive stock", hint: "Put a delivery on the shelf" },
+      { key: "sell", label: "Sell products", hint: "Record a sale to a member or walk-in" },
+      { key: "adjust", label: "Adjust stock and void sales", hint: "Correct counts; reverse a sale" },
+      { key: "products", label: "Manage products", hint: "Add, edit and archive products and prices" },
+      { key: "delete", label: "Delete a product", hint: "Only products never stocked or sold" },
+      { key: "export", label: "Export to Excel", hint: "Download products, movements and sales" },
     ],
   },
   {

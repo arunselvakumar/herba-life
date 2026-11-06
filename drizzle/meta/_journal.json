@@ -43,6 +43,13 @@
       "when": 1793251340763,
       "tag": "0005_drop_legacy_role",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793932792050,
+      "tag": "0006_stock",
+      "breakpoints": true
     }
   ]
 }
