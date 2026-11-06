@@ -18,14 +18,15 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Field } from "@/components/members/field";
 import { recordAttendance } from "@/lib/attendance/actions";
+import { branchClock } from "@/lib/members/dates";
 import { idleState, makeValueReader, withValues } from "@/lib/members/form-state";
 import { fullName } from "@/lib/members/format";
 
 type Option = { id: string; firstName: string; lastName: string; serialNo: number };
 
 function nowTime(): string {
-  const d = new Date();
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const { hour, minute } = branchClock(new Date());
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
 /**

@@ -3,9 +3,9 @@ import "server-only";
 import { and, asc, count, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { attendance, member, memberPackage, type Attendance, type Member } from "@/db/schema";
-import { addDays } from "@/lib/members/dates";
+import { addDays, branchClock } from "@/lib/members/dates";
 import { KIOSK_SEARCH_LIMIT, NOT_SEEN_AFTER_DAYS, PERIODS, RANGES, type Period, type Range } from "./constants";
-import { eachDay, lastMonths, monthKey } from "./time";
+import { eachDay, lastMonths, monthKey, weekdayIndex } from "./time";
 
 /** What the kiosk needs about a member: enough to find and recognise themselves, nothing private. */
 export type KioskMember = {
@@ -165,7 +165,7 @@ export type AttendanceDashboard = {
 /**
  * Everything the attendance page shows, for one selected `day` and a chart
  * `range` ending on that day. Visits in the range are pulled once and the
- * histograms are computed in JS, so hour-of-day uses the server's local time
+ * histograms are computed in JS, so hour-of-day uses the branch's clock
  * exactly like `day` and `period` did when the row was written.
  */
 export async function getAttendanceDashboard(day: string, range: Range, today: string): Promise<AttendanceDashboard> {
@@ -232,8 +232,9 @@ export async function getAttendanceDashboard(day: string, range: Range, today: s
       bucket.visits += 1;
       bucket.members.add(row.memberId);
     }
-    byHour[row.checkedInAt.getHours()] = (byHour[row.checkedInAt.getHours()] ?? 0) + 1;
-    const weekday = (row.checkedInAt.getDay() + 6) % 7; // Monday first
+    const { hour } = branchClock(row.checkedInAt);
+    byHour[hour] = (byHour[hour] ?? 0) + 1;
+    const weekday = weekdayIndex(row.checkedInAt);
     byWeekday[weekday] = (byWeekday[weekday] ?? 0) + 1;
 
     const regular = perMember.get(row.memberId);

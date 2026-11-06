@@ -31,7 +31,7 @@ Two audiences, two screens:
 | --- | --- |
 | Member | The member who checked in |
 | Checked in at | Exact time of the tap |
-| Day | Local calendar day (stored, so reports never depend on time zones) |
+| Day | The branch's calendar day (stored, so reports never depend on time zones) |
 | Period | Morning (before 12), afternoon (12–16), evening (16 onwards), derived from the time |
 | Source | `kiosk` = self check-in on the tablet; `manual` = recorded by staff |
 | Note | Optional, manual check-ins only ("tablet was off") |
@@ -143,8 +143,10 @@ Attendance card (this month, all time, last visit, a 4-week day strip).
   already recorded are kept.
 - Manual check-ins cannot be in the future.
 - Removing a check-in is permanent (there is no audit trail yet).
-- The day and period are computed in the server's local time zone, which is
-  assumed to be the branch's.
+- Day, period, shown times and the hour and weekday charts all follow the
+  branch's clock (`BRANCH_TIME_ZONE`, India), whatever zone the server or the
+  browser runs in. Vercel functions cannot be set to India time, because `TZ`
+  is reserved there. Times typed in by staff are read as branch time too.
 
 ## 8. Non-goals (for now)
 
