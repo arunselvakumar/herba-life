@@ -10,7 +10,8 @@ import type { FormState } from "@/lib/members/form-state";
 import { permissionFor, requirePermission } from "@/lib/access/guards";
 import { requireUser } from "@/lib/session";
 import { CHECKIN_COOLDOWN_MINUTES } from "./constants";
-import { countDay, countVisits, latestVisitSince } from "./queries";
+import { countDay, countVisits, findKioskMemberIdsByMobile, hasRunningPackage, latestVisitSince } from "./queries";
+import { mobileNeedle } from "./search";
 import { combineDayAndTime, formatTime, periodFor } from "./time";
 import {
   exitPasswordSchema,
@@ -39,11 +40,14 @@ export type KioskCheckInResult =
       todayVisits: number;
     }
   | { status: "already"; firstName: string; time: string; todayVisits: number }
+  | { status: "no_package"; firstName: string }
   | { status: "error"; message: string };
 
 /**
  * Self check-in from the tablet. A second tap within the cooldown window is
- * reported back as "already checked in" instead of creating another row.
+ * reported back as "already checked in" instead of creating another row. The
+ * package is checked here as well as in the member list, because the kiosk's
+ * list can be minutes old.
  */
 export async function kioskCheckIn(memberId: string): Promise<KioskCheckInResult> {
   const user = await requirePermission("attendance.kiosk");
@@ -57,14 +61,16 @@ export async function kioskCheckIn(memberId: string): Promise<KioskCheckInResult
   if (!found) return { status: "error", message: "That member could not be found." };
 
   const now = new Date();
+  const day = toDay(now);
+  if (!(await hasRunningPackage(found.id, day))) return { status: "no_package", firstName: found.firstName };
+
   const since = new Date(now.getTime() - CHECKIN_COOLDOWN_MINUTES * 60_000);
   const recent = await latestVisitSince(found.id, since);
   if (recent) {
-    const { visits } = await countDay(toDay(now));
+    const { visits } = await countDay(day);
     return { status: "already", firstName: found.firstName, time: formatTime(recent.checkedInAt), todayVisits: visits };
   }
 
-  const day = toDay(now);
   await db.insert(attendance).values({
     memberId: found.id,
     checkedInAt: now,
@@ -80,6 +86,13 @@ export async function kioskCheckIn(memberId: string): Promise<KioskCheckInResult
   ]);
   revalidateAttendance(found.id);
   return { status: "checked_in", firstName: found.firstName, time: formatTime(now), visitsThisMonth, todayVisits };
+}
+
+/** Which kiosk members have a mobile containing the typed number. Returns ids only, never the numbers. */
+export async function findKioskMobileMatches(query: string): Promise<string[]> {
+  await requirePermission("attendance.kiosk");
+  const needle = mobileNeedle(query);
+  return needle ? findKioskMemberIdsByMobile(needle, toDay(new Date())) : [];
 }
 
 function invalid(errors: FieldErrors): FormState {
@@ -100,6 +113,7 @@ export async function recordAttendance(_prev: FormState, formData: FormData): Pr
 
   const found = await db.query.member.findFirst({ where: eq(member.id, memberId), columns: { id: true, firstName: true } });
   if (!found) return invalid({ memberId: ["That member no longer exists."] });
+  if (!(await hasRunningPackage(memberId, day))) return invalid({ memberId: [`${found.firstName} has no active package on that day.`] });
 
   await db.insert(attendance).values({
     memberId,

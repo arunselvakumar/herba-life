@@ -66,7 +66,9 @@ export function RecordAttendanceDialog({ members, day, today }: { members: Optio
         <form action={formAction} className="space-y-4" noValidate>
           <DialogHeader>
             <DialogTitle className="text-lg font-bold">Record a visit</DialogTitle>
-            <DialogDescription>For when someone forgot to tap the tablet. The visit is marked as recorded by staff.</DialogDescription>
+            <DialogDescription>
+              For when someone forgot to tap the tablet. Only members with an active package on that day can be marked present.
+            </DialogDescription>
           </DialogHeader>
 
           {state.status === "error" && errors._form ? (

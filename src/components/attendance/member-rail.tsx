@@ -145,7 +145,10 @@ function MemberPill({ member, onPick }: { member: KioskMember; onPick: () => voi
     >
       <span className="z-10 px-6 pt-9 text-center">
         <span className="line-clamp-2 font-heading text-[0.95rem] leading-tight font-bold tracking-[0.02em] uppercase">{name}</span>
-        <span className="mt-1.5 block text-xs font-medium opacity-60">{member.packageName ? `${member.packageName} package` : "No active package"}</span>
+        <span className="mt-1.5 block text-xs font-medium tabular-nums opacity-60">
+          #{member.serialNo}
+          {member.mobileHint ? ` · ••${member.mobileHint}` : null}
+        </span>
       </span>
       <span
         aria-hidden
