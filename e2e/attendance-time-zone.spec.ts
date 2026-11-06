@@ -4,10 +4,12 @@ import { addDays, branchAsUtc, daysBetween, toDay } from "../src/lib/members/dat
 
 /**
  * Attendance must read the branch's clock whatever zone the server runs in.
- * These only prove something with the server off India time, so run them with
- * `TZ` set on the whole command, which the dev server inherits:
+ * The browser tests only prove something with the server off India time, so
+ * set `TZ` on the whole command for the dev server to inherit, on a free port:
+ * Playwright reuses a server it finds running, which keeps its own zone.
  *
- *   TZ=UTC PORT=3101 bunx playwright test e2e/attendance-time-zone.spec.ts --workers=1
+ *   TZ=UTC PORT=3101 BETTER_AUTH_URL=http://localhost:3101 NEXT_PUBLIC_APP_URL=http://localhost:3101 \
+ *     bunx playwright test e2e/attendance-time-zone.spec.ts --workers=1
  *
  * Expected values are worked out here from the literal zone, not from the app.
  */
