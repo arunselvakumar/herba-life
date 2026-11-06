@@ -4,7 +4,7 @@ import { and, asc, count, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { attendance, member, memberPackage, type Attendance, type Member } from "@/db/schema";
 import { addDays } from "@/lib/members/dates";
-import { NOT_SEEN_AFTER_DAYS, PERIODS, RANGES, type Period, type Range } from "./constants";
+import { KIOSK_SEARCH_LIMIT, NOT_SEEN_AFTER_DAYS, PERIODS, RANGES, type Period, type Range } from "./constants";
 import { eachDay, lastMonths, monthKey } from "./time";
 
 /** What the kiosk needs about a member: enough to find and recognise themselves, nothing private. */
@@ -15,18 +15,33 @@ export type KioskMember = {
   serialNo: number;
   /** Last four digits of the mobile, to tell two "Priya"s apart. */
   mobileHint: string | null;
-  /** Days left on the running package, if any. */
-  packageDaysLeft: number | null;
-  packageName: string | null;
+  /** Days left on the running package. */
+  packageDaysLeft: number;
+  packageName: string;
 };
 
+/** A package counts on `day` when it is still open and `day` falls inside its dates. */
+function runningOn(day: string) {
+  return and(eq(memberPackage.status, "active"), lte(memberPackage.startDate, day), gte(memberPackage.endDate, day));
+}
+
+/** Attendance is only for members on a running package. */
+export async function hasRunningPackage(memberId: string, day: string): Promise<boolean> {
+  const row = await db.query.memberPackage.findFirst({
+    where: and(eq(memberPackage.memberId, memberId), runningOn(day)),
+    columns: { id: true },
+  });
+  return Boolean(row);
+}
+
+/** Only members who can check in today are listed. */
 export async function listKioskMembers(today: string): Promise<KioskMember[]> {
   const rows = await db.query.member.findMany({
     columns: { id: true, firstName: true, lastName: true, serialNo: true, mobile: true },
     with: {
       packages: {
         columns: { name: true, startDate: true, endDate: true, status: true },
-        where: and(eq(memberPackage.status, "active"), lte(memberPackage.startDate, today), gte(memberPackage.endDate, today)),
+        where: runningOn(today),
         orderBy: [desc(memberPackage.endDate)],
         limit: 1,
       },
@@ -34,8 +49,9 @@ export async function listKioskMembers(today: string): Promise<KioskMember[]> {
     orderBy: [asc(member.firstName), asc(member.lastName)],
   });
 
-  return rows.map((row) => {
-    const pkg = row.packages[0] ?? null;
+  return rows.flatMap((row) => {
+    const pkg = row.packages[0];
+    if (!pkg) return [];
     const digits = row.mobile?.replace(/\D/g, "") ?? "";
     return {
       id: row.id,
@@ -43,10 +59,25 @@ export async function listKioskMembers(today: string): Promise<KioskMember[]> {
       lastName: row.lastName,
       serialNo: row.serialNo,
       mobileHint: digits.length >= 4 ? digits.slice(-4) : null,
-      packageDaysLeft: pkg ? daysUntil(today, pkg.endDate) : null,
-      packageName: pkg?.name ?? null,
+      packageDaysLeft: daysUntil(today, pkg.endDate),
+      packageName: pkg.name,
     };
   });
+}
+
+/**
+ * Kiosk members whose mobile contains `digits`. This runs on the server so the
+ * tablet never holds anyone's full number. Stored numbers are free text, so
+ * the spaces and dashes are stripped before comparing.
+ */
+export async function findKioskMemberIdsByMobile(digits: string, today: string): Promise<string[]> {
+  const rows = await db
+    .selectDistinct({ id: member.id })
+    .from(member)
+    .innerJoin(memberPackage, eq(memberPackage.memberId, member.id))
+    .where(and(runningOn(today), sql`regexp_replace(${member.mobile}, '\\D', '', 'g') like ${`%${digits}%`}`))
+    .limit(KIOSK_SEARCH_LIMIT);
+  return rows.map((row) => row.id);
 }
 
 function daysUntil(from: string, to: string): number {
@@ -174,7 +205,7 @@ export async function getAttendanceDashboard(day: string, range: Range, today: s
       })
       .from(memberPackage)
       .innerJoin(member, eq(member.id, memberPackage.memberId))
-      .where(and(eq(memberPackage.status, "active"), lte(memberPackage.startDate, today), gte(memberPackage.endDate, today))),
+      .where(runningOn(today)),
     db
       .select({ memberId: attendance.memberId, lastDay: sql<string>`max(${attendance.day})` })
       .from(attendance)
@@ -266,10 +297,12 @@ export async function getAttendanceDashboard(day: string, range: Range, today: s
   };
 }
 
-/** Members for the staff "record a visit" picker. */
-export async function listMemberOptions(): Promise<Pick<Member, "id" | "firstName" | "lastName" | "serialNo">[]> {
+/** Members for the staff "record a visit" picker: those on a running package on `day`. */
+export async function listMemberOptions(day: string): Promise<Pick<Member, "id" | "firstName" | "lastName" | "serialNo">[]> {
   return db
-    .select({ id: member.id, firstName: member.firstName, lastName: member.lastName, serialNo: member.serialNo })
+    .selectDistinct({ id: member.id, firstName: member.firstName, lastName: member.lastName, serialNo: member.serialNo })
     .from(member)
+    .innerJoin(memberPackage, eq(memberPackage.memberId, member.id))
+    .where(runningOn(day))
     .orderBy(asc(member.firstName), asc(member.lastName));
 }

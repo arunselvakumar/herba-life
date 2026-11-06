@@ -57,18 +57,24 @@ Opening it:
 
 Checking in:
 
-1. A big search box (auto-focused) and a grid of large name tiles. With no
-   search, every member is listed alphabetically; typing narrows by first or
-   last name, member number, or the last digits of the mobile. Tiles show the
-   name, member number and the last four digits of the mobile so two people
-   with the same name can tell themselves apart. Nothing else private is on
-   screen.
-2. Tapping a tile asks "Yes, check me in" / "Not me", and mentions the
-   running package and days left.
+1. A big search box (auto-focused) and a belt of large name tiles. Only
+   members on a running package are listed. With no search, they are listed
+   alphabetically; typing narrows by first or last name, exact member number
+   (`12` or `#12`), or mobile number. Tiles show the name, member number and
+   the last four digits of the mobile so two people with the same name can
+   tell themselves apart. Nothing else private is on screen.
+
+   Mobile search takes any part of the number from four digits up, with or
+   without spaces, dashes, a country code or a leading zero. The tablet only
+   ever holds the last four digits, so longer numbers are matched on the
+   server, which returns member ids and never the numbers themselves.
+2. Tapping a tile asks "Yes, check me in" / "Not me", and shows the member
+   number, the last four digits of the mobile, the running package and the
+   days left.
 3. A full-screen welcome ("Welcome, Priya! Checked in at 9:14 am · Visit 12
    this month") shows for six seconds, or until tapped, then the kiosk goes
-   back to the search screen. Already-in and error states have their own
-   screens.
+   back to the search screen. Already-in, no-package and error states have
+   their own screens.
 4. The confirmation step times out after 30 seconds if nobody acts.
 
 The header shows the date, a live clock and today's check-in count. The
@@ -100,7 +106,8 @@ Route: `/attendance`, with `?day=YYYY-MM-DD` and `?range=14d|30d|90d|12m`.
 - **Who came in**: the day's log in order of arrival, with period, source and
   a remove button.
 - **Record a visit**: staff fallback dialog (member, day, time, note) for
-  when someone forgot to tap. Saved as `manual`.
+  when someone forgot to tap. Saved as `manual`. The picker lists members on
+  a running package on the day being viewed.
 
 The dashboard gets a "Check-ins today" stat; the member profile gets an
 Attendance card (this month, all time, last visit, a 4-week day strip).
@@ -109,6 +116,12 @@ Attendance card (this month, all time, last visit, a 4-week day strip).
 
 - Check-ins can only be recorded for existing members; deleting a member
   deletes their attendance.
+- Only members on a running package can have attendance recorded. A package
+  is running on a day when its status is `active` and the day falls between
+  its start and end dates, so upcoming, expired, completed and cancelled
+  packages do not count. The server checks this on every check-in: the kiosk
+  against today, and a manual visit against the day of the visit. Visits
+  already recorded are kept.
 - Manual check-ins cannot be in the future.
 - Removing a check-in is permanent (there is no audit trail yet).
 - The day and period are computed in the server's local time zone, which is
@@ -124,11 +137,9 @@ Attendance card (this month, all time, last visit, a 4-week day strip).
 
 ## 8. Open questions
 
-1. Should the kiosk hide members without an active package, or let them check
-   in and flag it for staff?
-2. Is 45 minutes the right duplicate window, or should morning and evening be
+1. Is 45 minutes the right duplicate window, or should morning and evening be
    the only two slots per day?
-3. Should "not seen lately" use a different threshold per package (e.g. daily
+2. Should "not seen lately" use a different threshold per package (e.g. daily
    programmes vs. weekly ones)?
-4. Does the branch want a PIN for leaving Attendance Mode instead of the
+3. Does the branch want a PIN for leaving Attendance Mode instead of the
    staff password (easier on a shared tablet)?
