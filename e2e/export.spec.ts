@@ -55,6 +55,7 @@ const MODULES = [
   { path: "/inquiries", heading: "Enquiries", file: /^herbalife-inquiries-/, sheets: ["About", "Enquiries", "Enquiry log"] },
   { path: "/packages", heading: "Packages", file: /^herbalife-packages-/, sheets: ["About", "Packages", "Enrolments"] },
   { path: "/attendance", heading: "Attendance", file: /^herbalife-attendance-/, sheets: ["About", "Attendance", "Attendance by member"] },
+  { path: "/stock", heading: "Stock", file: /^herbalife-stock-/, sheets: ["About", "Products", "Stock movements", "Sales", "Sale items"] },
   { path: "/team/users", heading: "Users", file: /^herbalife-users-/, sheets: ["About", "Users"] },
   { path: "/team/roles", heading: "Roles", file: /^herbalife-roles-/, sheets: ["About", "Roles", "Permissions"] },
 ] as const;
@@ -149,6 +150,10 @@ test.describe("export to Excel", () => {
       "Enquiry log",
       "Packages",
       "Attendance by member",
+      "Products",
+      "Stock movements",
+      "Sales",
+      "Sale items",
       "Users",
       "Roles",
       "Permissions",
@@ -176,7 +181,7 @@ test.describe("export to Excel", () => {
     await page.getByLabel("Name", { exact: true }).fill(roleName);
     await page.getByTitle("Allow everything in Enquiries").click();
     await page.locator("label[for='perm-inquiries-export']").click();
-    await expect(page.getByText("7 of 35 allowed")).toBeVisible();
+    await expect(page.getByText("7 of 42 allowed")).toBeVisible();
     await page.getByRole("button", { name: "Create role" }).click();
     await expect(page).toHaveURL(/\/team\/roles$/);
 

@@ -82,18 +82,60 @@ Members mark their own visits on a tablet at the entrance:
 
 See `docs/attendance-module.md` for the full requirements.
 
+### Stock
+
+The Herbalife products the branch keeps on the shelf, and the sales that
+take them off it. The full requirements are in
+[`docs/stock-module.md`](docs/stock-module.md).
+
+- **Stock** (`/stock`) – every product grouped by price-list category with
+  what is on hand, MRP and the Bronze / Silver / Gold preferred-customer
+  prices, and an In stock / Running low / Out of stock badge. Search by name,
+  stock number or category; filters for running low, out of stock and
+  archived. The catalog is seeded from the 1 Nov 2025 price list (55
+  products) by `bun run db:seed`; administrators add, edit and archive
+  products from here.
+- **Receive stock** – a dialog on the stock page and on each product: pick
+  the product, the quantity, the date, an optional unit cost and a note such
+  as the invoice number. It stays open so a whole delivery can be keyed in
+  line by line.
+- **Product** (`/stock/[id]`) – prices, on hand, units sold, and the full
+  history: every delivery, sale line and correction with a running balance
+  and who recorded it. Adjustments (a count that differed, damaged stock, a
+  sample given out) always need a reason. On hand can never go below zero.
+- **Sales** (`/stock/sales`, `/stock/sales/new`, `/stock/sales/[id]`) – one
+  sale per counter visit: a member from the list or a walk-in name, a price
+  level (MRP by default, or Bronze / Silver / Gold, which fills every line),
+  product lines with editable prices, amount paid and payment mode. Saving
+  writes the sale, its lines and the stock movements in one transaction and
+  refuses to oversell. Sales are never edited: voiding one (reason required)
+  returns the stock and keeps the receipt on record, marked voided.
+- **Member profile** – a Purchases card lists the member's recent sales and
+  any balance due, with a "Sell products" button that opens the sale form
+  with the member chosen.
+- **Dashboard** – "Running low" (out of stock and at or below the reorder
+  level) and "Product sales" this month with the amount.
+- Permissions are per action (`stock.view`, `stock.receive`, `stock.sell`,
+  `stock.adjust`, `stock.products`, `stock.delete`, `stock.export`); the
+  default Staff role can view, receive and sell.
+
+Code lives in `src/db/stock-schema.ts`, `src/lib/stock/` (price list,
+validation, queries, server actions, seed), `src/components/stock/` and
+`src/app/(app)/stock/`.
+
 ### Backup & export
 
 Every module can be taken out of the console as an Excel workbook, for a
 backup, for reporting, or to move to another system:
 
-- **Export buttons** on Members, Enquiries, Packages, Attendance, Users and
-  Roles download that module's workbook. A member's profile exports just that
+- **Export buttons** on Members, Enquiries, Packages, Attendance, Stock,
+  Users and Roles download that module's workbook. A member's profile exports just that
   member with their enrolments, follow-ups and attendance.
 - **Backup & export** (`/export`, from the account menu) lists every workbook
   with live row counts and offers **Download everything**: one file with a
   sheet per table (Members, Enrolments, Follow-ups, Attendance, Enquiries,
-  Enquiry log, Packages, Attendance by member, Users, Roles, Permissions).
+  Enquiry log, Packages, Attendance by member, Products, Stock movements,
+  Sales, Sale items, Users, Roles, Permissions).
 - Each workbook opens with an **About** sheet (who exported it, when, and a
   row count per sheet). Dates are real Excel dates in branch-local time,
   money has two decimals, and ID columns let rows be matched across sheets.

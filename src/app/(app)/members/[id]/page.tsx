@@ -29,6 +29,7 @@ import { PackageBadge } from "@/components/members/package-badge";
 import { PackageList } from "@/components/members/package-list";
 import { WeightTrend } from "@/components/members/weight-trend";
 import { MemberAttendance } from "@/components/attendance/member-attendance";
+import { MemberPurchases } from "@/components/stock/member-purchases";
 import { can } from "@/lib/access/can";
 import { addCheckin, deleteMember } from "@/lib/members/actions";
 import { DIETS, EXPIRING_SOON_DAYS, GENDERS, MEASUREMENTS, PAIN_AREAS, SYMPTOMS } from "@/lib/members/constants";
@@ -60,6 +61,8 @@ async function MemberProfile({ params }: { params: PageProps<"/members/[id]">["p
   const canFollowUp = can(user, "members.followups");
   const canManagePackages = can(user, "members.packages");
   const canSeeAttendance = can(user, "attendance.view");
+  const canSeeStock = can(user, "stock.view");
+  const canSell = can(user, "stock.sell");
   const canExport = can(user, "members.export");
 
   const { id } = await params;
@@ -185,6 +188,7 @@ async function MemberProfile({ params }: { params: PageProps<"/members/[id]">["p
         </div>
         <div className="min-w-0 space-y-6">
           <PackageList memberId={member.id} packages={member.packages} today={now} canManage={canManagePackages} />
+          {canSeeStock ? <MemberPurchases memberId={member.id} canSell={canSell} /> : null}
           <ContactCard member={member} sourceInquiry={sourceInquiry} />
           <HealthCard member={member} />
           <EatingHabitsCard member={member} />
