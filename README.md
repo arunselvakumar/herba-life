@@ -196,6 +196,10 @@ which typechecks and lints, applies pending Drizzle migrations to the
 production database, then builds and deploys to Vercel production. Deploys
 never overlap.
 
+Every pull request into `main` runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
+typecheck and lint, then build Storybook and run every story as a test. Both
+jobs are required checks on `main`, so a PR with a failing story can't merge.
+
 The workflow needs four repository secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`,
 `VERCEL_PROJECT_ID` and `DATABASE_URL_UNPOOLED` (Neon's direct connection
 string, used only for migrations). The app itself reads `DATABASE_URL` (the
@@ -340,4 +344,16 @@ are taken from herbalife.com.
 | `bun run typecheck`    | `tsc --noEmit` (strict + extras)     |
 | `bun run lint`         | ESLint                               |
 | `bun run storybook`    | Storybook on http://localhost:6006   |
+| `bun run test:storybook` | Every story as a browser test (render, interactions, WCAG 2.2 AA) |
+| `bun run build-storybook` | Static Storybook build             |
 | `bun run test:e2e`     | Playwright (starts the dev server)   |
+
+## Storybook
+
+Every component and every screen has stories, and every story is a test:
+it must render, pass its interaction test and meet WCAG 2.2 A/AA. Screens
+render the real `page.tsx` inside the real layout, with server actions,
+queries and the session mocked, so Storybook needs no database. How to write
+stories, use the mocks and handle accessibility exceptions:
+[`docs/storybook.md`](docs/storybook.md).
+
