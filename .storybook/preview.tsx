@@ -1,9 +1,30 @@
 import type { Preview } from "@storybook/nextjs-vite";
+import { JetBrains_Mono, Urbanist } from "next/font/google";
 import { sb } from "storybook/test";
 import { TooltipProvider } from "../src/components/ui/tooltip";
+import { baseA11yRules } from "../src/stories/a11y";
 import { shiftClock } from "../src/stories/clock";
 import { NOW } from "../src/stories/fixtures/time";
 import "../src/app/globals.css";
+
+// The root layout puts the font variables on <html>; stories don't render it,
+// so do the same here or every story falls back to system fonts.
+const sans = Urbanist({ variable: "--font-sans", subsets: ["latin"], display: "swap" });
+const mono = JetBrains_Mono({ variable: "--font-mono", subsets: ["latin"], display: "swap" });
+document.documentElement.classList.add(sans.variable, mono.variable);
+
+// In automated runs (the Vitest/Playwright tests set navigator.webdriver),
+// turn CSS keyframe animations off. Radix then opens and closes dialogs,
+// menus and popovers at once instead of after an enter/exit animation, so
+// visibility assertions don't depend on machine load. GSAP motion is already
+// off there via prefers-reduced-motion. Storybook in a normal browser keeps
+// every animation.
+if (navigator.webdriver) {
+  const style = document.createElement("style");
+  style.dataset.storybookTests = "no-animations";
+  style.textContent = "*, *::before, *::after { animation-name: none !important; transition-duration: 0s !important; }";
+  document.head.appendChild(style);
+}
 
 // ---------------------------------------------------------------------------
 // Module mocks. Each one is swapped for the file of the same name in the
@@ -67,18 +88,8 @@ const preview: Preview = {
       options: {
         runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22a", "wcag22aa"] },
       },
-      config: {
-        rules: [
-          {
-            // Known issue, on every screen: the header's logo link and the
-            // account button have aria-labels that don't contain their visible
-            // text (WCAG 2.5.3). Excluded by element so the rule still guards
-            // everything else; remove the exclusions once those labels change.
-            id: "label-content-name-mismatch",
-            selector: '*:not([data-testid="user-menu-trigger"]):not([aria-label="Herbalife, go to the overview"])',
-          },
-        ],
-      },
+      // Shared overrides; see src/stories/a11y.ts.
+      config: { rules: baseA11yRules },
     },
   },
   // Fixtures are written for 9 Nov 2026, 10:30 India time; start the clock there.
