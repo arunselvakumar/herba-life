@@ -125,9 +125,25 @@ export const Errors: Story = {
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.type(canvas.getByLabelText("Name"), "Front desk");
     await userEvent.click(tile(canvasElement, "members.view"));
+    await userEvent.click(tile(canvasElement, "stock.sell"));
+    await userEvent.click(tile(canvasElement, "dashboard.view"));
     await userEvent.click(canvas.getByRole("button", { name: "Create role" }));
     await expect(await canvas.findByText("A role with this name already exists.")).toBeVisible();
     await expect(canvas.getByLabelText("Name")).toHaveValue("Front desk");
+
+    // React resets the form after the failed submit; the ticks survive it.
+    await expect(tile(canvasElement, "members.view")).toBeChecked();
+    await expect(tile(canvasElement, "stock.sell")).toBeChecked();
+    await expect(tile(canvasElement, "stock.view")).toBeChecked();
+    await expect(tile(canvasElement, "dashboard.view")).not.toBeChecked();
+    await expect(canvas.getByText(`of ${total} allowed.`, { exact: false })).toHaveTextContent(`3 of ${total} allowed.`);
+
+    // Submitting again posts the same permissions.
+    await userEvent.click(canvas.getByRole("button", { name: "Create role" }));
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    const posted = mocked(save).mock.calls.map((call) => call[1].getAll("permissions[]").sort());
+    await expect(posted[1]).toEqual(["members.view", "stock.sell", "stock.view"]);
+    await expect(posted[1]).toEqual(posted[0]);
   },
 };
 
