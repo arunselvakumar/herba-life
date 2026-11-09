@@ -3,11 +3,11 @@ import { expect, mocked } from "storybook/test";
 import AttendancePage from "@/app/(app)/attendance/page";
 import KioskPage from "@/app/(kiosk)/attendance/kiosk/page";
 import { countDay, getAttendanceDashboard, listKioskMembers, listMemberOptions } from "@/lib/attendance/queries";
-import { getCurrentUser } from "@/lib/session";
+import { getCurrentUser, getKioskUser } from "@/lib/session";
 import { withAppShell, withKioskShell } from "@/stories/decorators";
 import { kioskMembers, makeDashboard, makeEmptyDashboard, memberOptions } from "@/stories/fixtures/attendance";
 import { daysFromToday } from "@/stories/fixtures/time";
-import { frontDeskUser, noRoleUser } from "@/stories/fixtures/users";
+import { frontDeskUser, kioskUser, noRoleUser } from "@/stories/fixtures/users";
 import { fullCheck, knownIssues } from "@/stories/a11y";
 
 // Two routes in one file: `/attendance` inside the console shell (the
@@ -25,6 +25,8 @@ const meta = {
     mocked(listMemberOptions).mockResolvedValue(memberOptions);
     mocked(listKioskMembers).mockResolvedValue(kioskMembers);
     mocked(countDay).mockResolvedValue({ visits: 23, members: 21 });
+    // The kiosk page reads the locked sign-in; the Start screen story unlocks it.
+    mocked(getKioskUser).mockResolvedValue(kioskUser);
   },
 } satisfies Meta<typeof AttendancePage>;
 
@@ -182,10 +184,27 @@ export const KioskNoAccess: Story = {
   parameters: { ...kiosk.parameters, a11y: fullCheck },
   globals: { viewport: { value: "tablet" } },
   beforeEach: () => {
-    mocked(getCurrentUser).mockResolvedValue(noRoleUser);
+    mocked(getKioskUser).mockResolvedValue(noRoleUser);
   },
   play: async ({ canvas }) => {
     await expect(await canvas.findByText("You do not have access to this")).toBeVisible();
     await expect(listKioskMembers).not.toHaveBeenCalled();
+  },
+};
+
+/** Before this device is locked: the Start screen, and no member data loaded. */
+export const KioskStart: Story = {
+  ...kiosk,
+  // No kiosk chrome on this one, so the full check applies.
+  parameters: { ...kiosk.parameters, a11y: fullCheck },
+  globals: { viewport: { value: "tablet" } },
+  beforeEach: () => {
+    mocked(getKioskUser).mockResolvedValue(frontDeskUser);
+  },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole("heading", { name: "Start Attendance Mode" })).toBeVisible();
+    await expect(canvas.getByText(frontDeskUser.name)).toBeVisible();
+    await expect(listKioskMembers).not.toHaveBeenCalled();
+    await expect(countDay).not.toHaveBeenCalled();
   },
 };

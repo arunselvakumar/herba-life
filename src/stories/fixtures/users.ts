@@ -10,6 +10,7 @@ export const adminUser = {
   roleName: "Administrator",
   isAdmin: true,
   permissions: [...ALL_PERMISSIONS],
+  kioskLocked: false,
 } satisfies CurrentUser;
 
 const frontDeskPermissions: Permission[] = [
@@ -36,6 +37,7 @@ export const frontDeskUser = {
   roleName: "Front desk",
   isAdmin: false,
   permissions: frontDeskPermissions,
+  kioskLocked: false,
 } satisfies CurrentUser;
 
 /** Signed in, but no role assigned yet: every page shows "No access". */
@@ -48,4 +50,13 @@ export const noRoleUser = {
   roleName: null,
   isAdmin: false,
   permissions: [],
+  kioskLocked: false,
+} satisfies CurrentUser;
+
+/** Front desk on a tablet in Attendance Mode: the lock narrows them to the kiosk alone. */
+export const kioskUser = {
+  ...frontDeskUser,
+  isAdmin: false,
+  permissions: ["attendance.kiosk"],
+  kioskLocked: true,
 } satisfies CurrentUser;

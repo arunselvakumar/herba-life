@@ -170,6 +170,7 @@ export const teamLeadUser = {
   roleName: "Team lead",
   isAdmin: false,
   permissions: teamLeadPermissions,
+  kioskLocked: false,
 } satisfies CurrentUser;
 
 /** Can see roles but not users: the Team tabs collapse to one. */

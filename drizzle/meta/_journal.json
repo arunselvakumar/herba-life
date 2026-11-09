@@ -50,6 +50,13 @@
       "when": 1793932792050,
       "tag": "0006_stock",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794220433415,
+      "tag": "0007_kiosk_lock",
+      "breakpoints": true
     }
   ]
 }

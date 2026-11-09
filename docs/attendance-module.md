@@ -48,10 +48,27 @@ header) in its own route group, `src/app/(kiosk)`.
 
 Opening it:
 
-- The **Attendance Mode** button on the attendance page requests full screen
-  (browsers only allow this from a click) and then navigates to the kiosk.
-- The sidebar link opens it without full screen; the kiosk's own full-screen
-  button (top right) can be used instead.
+- The **Attendance Mode** button (attendance page, and the header for anyone
+  whose role has it) does a full page load of the kiosk URL. It is never a
+  client-side navigation: the browser tab must not keep earlier admin pages
+  alive or cached behind the kiosk.
+- The kiosk first shows a **Start Attendance Mode** card naming the signed-in
+  staff member. No member data is loaded until **Start** is pressed. Start
+  requests full screen (browsers only allow this from a click) and locks this
+  device; **Go back** returns to the admin screens.
+- The lock is per sign-in, not per account. Starting it writes a row to the
+  `kiosk_lock` table for this browser's session. While the row exists the
+  server treats the session as holding `attendance.kiosk` and nothing else:
+  every admin page redirects back to the kiosk, every other Server Action is
+  refused, exports answer 403, Better Auth's own endpoints answer 403, and
+  `/signed-out` sends the tablet back to the kiosk instead of signing it out.
+  Other devices signed in with the same account are not affected.
+- The lock lives in the database, so clearing cookies on the tablet can only
+  sign it out, never unlock it.
+- A page restored by the Back button is reloaded from the server, so admin
+  screens from before the lock cannot be brought back that way.
+- The kiosk's own full-screen button (top right) can be used if full screen
+  was refused.
 - The kiosk asks the browser for a screen wake lock so the tablet does not
   dim while idle.
 
@@ -81,9 +98,16 @@ The header shows the date, a live clock and today's check-in count. The
 member list refreshes every 10 minutes (new members appear, and the day rolls
 over at midnight).
 
-Leaving: the **Staff** button asks for the signed-in staff member's password.
-It is verified against the stored hash without touching the session, so a
-member at the tablet cannot wander into the admin screens by tapping around.
+Leaving: the **Exit** button asks for the signed-in staff member's password,
+verified against the stored hash. The right password deletes this device's
+lock and loads the attendance page in full. Wrong passwords are counted on
+the lock: after five in a row, the server refuses every attempt (right or
+wrong) for 60 seconds and the dialog says how long to wait.
+
+A tablet whose staff password is forgotten: clear the site's cookies (site
+data) in the tablet's browser. That signs it out, and signing in again starts
+a new, unlocked session. The old session can no longer be used, and its lock
+row is deleted with it when the session expires (seven days) or is revoked.
 
 ## 5. WhatsApp confirmation
 

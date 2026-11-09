@@ -3,11 +3,12 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { NoAccess } from "@/components/app/no-access";
 import { Kiosk } from "@/components/attendance/kiosk";
+import { KioskStart } from "@/components/attendance/kiosk-start";
 import { Skeleton } from "@/components/ui/skeleton";
 import { can } from "@/lib/access/can";
 import { countDay, listKioskMembers } from "@/lib/attendance/queries";
 import { today } from "@/lib/members/dates";
-import { getCurrentUser } from "@/lib/session";
+import { getKioskUser } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: "Attendance Mode",
@@ -22,9 +23,12 @@ export default function KioskPage() {
 }
 
 async function KioskLoader() {
-  const user = await getCurrentUser();
+  // Not getCurrentUser(): that one sends a locked sign-in here, to this page.
+  const user = await getKioskUser();
   // The kiosk has no shell, so the card gets its own padding.
   if (!can(user, "attendance.kiosk")) return <NoAccess permission="attendance.kiosk" className="m-auto w-full max-w-lg" />;
+  // No member data reaches the browser until this device is locked.
+  if (!user.kioskLocked) return <KioskStart staffName={user.name} />;
   await connection();
   const now = today();
   const [members, counts] = await Promise.all([listKioskMembers(now), countDay(now)]);

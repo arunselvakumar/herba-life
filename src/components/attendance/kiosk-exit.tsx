@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { LoaderCircleIcon, LogOutIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,13 +16,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { verifyExitPassword } from "@/lib/attendance/actions";
+import { hardNavigate } from "@/lib/hard-navigate";
 
 /**
  * The only way out of Attendance Mode. The signed-in staff member re-enters
- * their password so a visitor at the tablet cannot reach the admin screens.
+ * their password so a visitor at the tablet cannot reach the admin screens;
+ * the server ends this device's lock, and a full page load leaves the kiosk.
  */
 export function KioskExit({ staffName }: { staffName: string }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -33,16 +33,20 @@ export function KioskExit({ staffName }: { staffName: string }) {
     event.preventDefault();
     setError(null);
     startTransition(async () => {
-      const { ok } = await verifyExitPassword(password);
+      const { ok, retryAfterSeconds } = await verifyExitPassword(password);
       if (!ok) {
-        setError("That password is not right. Try again.");
+        setError(
+          retryAfterSeconds
+            ? `Too many wrong passwords. Try again in ${retryAfterSeconds} seconds.`
+            : "That password is not right. Try again.",
+        );
         setPassword("");
         return;
       }
       if (document.fullscreenElement) {
         await document.exitFullscreen().catch(() => {});
       }
-      router.push("/attendance");
+      hardNavigate("/attendance");
     });
   }
 

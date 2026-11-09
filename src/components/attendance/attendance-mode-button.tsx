@@ -1,15 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { MonitorCheckIcon } from "lucide-react";
 import type { buttonVariants } from "@/components/ui/button";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { KIOSK_PATH } from "@/lib/attendance/constants";
+import { hardNavigate } from "@/lib/hard-navigate";
 import type { VariantProps } from "class-variance-authority";
 
 /**
- * Opens Attendance Mode. Browsers only allow entering full screen from a user
- * gesture, so the request happens here on the click, before the client-side
- * navigation to the kiosk; the document stays full screen across it.
+ * Opens Attendance Mode's Start screen with a full page load, so no admin page
+ * from this tab stays alive (hidden) or cached behind the kiosk. Full screen
+ * is requested by the Start button there, since a page load drops it.
  *
  * A shimmer runs around its edge: white on the ink pill, leaf green on the
  * white one, where a white spark would vanish.
@@ -26,16 +27,8 @@ export function AttendanceModeButton({
   className?: string;
   children?: React.ReactNode;
 } & Pick<React.ComponentProps<"button">, "aria-label" | "title">) {
-  const router = useRouter();
-
   function start() {
-    const root = document.documentElement;
-    if (!document.fullscreenElement && root.requestFullscreen) {
-      root.requestFullscreen().catch(() => {
-        /* Not allowed (e.g. iframe) — the kiosk offers a button for it too. */
-      });
-    }
-    router.push("/attendance/kiosk");
+    hardNavigate(KIOSK_PATH);
   }
 
   return (

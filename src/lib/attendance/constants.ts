@@ -54,3 +54,10 @@ export const RANGES = [
 ] as const;
 export type Range = (typeof RANGES)[number]["value"];
 export const DEFAULT_RANGE: Range = "30d";
+
+export const KIOSK_PATH = "/attendance/kiosk";
+/** Changes on every lock so cached renders from before the lock are never reused. Not used for any security decision. */
+export const KIOSK_MARKER_COOKIE = "hl_kiosk";
+/** Wrong exit passwords allowed before the kiosk makes the staff member wait. */
+export const KIOSK_EXIT_MAX_ATTEMPTS = 5;
+export const KIOSK_EXIT_LOCKOUT_SECONDS = 60;

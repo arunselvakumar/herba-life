@@ -100,7 +100,7 @@ export const PERMISSION_MODULES = [
       { key: "view", label: "View attendance", hint: "The attendance page and each member's calendar" },
       { key: "record", label: "Record a visit by hand" },
       { key: "delete", label: "Remove a check-in" },
-      { key: "kiosk", label: "Open Attendance Mode", hint: "Sign the tablet in for self check-in" },
+      { key: "kiosk", label: "Open Attendance Mode", hint: "Lock this device to the self check-in screen" },
       { key: "export", label: "Export to Excel", hint: "Download every check-in" },
     ],
   },
