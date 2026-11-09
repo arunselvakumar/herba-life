@@ -142,7 +142,7 @@ export function addAboutSheet(workbook: ExcelJS.Workbook, meta: ExportMeta, shee
   sheet.addRow([]);
   sheet.addRow(["Exported on", branchAsUtc(meta.exportedAt)]).getCell(2).numFmt = "dddd, dd mmmm yyyy hh:mm";
   sheet.addRow(["Exported by", meta.exportedBy]);
-  sheet.addRow(["Application", "Herbalife Internal"]);
+  sheet.addRow(["Application", "Herbalife"]);
   sheet.addRow([]);
 
   const head = sheet.addRow(["Sheet", "Contents"]);

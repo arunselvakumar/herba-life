@@ -19,10 +19,10 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Herbalife Internal",
-    template: "%s · Herbalife Internal",
+    default: "Herbalife",
+    template: "%s · Herbalife",
   },
-  description: "Herbalife internal management tool",
+  description: "Herbalife management tool",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
