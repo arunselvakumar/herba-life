@@ -2,16 +2,19 @@
 
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { after } from "next/server";
 import { db } from "@/db";
 import { attendance, member } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { daysBetween, toDay } from "@/lib/members/dates";
 import type { FormState } from "@/lib/members/form-state";
-import { permissionFor, requirePermission } from "@/lib/access/guards";
-import { requireUser } from "@/lib/session";
+import { can } from "@/lib/access/can";
+import { PermissionDeniedError, permissionFor, requirePermission } from "@/lib/access/guards";
+import { requireSession } from "@/lib/session";
 import { sendCheckInMessage } from "@/lib/whatsapp/send";
-import { CHECKIN_COOLDOWN_MINUTES } from "./constants";
+import { CHECKIN_COOLDOWN_MINUTES, KIOSK_MARKER_COOKIE } from "./constants";
+import { exitRetryAfterSeconds, findKioskLock, lockKiosk, registerFailedExit, unlockKiosk } from "./kiosk-lock";
 import { countDay, countVisits, findKioskMemberIdsByMobile, latestVisitSince, runningPackageOn } from "./queries";
 import { mobileNeedle } from "./search";
 import { combineDayAndTime, formatTime, periodFor } from "./time";
@@ -162,21 +165,52 @@ export async function deleteAttendance(id: string): Promise<void> {
   revalidateAttendance(removed?.memberId);
 }
 
+/** Puts this sign-in (this device only) into Attendance Mode. Safe to call twice. */
+export async function startKioskMode(): Promise<{ ok: true }> {
+  const { user, sessionId } = await requireSession();
+  if (!can(user, "attendance.kiosk")) throw new PermissionDeniedError("attendance.kiosk");
+  await lockKiosk(sessionId, user.id);
+  (await cookies()).set(KIOSK_MARKER_COOKIE, crypto.randomUUID(), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  });
+  return { ok: true };
+}
+
 /**
  * Leaving Attendance Mode asks the signed-in staff member for their password,
  * so a member at the tablet cannot wander into the admin screens. The check
- * uses the same hash verification as sign-in, but never touches the session.
+ * uses the same hash verification as sign-in; the right password ends this
+ * sign-in's lock. Wrong ones are counted on the lock, and after
+ * `KIOSK_EXIT_MAX_ATTEMPTS` in a row the next try has to wait.
  */
-export async function verifyExitPassword(password: string): Promise<{ ok: boolean }> {
-  const user = await requireUser();
+export async function verifyExitPassword(password: string): Promise<{ ok: boolean; retryAfterSeconds?: number }> {
+  const { user, sessionId } = await requireSession();
+  const lock = await findKioskLock(sessionId);
+  if (lock) {
+    const retryAfterSeconds = exitRetryAfterSeconds(lock, new Date());
+    if (retryAfterSeconds > 0) return { ok: false, retryAfterSeconds };
+  }
+
+  const wrong = async () => {
+    if (lock) await registerFailedExit(sessionId);
+    return { ok: false };
+  };
+
   const parsed = exitPasswordSchema.safeParse(password);
-  if (!parsed.success) return { ok: false };
+  if (!parsed.success) return wrong();
 
   const ctx = await auth.$context;
   const accounts = await ctx.internalAdapter.findAccounts(user.id);
   const credential = accounts.find((a) => a.providerId === "credential" && a.password);
-  if (!credential?.password) return { ok: false };
+  if (!credential?.password) return wrong();
   const ok = await ctx.password.verify({ hash: credential.password, password: parsed.data });
-  return { ok };
-}
+  if (!ok) return wrong();
 
+  await unlockKiosk(sessionId);
+  (await cookies()).delete(KIOSK_MARKER_COOKIE);
+  return { ok: true };
+}

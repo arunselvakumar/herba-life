@@ -45,6 +45,9 @@ sb.mock(import("../src/lib/stock/actions.ts"));
 sb.mock(import("../src/lib/session.ts"));
 sb.mock(import("../src/lib/auth-client.ts"));
 
+// Full page loads (into and out of Attendance Mode) would unload the story.
+sb.mock(import("../src/lib/hard-navigate.ts"));
+
 // Reads used by server components and screens: each story sets its data.
 sb.mock(import("../src/lib/access/queries.ts"));
 sb.mock(import("../src/lib/attendance/queries.ts"));

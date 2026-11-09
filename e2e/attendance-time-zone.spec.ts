@@ -54,6 +54,21 @@ async function signIn(page: Page) {
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
+/** Opens Attendance Mode and locks this sign-in to it. */
+async function openKiosk(page: Page) {
+  await page.goto("/attendance/kiosk");
+  await page.getByRole("button", { name: "Start" }).click();
+  await expect(page.getByRole("heading", { name: "Welcome! Tap your name to check in." })).toBeVisible();
+}
+
+/** Leaves Attendance Mode with the staff password, back on the attendance page. */
+async function exitKiosk(page: Page) {
+  await page.getByRole("button", { name: "Exit", exact: true }).click();
+  await page.getByLabel("Password").fill(ADMIN.password);
+  await page.getByRole("button", { name: "Exit", exact: true }).click();
+  await expect(page).toHaveURL(/\/attendance$/);
+}
+
 async function createPlan(page: Page, name: string) {
   await page.goto("/packages/new");
   await page.getByLabel("Name").fill(name);
@@ -176,7 +191,7 @@ test.describe("on the tablet in India", () => {
     const hoursBefore = await chartCounts(page, "Bar chart of check-ins by hour of day");
     const weekdaysBefore = await chartCounts(page, "Bar chart of check-ins by weekday");
 
-    await page.goto("/attendance/kiosk");
+    await openKiosk(page);
     await page.getByLabel("Search by name, mobile or member number").fill(firstName);
     await page.getByRole("button", { name: `${firstName} Zone` }).click();
     const before = india();
@@ -189,7 +204,9 @@ test.describe("on the tablet in India", () => {
     const tile = await page.getByText("Checked in", { exact: true }).locator("..").innerText();
     expect(times).toContain(tile.split("\n")[0]?.toLowerCase());
 
-    await page.goto("/attendance");
+    // Back to the admin screens: the welcome screen first, then the exit.
+    await page.getByRole("heading", { name: `Welcome, ${firstName}!` }).click();
+    await exitKiosk(page);
     await expect(page.getByRole("button", { name: /Pick a day/ })).toHaveAccessibleName(new RegExp(new Intl.DateTimeFormat("en-IN", { timeZone: INDIA, day: "numeric", month: "long", year: "numeric" }).format(new Date())));
     const row = logRow(page, firstName);
     await expect(row).toHaveCount(1);

@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
-import { date, index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { user } from "./auth-schema";
+import { date, index, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { session, user } from "./auth-schema";
 import { member } from "./members-schema";
 
 /**
@@ -41,6 +41,23 @@ export const attendance = pgTable(
   ],
 );
 
+/**
+ * One row per sign-in that is currently in Attendance Mode. The row existing
+ * is the lock; deleting it (or the session) unlocks.
+ */
+export const kioskLock = pgTable("kiosk_lock", {
+  sessionId: text("session_id")
+    .primaryKey()
+    .references(() => session.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  lockedAt: timestamp("locked_at", { withTimezone: true }).notNull().defaultNow(),
+  /** Wrong exit passwords in a row since the lock started. */
+  failedAttempts: integer("failed_attempts").notNull().default(0),
+  lastFailedAt: timestamp("last_failed_at", { withTimezone: true }),
+});
+
 export const attendanceRelations = relations(attendance, ({ one }) => ({
   member: one(member, { fields: [attendance.memberId], references: [member.id] }),
   recordedByUser: one(user, { fields: [attendance.recordedBy], references: [user.id] }),
@@ -50,3 +67,4 @@ export type Attendance = typeof attendance.$inferSelect;
 export type NewAttendance = typeof attendance.$inferInsert;
 export type AttendancePeriod = Attendance["period"];
 export type AttendanceSource = Attendance["source"];
+export type KioskLock = typeof kioskLock.$inferSelect;

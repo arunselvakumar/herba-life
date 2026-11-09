@@ -11,3 +11,4 @@ export const findKioskMobileMatches: typeof Actual.findKioskMobileMatches = fn(a
 export const recordAttendance: typeof Actual.recordAttendance = fn(saved).mockName("recordAttendance");
 export const deleteAttendance: typeof Actual.deleteAttendance = fn(async () => {}).mockName("deleteAttendance");
 export const verifyExitPassword: typeof Actual.verifyExitPassword = fn(async () => ({ ok: true })).mockName("verifyExitPassword");
+export const startKioskMode: typeof Actual.startKioskMode = fn(async () => ({ ok: true as const })).mockName("startKioskMode");

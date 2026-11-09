@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 import { toDay } from "../src/lib/members/dates";
 
 const ADMIN = {
@@ -12,6 +12,29 @@ async function signIn(page: Page) {
   await page.getByLabel("Password").fill(ADMIN.password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
+}
+
+/** Another device signed in with the same account: its own session, never locked by this one. */
+async function signInElsewhere(browser: Browser): Promise<Page> {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await signIn(page);
+  return page;
+}
+
+/** Opens Attendance Mode and locks this sign-in to it. */
+async function openKiosk(page: Page) {
+  await page.goto("/attendance/kiosk");
+  await page.getByRole("button", { name: "Start" }).click();
+  await expect(page.getByRole("heading", { name: "Welcome! Tap your name to check in." })).toBeVisible();
+}
+
+/** Leaves Attendance Mode with the staff password, back on the attendance page. */
+async function exitKiosk(page: Page) {
+  await page.getByRole("button", { name: "Exit", exact: true }).click();
+  await page.getByLabel("Password").fill(ADMIN.password);
+  await page.getByRole("button", { name: "Exit", exact: true }).click();
+  await expect(page).toHaveURL(/\/attendance$/);
 }
 
 async function createPlan(page: Page, name: string) {
@@ -67,8 +90,7 @@ test.describe("attendance", () => {
     const memberUrl = await createMember(page, { firstName, lastName: "Visitor", mobile: `8${stamp}4321`, planName });
 
     // Attendance Mode: search, tap, confirm.
-    await page.goto("/attendance/kiosk");
-    await expect(page.getByRole("heading", { name: "Welcome! Tap your name to check in." })).toBeVisible();
+    await openKiosk(page);
     await page.getByLabel(SEARCH).fill(firstName);
     await page.getByRole("button", { name: `${firstName} Visitor` }).click();
     await page.getByRole("button", { name: "Yes, check me in" }).click();
@@ -85,12 +107,12 @@ test.describe("attendance", () => {
     await page.getByRole("heading", { name: `You’re already in, ${firstName}` }).click();
 
     // Leaving needs the staff password.
-    await page.getByRole("button", { name: "Exit" }).click();
+    await page.getByRole("button", { name: "Exit", exact: true }).click();
     await page.getByLabel("Password").fill("definitely-wrong");
-    await page.getByRole("button", { name: "Exit" }).click();
+    await page.getByRole("button", { name: "Exit", exact: true }).click();
     await expect(page.getByText("That password is not right.")).toBeVisible();
     await page.getByLabel("Password").fill(ADMIN.password);
-    await page.getByRole("button", { name: "Exit" }).click();
+    await page.getByRole("button", { name: "Exit", exact: true }).click();
     await expect(page).toHaveURL(/\/attendance$/);
 
     // The visit is in today's log exactly once.
@@ -117,7 +139,7 @@ test.describe("attendance", () => {
     const one = await createMember(page, { firstName, lastName: "Same", mobile: `+91 ${mobile.slice(0, 5)} ${mobile.slice(5)}`, planName });
     const two = await createMember(page, { firstName, lastName: "Same", mobile: `7${stamp}456`, planName });
 
-    await page.goto("/attendance/kiosk");
+    await openKiosk(page);
     const search = page.getByLabel(SEARCH);
     const tiles = page.getByRole("button", { name: `${firstName} Same` });
 
@@ -152,12 +174,13 @@ test.describe("attendance", () => {
     await search.fill("0000000001");
     await expect(page.getByText("No one found for “0000000001”")).toBeVisible();
 
+    await exitKiosk(page);
     await deleteMember(page, one);
     await deleteMember(page, two);
     await deletePlan(page, planName);
   });
 
-  test("only members with an active package can have attendance recorded", async ({ page }) => {
+  test("only members with an active package can have attendance recorded", async ({ page, browser }) => {
     await signIn(page);
 
     const stamp = Date.now().toString().slice(-6);
@@ -172,22 +195,23 @@ test.describe("attendance", () => {
     const noneUrl = await createMember(page, { firstName: none, lastName: "Member", mobile: noneMobile });
 
     // No package: not on the kiosk by name or by mobile.
-    await page.goto("/attendance/kiosk");
+    await openKiosk(page);
     const search = page.getByLabel(SEARCH);
     await search.fill(none);
     await expect(page.getByText(`No one found for “${none}”`)).toBeVisible();
     await search.fill(noneMobile);
     await expect(page.getByText(`No one found for “${noneMobile}”`)).toBeVisible();
 
-    // A package cancelled while the kiosk is open is still refused at the tap.
+    // A package cancelled (from another device: this one is locked) while the
+    // kiosk is open is still refused at the tap.
     await search.fill(lapsed);
     await page.getByRole("button", { name: `${lapsed} Member` }).click();
-    const staff = await page.context().newPage();
+    const staff = await signInElsewhere(browser);
     await staff.goto(lapsedUrl);
     await staff.getByRole("button", { name: "Cancel", exact: true }).click();
     await staff.getByRole("button", { name: "Cancel package" }).click();
     await expect(staff.getByRole("button", { name: "Reopen" })).toBeVisible();
-    await staff.close();
+    await staff.context().close();
     await page.getByRole("button", { name: "Yes, check me in" }).click();
     await expect(page.getByRole("heading", { name: `No active package, ${lapsed}` })).toBeVisible();
     await page.getByRole("heading", { name: `No active package, ${lapsed}` }).click();
@@ -195,7 +219,7 @@ test.describe("attendance", () => {
     await expect(page.getByText(`No one found for “${lapsed}”`)).toBeVisible();
 
     // Staff can only pick members on a package.
-    await page.goto("/attendance");
+    await exitKiosk(page);
     await page.getByRole("button", { name: "Record a visit" }).click();
     const picker = page.getByLabel("Member", { exact: true });
     await expect(picker.locator("option").filter({ hasText: active })).toHaveCount(1);

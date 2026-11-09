@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Urbanist, JetBrains_Mono } from "next/font/google";
+import { ReloadOnRestore } from "@/components/app/reload-on-restore";
 import "./globals.css";
 
 // Urbanist: a geometric sans with round, even letterforms, close to the
@@ -38,7 +39,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
       </head>
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        <ReloadOnRestore />
+        {children}
+      </body>
     </html>
   );
 }

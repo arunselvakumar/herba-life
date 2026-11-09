@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { getRouter } from "@storybook/nextjs-vite/navigation.mock";
 import { expect, mocked, waitFor, within } from "storybook/test";
 import { KioskExit } from "@/components/attendance/kiosk-exit";
 import { verifyExitPassword } from "@/lib/attendance/actions";
+import { hardNavigate } from "@/lib/hard-navigate";
 import { onInk } from "@/stories/decorators";
 import { frontDeskUser } from "@/stories/fixtures/users";
 
@@ -38,7 +38,7 @@ export const CorrectPassword: Story = {
     await userEvent.type(within(dialog).getByLabelText("Password"), "counter-2026");
     await userEvent.click(within(dialog).getByRole("button", { name: "Exit" }));
     await expect(verifyExitPassword).toHaveBeenCalledWith("counter-2026");
-    await waitFor(() => expect(getRouter().push).toHaveBeenCalledWith("/attendance"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/attendance"));
   },
 };
 
@@ -55,7 +55,24 @@ export const WrongPassword: Story = {
     await expect(await within(dialog).findByRole("alert")).toHaveTextContent("That password is not right. Try again.");
     await expect(input).toHaveValue("");
     await expect(input).toHaveAttribute("aria-invalid", "true");
-    await expect(getRouter().push).not.toHaveBeenCalled();
+    await expect(hardNavigate).not.toHaveBeenCalled();
+  },
+};
+
+/** After five wrong passwords in a row the server makes the staff member wait. */
+export const TooManyAttempts: Story = {
+  beforeEach: () => {
+    mocked(verifyExitPassword).mockResolvedValue({ ok: false, retryAfterSeconds: 42 });
+  },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Exit" }));
+    const dialog = within(document.body).getByRole("dialog", { name: "Leave Attendance Mode" });
+    const input = within(dialog).getByLabelText("Password");
+    await userEvent.type(input, "counter-2026");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Exit" }));
+    await expect(await within(dialog).findByRole("alert")).toHaveTextContent("Too many wrong passwords. Try again in 42 seconds.");
+    await expect(input).toHaveValue("");
+    await expect(hardNavigate).not.toHaveBeenCalled();
   },
 };
 
