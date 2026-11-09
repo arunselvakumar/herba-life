@@ -1,7 +1,9 @@
 import type { Member, MemberCheckin, MemberPackage, PackagePlan } from "@/db/schema";
 import { EXPIRING_SOON_DAYS } from "@/lib/members/constants";
 import { packageState } from "@/lib/members/format";
-import type { MemberDetail, MemberListRow } from "@/lib/members/queries";
+import type { MemberDetail, MemberFilter, MemberListRow } from "@/lib/members/queries";
+import type { PlanOption } from "@/components/members/package-fields";
+import type { PlanRow } from "@/lib/packages/queries";
 import { at, daysFromToday, TODAY } from "./time";
 import { adminUser } from "./users";
 
@@ -181,7 +183,51 @@ export const plans: PackagePlan[] = [
   makePlan({ name: "Trial week", durationDays: 7, price: 0, isActive: false, sortOrder: 3, description: null }),
 ];
 
-/** The `{ id, name, durationDays, price }` options the package pickers take. */
+/** The `{ id, name, durationDays, price, description }` options the package pickers take. */
 export const planOptions = plans
   .filter((p) => p.isActive)
-  .map(({ id: planId, name, durationDays, price }) => ({ id: planId, name, durationDays, price }));
+  .map(({ id: planId, name, durationDays, price, description }) => ({ id: planId, name, durationDays, price, description })) satisfies PlanOption[];
+
+/** The catalog as the Packages page lists it, with enrolment counts. */
+export const planRows = [
+  { ...plans[0]!, enrolments: 14, activeEnrolments: 3 },
+  { ...plans[1]!, enrolments: 22, activeEnrolments: 9 },
+  // Never sold: the only one that can be deleted.
+  { ...plans[2]!, enrolments: 0, activeEnrolments: 0 },
+  { ...plans[3]!, enrolments: 5, activeEnrolments: 0 },
+] satisfies PlanRow[];
+
+/** What `listMembers` returns for each filter on the Members page, from `memberRows`. */
+export const memberRowsByFilter = {
+  all: memberRows,
+  active: memberRows.filter((r) => r.packageState === "active" || r.packageState === "expiring"),
+  expiring: memberRows.filter((r) => r.packageState === "expiring"),
+  "no-package": memberRows.filter((r) => !r.currentPackage || r.packageState === "expired"),
+  due: memberRows.filter(
+    (r) =>
+      (r.packageState === "active" || r.packageState === "expiring") &&
+      (!r.latestCheckin || r.latestCheckin.recordedOn <= daysFromToday(-30)),
+  ),
+} satisfies Record<MemberFilter, MemberListRow[]>;
+
+/** One package in every state the member page shows, newest first. */
+export const packagesInEveryState = {
+  active: makePackage({ memberId: priya.id, notes: "Formula 1 shake and Afresh included." }),
+  expiring: makePackage({ memberId: priya.id, name: "1 month", durationDays: 30, startDate: daysFromToday(-26), price: 3500, amountPaid: 2000 }),
+  upcoming: makePackage({ memberId: priya.id, startDate: daysFromToday(4), extraDays: 7, amountPaid: 4000 }),
+  expired: makePackage({ memberId: priya.id, startDate: daysFromToday(-120) }),
+  completed: makePackage({ memberId: priya.id, name: "1 month", durationDays: 30, startDate: daysFromToday(-180), price: 3500, amountPaid: 3500, status: "completed" }),
+  cancelled: makePackage({ memberId: priya.id, name: "6 months", durationDays: 180, startDate: daysFromToday(-240), price: 16500, amountPaid: 5000, status: "cancelled" }),
+} satisfies Record<string, MemberPackage>;
+
+/** A member with health conditions, complaints and remarks filled in. */
+export const memberWithHealth: MemberDetail = {
+  ...memberWithEverything,
+  hasBloodPressure: true,
+  hasSugar: true,
+  medicines: "Metformin 500 mg, twice a day",
+  symptoms: ["tiredness", "acidity", "pain"],
+  painAreas: ["knee", "back"],
+  healthNotes: "Knee pain after long walks.",
+  remarks: "Wants to lose 8 kg before her sister's wedding in February.",
+};
