@@ -17,7 +17,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const OnCanvas: Story = {
-  args: { subtitle: "Internal", imageClassName: "h-10" },
+  args: { subtitle: "Nutrition centre", imageClassName: "h-10" },
   parameters: {
     // Known issue: the brand-tone subtitle is muted text at 70 % opacity,
     // 2.7:1 against the canvas (needs 4.5:1). The app only uses the white

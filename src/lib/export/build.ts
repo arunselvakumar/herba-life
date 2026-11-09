@@ -675,13 +675,13 @@ export async function buildExport(
   if (key === EVERYTHING_KEY) {
     const modules = exportableModules(exporter);
     sheetNames = [...new Set(modules.flatMap((def) => sheetsFor(def, exporter)))];
-    title = "Herbalife Internal · full export";
+    title = "Herbalife · full export";
     filename = `herbalife-everything-${stamp(exportedAt)}.xlsx`;
   } else {
     const def = findExport(key);
     if (!def) throw new ExportNotFoundError(`Unknown export: ${key}`);
     sheetNames = sheetsFor(def, exporter);
-    title = `Herbalife Internal · ${def.label}`;
+    title = `Herbalife · ${def.label}`;
     filename = `herbalife-${def.key}-${stamp(exportedAt)}.xlsx`;
     if (def.key === "members" && ctx.memberId) {
       const [only] = await loadMembers(ctx);

@@ -16,7 +16,7 @@ export const appUrl =
   (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined);
 
 export const auth = betterAuth({
-  appName: "Herbalife Internal",
+  appName: "Herbalife",
   baseURL: appUrl,
   secret: process.env.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, {
