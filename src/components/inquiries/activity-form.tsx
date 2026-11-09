@@ -27,6 +27,13 @@ export function ActivityForm({
   const read = makeValueReader(state, { occurredOn: today, type: "call", nextFollowUpOn: nextFollowUpOn ?? "" });
   const errors = state.status === "error" ? state.errors : {};
   const [type, setType] = useState(read.text("type"));
+  // React resets the form after every result: the submitted type after an
+  // error, back to the default after a save. Keep the select's state with it.
+  const [shownState, setShownState] = useState(state);
+  if (shownState !== state) {
+    setShownState(state);
+    setType(read.text("type"));
+  }
 
   return (
     <FormSection

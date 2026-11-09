@@ -10,7 +10,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FormSection } from "@/components/members/field";
 import type { PriceLevel } from "@/db/schema";
-import { idleState, withValues, type FormAction } from "@/lib/members/form-state";
+import { idleState, makeValueReader, withValues, type FormAction } from "@/lib/members/form-state";
 import { formatMoney, fullName } from "@/lib/members/format";
 import { PAYMENT_MODES, PRICE_LEVELS, priceFor, roundMoney } from "@/lib/stock/format";
 import type { MemberPickerOption, ProductOption } from "@/lib/stock/queries";
@@ -46,6 +46,7 @@ export function SaleForm({
 }) {
   const wrapped = useMemo(() => withValues(action), [action]);
   const [state, formAction, pending] = useActionState(wrapped, idleState);
+  const read = makeValueReader(state, { soldOn: today, paymentMode: "cash" });
   const errors = state.status === "error" ? state.errors : {};
   const id = useId();
 
@@ -103,11 +104,11 @@ export function SaleForm({
           </Field>
           {memberId === "" ? (
             <Field label="Buyer's name" htmlFor={`${id}-buyer`} error={errors.buyerName} className="lg:col-span-2">
-              <Input id={`${id}-buyer`} name="buyerName" autoComplete="off" placeholder="Who is buying" required />
+              <Input id={`${id}-buyer`} name="buyerName" defaultValue={read.text("buyerName")} autoComplete="off" placeholder="Who is buying" required />
             </Field>
           ) : null}
           <Field label="Sold on" htmlFor={`${id}-day`} error={errors.soldOn}>
-            <Input id={`${id}-day`} name="soldOn" type="date" defaultValue={today} max={today} required />
+            <Input id={`${id}-day`} name="soldOn" type="date" defaultValue={read.text("soldOn")} max={today} required />
           </Field>
           <Field label="Price level" htmlFor={`${id}-level`} error={errors.priceLevel} hint="refills every line">
             <NativeSelect id={`${id}-level`} name="priceLevel" value={level} onChange={(e) => changeLevel(e.target.value as PriceLevel)} className="w-full">
@@ -188,7 +189,7 @@ export function SaleForm({
             </p>
           </Field>
           <Field label="Payment mode" htmlFor={`${id}-mode`} error={errors.paymentMode}>
-            <NativeSelect id={`${id}-mode`} name="paymentMode" defaultValue="cash" className="w-full">
+            <NativeSelect id={`${id}-mode`} name="paymentMode" defaultValue={read.text("paymentMode")} className="w-full">
               {PAYMENT_MODES.map((m) => (
                 <NativeSelectOption key={m.value} value={m.value}>
                   {m.label}
@@ -197,7 +198,7 @@ export function SaleForm({
             </NativeSelect>
           </Field>
           <Field label="Notes" htmlFor={`${id}-notes`} error={errors.notes} hint="optional">
-            <Textarea id={`${id}-notes`} name="notes" rows={1} placeholder="Anything worth remembering" />
+            <Textarea id={`${id}-notes`} name="notes" rows={1} defaultValue={read.text("notes")} placeholder="Anything worth remembering" />
           </Field>
         </div>
       </FormSection>

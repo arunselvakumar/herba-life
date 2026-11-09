@@ -118,6 +118,11 @@ export const ValidationErrors: Story = {
   play: async ({ canvas, userEvent }) => {
     await userEvent.type(canvas.getByLabelText("Last name"), "Sharma");
     await userEvent.type(canvas.getByLabelText("Mobile"), "12345");
+    await userEvent.selectOptions(canvas.getByLabelText("Gender"), "female");
+    await userEvent.click(canvas.getByRole("checkbox", { name: "Sugar / diabetes" }));
+    await userEvent.click(canvas.getByRole("checkbox", { name: "Headache" }));
+    await userEvent.click(canvas.getByRole("checkbox", { name: "Start a package now" }));
+    await userEvent.selectOptions(canvas.getByLabelText("Package"), threeMonths.id);
     await userEvent.click(canvas.getByRole("button", { name: "Save member" }));
 
     await expect(await canvas.findByText("Please fix the highlighted fields.")).toBeVisible();
@@ -126,6 +131,20 @@ export const ValidationErrors: Story = {
     await expect(canvas.getByLabelText("Mobile")).toHaveValue("12345");
     await expect(canvas.getByLabelText("Last name")).toHaveValue("Sharma");
     await expect(submitted().get("firstName")).toBe("");
+
+    // React resets the form after the failed submit; selects and ticks survive it too.
+    await expect(canvas.getByLabelText("Gender")).toHaveValue("female");
+    await expect(canvas.getByRole("checkbox", { name: "Sugar / diabetes" })).toBeChecked();
+    await expect(canvas.getByRole("checkbox", { name: "Headache" })).toBeChecked();
+    await expect(canvas.getByRole("checkbox", { name: "Start a package now" })).toBeChecked();
+    await expect(canvas.getByLabelText("Package")).toHaveValue(threeMonths.id);
+
+    // Submitting again posts exactly what is on screen.
+    await userEvent.click(canvas.getByRole("button", { name: "Save member" }));
+    await waitFor(() => expect(createMember).toHaveBeenCalledTimes(2));
+    await expect([...submitted(1).entries()]).toEqual([...submitted(0).entries()]);
+    await expect(submitted(1).get("package.planId")).toBe(threeMonths.id);
+    await expect(submitted(1).get("hasSugar")).toBe("on");
   },
 };
 

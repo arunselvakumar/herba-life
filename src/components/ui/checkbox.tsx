@@ -4,11 +4,41 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Checkbox as CheckboxPrimitive } from "radix-ui"
 import { CheckIcon } from "lucide-react"
+import { isFormResetting, useAfterFormReset } from "@/lib/form-reset"
 
+type CheckedState = boolean | "indeterminate"
+
+/**
+ * Radix checkbox, kept in step with React's form reset. A Radix checkbox goes
+ * back to its mount-time state when its form resets, which React does after
+ * every `<form action>` result. Here a reset keeps `checked` when controlled,
+ * and takes the latest `defaultChecked` when not, the way inputs do.
+ */
 function Checkbox({
   className,
+  checked: checkedProp,
+  defaultChecked,
+  onCheckedChange,
+  ref,
   ...props
 }: React.ComponentProps<typeof CheckboxPrimitive.Root>) {
+  const controlled = checkedProp !== undefined
+  const [own, setOwn] = React.useState<CheckedState>(defaultChecked ?? false)
+  const checked = controlled ? checkedProp : own
+
+  const buttonRef = React.useRef<HTMLButtonElement>(null)
+  useAfterFormReset(buttonRef, () => {
+    if (!controlled) setOwn(defaultChecked ?? false)
+  })
+  const setRefs = React.useCallback(
+    (node: HTMLButtonElement | null) => {
+      buttonRef.current = node
+      if (typeof ref === "function") ref(node)
+      else if (ref) ref.current = node
+    },
+    [ref]
+  )
+
   return (
     <CheckboxPrimitive.Root
       data-slot="checkbox"
@@ -17,6 +47,16 @@ function Checkbox({
         className
       )}
       {...props}
+      ref={setRefs}
+      // Always controlled towards Radix, so its own reset handler cannot move it.
+      checked={checked}
+      // The hidden form input resets to this, so it posts what is on screen.
+      defaultChecked={checked === true}
+      onCheckedChange={(next) => {
+        if (isFormResetting(buttonRef.current)) return
+        if (!controlled) setOwn(next)
+        onCheckedChange?.(next)
+      }}
     >
       <CheckboxPrimitive.Indicator
         data-slot="checkbox-indicator"

@@ -150,6 +150,10 @@ export const Errors: Story = {
   play: async ({ canvas, userEvent }) => {
     await userEvent.type(canvas.getByLabelText("Email"), "kavitha@");
     await userEvent.type(canvas.getByLabelText("Height"), "12");
+    await userEvent.selectOptions(canvas.getByLabelText("Source"), "phone");
+    await userEvent.selectOptions(canvas.getByLabelText("Gender"), "female");
+    await userEvent.click(canvas.getByLabelText("Weight loss"));
+    await userEvent.selectOptions(canvas.getByLabelText("Interested package"), activePlans[1]!.id);
     await userEvent.click(canvas.getByRole("button", { name: "Save enquiry" }));
 
     await expect(createInquiry).toHaveBeenCalled();
@@ -157,7 +161,20 @@ export const Errors: Story = {
     await expect(canvas.getByText("First name is required")).toBeVisible();
     await expect(canvas.getByText("Enter a valid email")).toBeVisible();
     await expect(canvas.getByText("Too small")).toBeVisible();
-    // What was typed survives the failed submit.
+    // React resets the form after the failed submit; everything entered survives it.
     await expect(canvas.getByLabelText("Email")).toHaveValue("kavitha@");
+    await expect(canvas.getByLabelText("Source")).toHaveValue("phone");
+    await expect(canvas.getByLabelText("Gender")).toHaveValue("female");
+    await expect(canvas.getByLabelText("Weight loss")).toBeChecked();
+    await expect(canvas.getByLabelText("Interested package")).toHaveValue(activePlans[1]!.id);
+    await expect(canvas.getByText(activePlans[1]!.description!)).toBeVisible();
+
+    // Submitting again posts exactly what is on screen.
+    await userEvent.click(canvas.getByRole("button", { name: "Save enquiry" }));
+    await expect(createInquiry).toHaveBeenCalledTimes(2);
+    const [first, second] = mocked(createInquiry).mock.calls.map((call) => [...call[1].entries()]);
+    await expect(second).toEqual(first);
+    await expect(mocked(createInquiry).mock.calls[1]![1].get("source")).toBe("phone");
+    await expect(mocked(createInquiry).mock.calls[1]![1].getAll("goals[]")).toEqual(["weight_loss"]);
   },
 };

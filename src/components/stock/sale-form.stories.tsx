@@ -122,3 +122,68 @@ export const ValidationErrors: Story = {
     await expect(canvas.getByText("Choose a product.")).toBeVisible();
   },
 };
+
+/**
+ * React resets the form after the failed save. Every field still shows what
+ * was entered, and saving again posts the same sale.
+ */
+export const KeepsEntriesAfterAnError: Story = {
+  beforeEach: () => {
+    mocked(createSale).mockResolvedValue({ status: "error", message: "Could not save the sale.", errors: {} });
+  },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.type(canvas.getByLabelText("Buyer's name"), "Karthik Subramanian");
+    const soldOn = canvas.getByLabelText("Sold on");
+    await userEvent.clear(soldOn);
+    await userEvent.type(soldOn, "2026-11-02");
+    await userEvent.selectOptions(canvas.getByLabelText("Price level"), "silver");
+    await userEvent.selectOptions(canvas.getByLabelText("Product"), vanilla.id);
+    await userEvent.clear(canvas.getByLabelText("Qty"));
+    await userEvent.type(canvas.getByLabelText("Qty"), "2");
+    await userEvent.type(canvas.getByLabelText("Amount paid"), "3000");
+    await userEvent.selectOptions(canvas.getByLabelText("Payment mode"), "upi");
+    await userEvent.type(canvas.getByLabelText("Notes"), "Pays the rest on Friday");
+    await userEvent.click(canvas.getByRole("button", { name: "Save sale" }));
+
+    await expect(await canvas.findByText("Could not save the sale.")).toBeVisible();
+    await expect(canvas.getByLabelText("Buyer's name")).toHaveValue("Karthik Subramanian");
+    await expect(canvas.getByLabelText("Sold on")).toHaveValue("2026-11-02");
+    await expect(canvas.getByLabelText("Price level")).toHaveValue("silver");
+    await expect(canvas.getByLabelText("Product")).toHaveValue(vanilla.id);
+    await expect(canvas.getByLabelText("Qty")).toHaveValue(2);
+    await expect(canvas.getByLabelText("Unit price")).toHaveValue(1713);
+    await expect(canvas.getByLabelText("Amount paid")).toHaveValue(3000);
+    await expect(canvas.getByLabelText("Payment mode")).toHaveValue("upi");
+    await expect(canvas.getByLabelText("Notes")).toHaveValue("Pays the rest on Friday");
+
+    await userEvent.click(canvas.getByRole("button", { name: "Save sale" }));
+    await expect(createSale).toHaveBeenCalledTimes(2);
+    const [first, second] = mocked(createSale).mock.calls.map((call) => [...(call[1] as FormData).entries()]);
+    await expect(second).toEqual(first);
+    await expect(Object.fromEntries(second ?? [])).toMatchObject({
+      buyerName: "Karthik Subramanian",
+      soldOn: "2026-11-02",
+      priceLevel: "silver",
+      paymentMode: "upi",
+      notes: "Pays the rest on Friday",
+    });
+  },
+};
+
+/** A member picked from the list stays picked, so the walk-in name field stays hidden. */
+export const KeepsTheMemberAfterAnError: Story = {
+  beforeEach: () => {
+    mocked(createSale).mockResolvedValue({ status: "error", message: "Could not save the sale.", errors: {} });
+  },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.selectOptions(canvas.getByLabelText("Member"), priyaId);
+    await userEvent.click(canvas.getByRole("button", { name: "Save sale" }));
+
+    await expect(await canvas.findByText("Could not save the sale.")).toBeVisible();
+    await expect(canvas.getByLabelText("Member")).toHaveValue(priyaId);
+    await expect(canvas.queryByLabelText("Buyer's name")).not.toBeInTheDocument();
+
+    await userEvent.click(canvas.getByRole("button", { name: "Save sale" }));
+    await expect(mocked(createSale).mock.calls[1]?.[1].get("memberId")).toBe(priyaId);
+  },
+};

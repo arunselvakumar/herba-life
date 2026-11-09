@@ -72,8 +72,26 @@ export const Errors: Story = {
   },
   play: async ({ canvas, userEvent }) => {
     await userEvent.selectOptions(canvas.getByLabelText("Package"), oneMonth.id);
+    await userEvent.type(canvas.getByLabelText("Extra days"), "5");
+    await userEvent.type(canvas.getByLabelText("Advance paid"), "1500");
+    await userEvent.type(canvas.getByLabelText("Notes"), "Balance on the 15th.");
     await userEvent.click(canvas.getByRole("button", { name: "Enrol in package" }));
     await expect(await canvas.findByText("The member already has an active package for these dates.")).toBeVisible();
     await expect(canvas.getByText(/Overlaps the current package/)).toBeVisible();
+
+    // React resets the form after the failed submit; the choices survive it.
+    await expect(canvas.getByLabelText("Package")).toHaveValue(oneMonth.id);
+    await expect(canvas.getByLabelText("Start date")).toHaveValue(TODAY);
+    await expect(canvas.getByLabelText("Extra days")).toHaveValue(5);
+    await expect(canvas.getByLabelText("Advance paid")).toHaveValue(1500);
+    await expect(canvas.getByLabelText("Notes")).toHaveValue("Balance on the 15th.");
+    await expect(canvas.getByText(/35 days \(30 \+ 5\)/)).toBeVisible();
+
+    // Submitting again posts the same plan, not an empty one.
+    await userEvent.click(canvas.getByRole("button", { name: "Enrol in package" }));
+    await waitFor(() => expect(createPackage).toHaveBeenCalledTimes(2));
+    const [first, second] = mocked(createPackage).mock.calls.map((call) => [...(call[2] as FormData).entries()]);
+    await expect(second).toEqual(first);
+    await expect((mocked(createPackage).mock.calls[1]![2] as FormData).get("planId")).toBe(oneMonth.id);
   },
 };

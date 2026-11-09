@@ -74,3 +74,25 @@ export const BelowZeroRejected: Story = {
     await expect(within(dialog).getByLabelText("Reason")).toHaveValue("Count was off");
   },
 };
+
+/** A changed "Change" select survives the form reset after an error, like the typed fields. */
+export const DirectionKeptAfterError: Story = {
+  beforeEach: () => {
+    mocked(adjustStock).mockResolvedValue({ status: "error", errors: { reason: ["Say why the count changed."] } });
+  },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Adjust" }));
+    const dialog = await within(document.body).findByRole("dialog");
+    await waitFor(() => expect(dialog).toBeVisible());
+    await userEvent.selectOptions(within(dialog).getByLabelText("Change"), "add");
+    await userEvent.type(within(dialog).getByLabelText("Quantity"), "2");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Save adjustment" }));
+
+    await expect(await within(dialog).findByText("Say why the count changed.")).toBeVisible();
+    await expect(within(dialog).getByLabelText("Change")).toHaveValue("add");
+    await userEvent.type(within(dialog).getByLabelText("Reason"), "Found two in the back");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Save adjustment" }));
+    await waitFor(() => expect(adjustStock).toHaveBeenCalledTimes(2));
+    await expect(mocked(adjustStock).mock.calls[1]?.[1].get("direction")).toBe("add");
+  },
+};

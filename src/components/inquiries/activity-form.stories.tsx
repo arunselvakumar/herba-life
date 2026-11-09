@@ -57,6 +57,9 @@ export const LogAFollowUp: Story = {
     await expect(formData.get("nextFollowUpOn")).toBe(daysFromToday(2));
     await expect(formData.get("notes")).toBe("Sent the price list again.");
     await expect(await canvas.findByText("Logged. Next follow-up scheduled.")).toBeVisible();
+    // Saved, so the form starts over for the next follow-up.
+    await expect(canvas.getByLabelText("What")).toHaveValue("call");
+    await expect(canvas.getByLabelText("Notes")).toHaveValue("");
   },
 };
 
@@ -97,9 +100,14 @@ export const NoteNeedsText: Story = {
     // No message from the action, so the banner falls back to a generic one.
     await expect(await canvas.findByText("Please check the form.")).toBeVisible();
     await expect(canvas.getByText("Write the note.")).toBeVisible();
-    // Known issue: React resets the form after the failed submit, so the
-    // controlled "What" select shows "Phone call" again while its state is
-    // still "note". Not asserted here until the component is fixed.
+    // React resets the form after the failed submit; the choice survives it.
+    await expect(canvas.getByLabelText("What")).toHaveValue("note");
+    await expect(canvas.getByLabelText("Notes")).toHaveAttribute("placeholder", "What to remember");
+    await userEvent.type(canvas.getByLabelText("Notes"), "Prefers evening calls");
+    await userEvent.click(canvas.getByRole("button", { name: "Save follow-up" }));
+    const formData = mocked(addActivity).mock.calls[1]?.[2];
+    await expect(formData?.get("type")).toBe("note");
+    await expect(formData?.get("notes")).toBe("Prefers evening calls");
   },
 };
 
