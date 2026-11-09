@@ -32,7 +32,7 @@ function Palette() {
 }
 
 const meta = {
-  title: "Brand/Colors",
+  title: "Foundations/Colors",
   component: Palette,
   parameters: { layout: "padded" },
 } satisfies Meta<typeof Palette>;
@@ -40,4 +40,4 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
+export const PaletteStory: Story = { name: "Palette" };

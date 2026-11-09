@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { Logo, LogoMark } from "@/components/brand/logo";
 import { onInk } from "@/stories/decorators";
+import { knownIssues } from "@/stories/a11y";
 
 const meta = {
   title: "Brand/Logo",
@@ -21,7 +22,7 @@ export const OnCanvas: Story = {
     // Known issue: the brand-tone subtitle is muted text at 70 % opacity,
     // 2.7:1 against the canvas (needs 4.5:1). The app only uses the white
     // tone (login page), so this is a design follow-up, not a live bug.
-    a11y: { test: "todo" },
+    a11y: knownIssues("color-contrast"),
   },
 };
 
