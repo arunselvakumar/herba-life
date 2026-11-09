@@ -4,6 +4,7 @@ import type { DateRange } from "react-day-picker";
 import { expect, waitFor, within } from "storybook/test";
 import { Calendar } from "@/components/ui/calendar";
 import { TODAY, daysFromToday } from "@/stories/fixtures/time";
+import { knownIssues } from "@/stories/a11y";
 import { onSurface } from "@/stories/decorators";
 
 /** A fixture day as a local-midnight Date, the way the app's pickers build them. */
@@ -24,7 +25,7 @@ const meta = {
     // bare "9" in "9th". Fixing it means passing `labels.labelDayButton` (e.g.
     // "EEEE d MMMM yyyy") in calendar.tsx, an app change outside these stories.
     // Only that rule is switched off; every other check still runs.
-    a11y: { config: { rules: [{ id: "label-content-name-mismatch", enabled: false }] } },
+    a11y: knownIssues("label-content-name-mismatch"),
   },
 } satisfies Meta<typeof Calendar>;
 
