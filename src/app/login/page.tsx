@@ -58,10 +58,7 @@ export default function LoginPage() {
             <span className="flex size-11 items-center justify-center rounded-full bg-card shadow-card ring-1 ring-border">
               <LogoMark className="h-5" title="" />
             </span>
-            <span className="flex flex-col leading-none">
-              <span className="text-[1.05rem] font-bold tracking-[-0.02em]">Herbalife</span>
-              <span className="mt-1 text-[0.7rem] font-medium text-muted-foreground">Internal</span>
-            </span>
+            <span className="text-[1.05rem] font-bold leading-none tracking-[-0.02em]">Herbalife</span>
           </div>
 
           <div data-reveal className="surface space-y-8 p-6 sm:p-10">

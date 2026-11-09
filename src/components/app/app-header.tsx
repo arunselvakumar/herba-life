@@ -28,9 +28,8 @@ export function AppHeader() {
           <span className="flex size-11 items-center justify-center rounded-full bg-card shadow-card ring-1 ring-border">
             <LogoMark className="h-5" title="" />
           </span>
-          <span className="hidden flex-col leading-none md:flex xl:hidden 2xl:flex">
-            <span className="text-[1.05rem] font-bold tracking-[-0.02em]">Herbalife</span>
-            <span className="mt-1 text-[0.7rem] font-medium text-muted-foreground">Internal</span>
+          <span className="hidden text-[1.05rem] font-bold leading-none tracking-[-0.02em] md:block xl:hidden 2xl:block">
+            Herbalife
           </span>
         </Link>
 
