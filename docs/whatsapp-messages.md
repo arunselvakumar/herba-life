@@ -36,7 +36,7 @@ Sent once when a member is enrolled, from **New member** or by converting an
 enquiry.
 
 ```
-Hi {{1}}, welcome! Your membership is now registered.
+Hi {{1}}, welcome to Herbalife! Your membership is now registered.
 
 Member number: {{2}}
 Joined on: {{3}}
@@ -62,7 +62,7 @@ Sent when a package is added to a member who is already enrolled: a renewal,
 or a first package taken some time after joining.
 
 ```
-Hi {{1}}, your package is confirmed.
+Hi {{1}}, your Herbalife package is confirmed.
 
 Package: {{2}}
 Starts on: {{3}}
@@ -87,7 +87,7 @@ Sent once per package, when its last day is within 3 days
 (`EXPIRY_REMINDER_DAYS`).
 
 ```
-Hi {{1}}, this is a reminder that your package is ending soon.
+Hi {{1}}, this is a reminder that your Herbalife package is ending soon.
 
 Package: {{2}}
 Ends on: {{3}}
