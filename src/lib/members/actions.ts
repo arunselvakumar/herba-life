@@ -7,7 +7,7 @@ import { db } from "@/db";
 import { member, memberCheckin, memberPackage } from "@/db/schema";
 import { permissionFor, requirePermission } from "@/lib/access/guards";
 import type { FormState } from "./form-state";
-import { activePlan, enrolmentValues, hasAnyMeasurement, insertMember, invalid } from "./intake";
+import { activePlan, confirmPackage, enrolmentValues, hasAnyMeasurement, insertMember, invalid, welcomeMember } from "./intake";
 import {
   checkinSchema,
   memberSchema,
@@ -36,11 +36,12 @@ export async function createMember(_prev: FormState, formData: FormData): Promis
   const plan = pkg ? await activePlan(pkg.planId, "package.") : null;
   if (plan && "status" in plan) return plan;
 
-  const id = await db.transaction((tx) => insertMember(tx, parsed.data, plan, user.id));
+  const created = await db.transaction((tx) => insertMember(tx, parsed.data, plan, user.id));
+  welcomeMember(created, parsed.data);
 
   revalidatePath("/members");
   revalidatePath("/dashboard");
-  redirect(`/members/${id}`);
+  redirect(`/members/${created.id}`);
 }
 
 export async function updateMember(memberId: string, _prev: FormState, formData: FormData): Promise<FormState> {
@@ -123,11 +124,9 @@ export async function createPackage(memberId: string, _prev: FormState, formData
   const plan = await activePlan(parsed.data.planId);
   if ("status" in plan) return plan;
 
-  await db.insert(memberPackage).values({
-    ...enrolmentValues(plan, parsed.data),
-    memberId: id,
-    createdBy: user.id,
-  });
+  const enrolment = enrolmentValues(plan, parsed.data);
+  await db.insert(memberPackage).values({ ...enrolment, memberId: id, createdBy: user.id });
+  confirmPackage(id, enrolment);
 
   revalidatePath(`/members/${id}`);
   revalidatePath("/members");

@@ -124,9 +124,11 @@ package and the days remaining.
 - **Failures**: the message goes out after the check-in has finished, so a
   failure never blocks or undoes it. Failures appear only in the server logs.
 - **Switching it on**: nothing is sent unless `MSG91_AUTH_KEY` is set. It is
-  left out locally so development and tests never message anyone. The sender
-  number, template name and namespace are in
-  `src/lib/whatsapp/checkin-message.ts`.
+  left out locally so development and tests never message anyone.
+
+The template's wording, and the other messages members receive (welcome,
+package confirmation, expiry reminder), are in
+[whatsapp-messages.md](whatsapp-messages.md).
 
 ## 6. Attendance page (admin)
 

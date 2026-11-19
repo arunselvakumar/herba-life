@@ -93,6 +93,8 @@ export const memberPackage = pgTable(
     amountPaid: money("amount_paid").notNull().default(0),
     status: packageStatusEnum("status").notNull().default("active"),
     notes: text("notes"),
+    /** When the "ending soon" WhatsApp reminder was dealt with, so each package is reminded about once. */
+    expiryReminderSentAt: timestamp("expiry_reminder_sent_at"),
     createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")

@@ -57,6 +57,13 @@
       "when": 1794220433415,
       "tag": "0007_kiosk_lock",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795063546516,
+      "tag": "0008_package_expiry_reminder",
+      "breakpoints": true
     }
   ]
 }

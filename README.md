@@ -206,7 +206,9 @@ string, used only for migrations). The app itself reads `DATABASE_URL` (the
 pooled Neon string) and `BETTER_AUTH_SECRET` from the Vercel project's
 production environment; the auth base URL falls back to Vercel's own
 `VERCEL_PROJECT_PRODUCTION_URL`, so `BETTER_AUTH_URL` is only needed once a
-custom domain is in use.
+custom domain is in use. WhatsApp messages need `MSG91_AUTH_KEY`, and the
+daily package-expiry reminder also needs `CRON_SECRET`, both in the same
+production environment; see [docs/whatsapp-messages.md](docs/whatsapp-messages.md).
 
 A fresh database has no accounts and public sign-up is disabled. Create the
 first administrator once, with nothing else seeded:
