@@ -1,0 +1,1 @@
+ALTER TABLE "member_package" ADD COLUMN "expiry_reminder_sent_at" timestamp;

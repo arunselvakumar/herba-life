@@ -12,7 +12,8 @@ import type { FormState } from "@/lib/members/form-state";
 import { can } from "@/lib/access/can";
 import { PermissionDeniedError, permissionFor, requirePermission } from "@/lib/access/guards";
 import { requireSession } from "@/lib/session";
-import { sendCheckInMessage } from "@/lib/whatsapp/send";
+import { checkInMessage } from "@/lib/whatsapp/messages";
+import { sendWhatsApp } from "@/lib/whatsapp/send";
 import { CHECKIN_COOLDOWN_MINUTES, KIOSK_MARKER_COOKIE } from "./constants";
 import { exitRetryAfterSeconds, findKioskLock, lockKiosk, registerFailedExit, unlockKiosk } from "./kiosk-lock";
 import { countDay, countVisits, findKioskMemberIdsByMobile, latestVisitSince, runningPackageOn } from "./queries";
@@ -44,13 +45,15 @@ function notifyCheckIn(
   day: string,
 ) {
   after(() =>
-    sendCheckInMessage({
+    sendWhatsApp({
       memberId: found.id,
       mobile: found.mobile,
-      firstName: found.firstName,
-      at,
-      packageName: pkg.name,
-      daysLeft: daysBetween(day, pkg.endDate),
+      message: checkInMessage({
+        firstName: found.firstName,
+        at,
+        packageName: pkg.name,
+        daysLeft: daysBetween(day, pkg.endDate),
+      }),
     }),
   );
 }

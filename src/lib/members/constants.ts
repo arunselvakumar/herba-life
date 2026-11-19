@@ -89,3 +89,5 @@ export const MEASUREMENTS: readonly {
 export const FOLLOW_UP_INTERVAL_DAYS = 30;
 /** Packages ending within this window show up as "expiring soon". */
 export const EXPIRING_SOON_DAYS = 14;
+/** How many days before a package's last day the member is reminded on WhatsApp. */
+export const EXPIRY_REMINDER_DAYS = 3;

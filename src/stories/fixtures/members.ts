@@ -65,6 +65,7 @@ export function makePackage(overrides: Partial<MemberPackage> = {}): MemberPacka
     amountPaid: 9000,
     status: "active",
     notes: null,
+    expiryReminderSentAt: null,
     createdBy: adminUser.id,
     createdAt: at(-30, 10),
     updatedAt: at(-30, 10),
