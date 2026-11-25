@@ -18,7 +18,7 @@ import {
 import type { KioskMember } from "@/lib/attendance/queries";
 import { matchMembers, mobileNeedle, numberDigits } from "@/lib/attendance/search";
 import { formatLongDate, formatTime } from "@/lib/attendance/time";
-import { fullName } from "@/lib/members/format";
+import { describeVisitsLeft, fullName } from "@/lib/members/format";
 import { KioskExit } from "./kiosk-exit";
 import { KioskResult } from "./kiosk-result";
 import { MemberAvatar } from "./member-avatar";
@@ -29,7 +29,8 @@ type View = { kind: "search" } | { kind: "confirm"; member: KioskMember } | { ki
 /**
  * Attendance Mode: the member-facing, full-screen check-in screen that runs
  * on the tablet at the entrance. Find yourself by name, mobile or member
- * number, tap, done. Only members on a running package are listed.
+ * number, tap, done. Only members with visits left on a package are listed,
+ * and each can check in once a day.
  *
  * Everything the screen needs is passed in from the server component; the
  * member list is re-fetched every few minutes with `router.refresh()` so new
@@ -107,7 +108,7 @@ export function Kiosk({
     startTransition(async () => {
       const result = await kioskCheckIn(member.id);
       if ("todayVisits" in result) setTodayOverride(result.todayVisits);
-      // Their package ended since the list loaded, so take them off the screen.
+      // Their package ran out or was closed since the list loaded, so take them off the screen.
       if (result.status === "no_package") router.refresh();
       setView({ kind: "result", member, result });
     });
@@ -190,7 +191,7 @@ export function Kiosk({
         </div>
 
         {members.length === 0 ? (
-          <Empty title="No active members yet" body="Only members with an active package can check in here. Please speak to a staff member." />
+          <Empty title="No active members yet" body="Only members with visits left on a package can check in here. Please speak to a staff member." />
         ) : matches.length === 0 ? (
           <NoMatch query={query} lookingUp={lookingUp} />
         ) : (
@@ -209,7 +210,7 @@ export function Kiosk({
                 <DialogDescription className="text-base">
                   Member #{view.member.serialNo}
                   {view.member.mobileHint ? ` · mobile ending ${view.member.mobileHint}` : null}
-                  {` · ${view.member.packageName} package, ${describeDaysLeft(view.member.packageDaysLeft)}`}
+                  {` · ${view.member.packageName} package, ${describeVisitsLeft(view.member.packageVisitsLeft).toLowerCase()}`}
                 </DialogDescription>
               </div>
               <Button
@@ -231,21 +232,10 @@ export function Kiosk({
       </Dialog>
 
       {view.kind === "result" ? (
-        <KioskResult
-          result={view.result}
-          seconds={KIOSK_WELCOME_SECONDS}
-          pkg={{ name: view.member.packageName, daysLeft: view.member.packageDaysLeft }}
-          onDismiss={reset}
-        />
+        <KioskResult result={view.result} seconds={KIOSK_WELCOME_SECONDS} onDismiss={reset} />
       ) : null}
     </div>
   );
-}
-
-function describeDaysLeft(days: number): string {
-  if (days === 0) return "its last day today";
-  if (days === 1) return "1 day left";
-  return `${days} days left`;
 }
 
 /** What to say when a search finds nobody, which depends on what was typed. */
@@ -258,7 +248,7 @@ function NoMatch({ query, lookingUp }: { query: string; lookingUp: boolean }) {
   return (
     <Empty
       title={`No one found for “${query}”`}
-      body="Check the spelling or number and try again. Only members with an active package can check in here, so if you still cannot find yourself, please speak to a staff member."
+      body="Check the spelling or number and try again. Only members with visits left on a package can check in here, so if you still cannot find yourself, please speak to a staff member."
     />
   );
 }

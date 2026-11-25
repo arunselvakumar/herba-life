@@ -24,7 +24,7 @@ test.describe("member management", () => {
     // Admin creates a package in the catalog.
     await page.goto("/packages/new");
     await page.getByLabel("Name").fill(planName);
-    await page.getByLabel("Duration").fill("90");
+    await page.getByLabel("Visits").fill("90");
     await page.getByLabel("Price").fill("12000");
     await page.getByRole("button", { name: "Create package" }).click();
     await expect(page).toHaveURL(/\/packages$/);
@@ -42,9 +42,10 @@ test.describe("member management", () => {
     await page.getByLabel("Body fat").fill("32");
 
     await page.getByText("Start a package now").click();
-    await page.getByLabel("Package", { exact: true }).selectOption({ label: `${planName} · 90 days · ₹12,000` });
+    await page.getByLabel("Package", { exact: true }).selectOption({ label: `${planName} · 90 visits · ₹12,000` });
     await expect(page.getByLabel("Start date")).toHaveValue("2026-10-01");
-    await expect(page.getByText("29 Dec 2026")).toBeVisible();
+    await expect(page.getByText("90 visits", { exact: true })).toBeVisible();
+    await expect(page.getByText("· one a day, no end date")).toBeVisible();
     await page.getByLabel("Advance paid").fill("5000");
 
     await page.getByRole("button", { name: "Save member" }).click();
@@ -52,7 +53,8 @@ test.describe("member management", () => {
     await expect(page).toHaveURL(/\/members\/[0-9a-f-]{36}$/);
     await expect(page.getByRole("heading", { name: `${firstName} Playwright` })).toBeVisible();
     await expect(page.getByText(planName).first()).toBeVisible();
-    await expect(page.getByText("until 29 Dec 2026")).toBeVisible();
+    // Joined weeks ago and never came in: every visit is still there.
+    await expect(page.getByText("90 visits left · 0 of 90 used")).toBeVisible();
     await expect(page.getByText("Baseline at enrolment")).toBeVisible();
 
     // Record a follow-up visit. The previous page stays mounted (hidden) for

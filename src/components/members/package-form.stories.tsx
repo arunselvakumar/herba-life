@@ -6,7 +6,7 @@ import { memberWithEverything, planOptions } from "@/stories/fixtures/members";
 import { TODAY } from "@/stories/fixtures/time";
 
 const memberId = memberWithEverything.id;
-const oneMonth = planOptions.find((p) => p.durationDays === 30)!;
+const oneMonth = planOptions.find((p) => p.visits === 30)!;
 
 const meta = {
   title: "Members/PackageForm",
@@ -40,12 +40,12 @@ export const NoPlans: Story = {
   },
 };
 
-/** Picking a plan and extra days; the action gets the member id and the fields. */
+/** Picking a plan and extra visits; the action gets the member id and the fields. */
 export const WithPlans: Story = {
   play: async ({ canvas, userEvent }) => {
     await userEvent.selectOptions(canvas.getByLabelText("Package"), oneMonth.id);
-    await userEvent.type(canvas.getByLabelText("Extra days"), "5");
-    await expect(canvas.getByText(/35 days \(30 \+ 5\)/)).toBeVisible();
+    await userEvent.type(canvas.getByLabelText("Extra visits"), "5");
+    await expect(canvas.getByText("35 visits")).toBeVisible();
     await userEvent.type(canvas.getByLabelText("Advance paid"), "1500");
     await userEvent.type(canvas.getByLabelText("Notes"), "Balance on the 15th.");
     await userEvent.click(canvas.getByRole("button", { name: "Enrol in package" }));
@@ -56,7 +56,7 @@ export const WithPlans: Story = {
     if (!(data instanceof FormData)) throw new Error("createPackage was not called with FormData");
     await expect(data.get("planId")).toBe(oneMonth.id);
     await expect(data.get("startDate")).toBe(TODAY);
-    await expect(data.get("extraDays")).toBe("5");
+    await expect(data.get("extraVisits")).toBe("5");
     await expect(data.get("amountPaid")).toBe("1500");
     await expect(data.get("notes")).toBe("Balance on the 15th.");
   },
@@ -66,26 +66,26 @@ export const Errors: Story = {
   beforeEach: () => {
     mocked(createPackage).mockResolvedValue({
       status: "error",
-      message: "The member already has an active package for these dates.",
-      errors: { startDate: ["Overlaps the current package, which ends on 7 Jan 2027."] },
+      message: "Please fix the highlighted fields.",
+      errors: { startDate: ["The start date cannot be before the member joined."] },
     });
   },
   play: async ({ canvas, userEvent }) => {
     await userEvent.selectOptions(canvas.getByLabelText("Package"), oneMonth.id);
-    await userEvent.type(canvas.getByLabelText("Extra days"), "5");
+    await userEvent.type(canvas.getByLabelText("Extra visits"), "5");
     await userEvent.type(canvas.getByLabelText("Advance paid"), "1500");
     await userEvent.type(canvas.getByLabelText("Notes"), "Balance on the 15th.");
     await userEvent.click(canvas.getByRole("button", { name: "Enrol in package" }));
-    await expect(await canvas.findByText("The member already has an active package for these dates.")).toBeVisible();
-    await expect(canvas.getByText(/Overlaps the current package/)).toBeVisible();
+    await expect(await canvas.findByText("Please fix the highlighted fields.")).toBeVisible();
+    await expect(canvas.getByText(/cannot be before the member joined/)).toBeVisible();
 
     // React resets the form after the failed submit; the choices survive it.
     await expect(canvas.getByLabelText("Package")).toHaveValue(oneMonth.id);
     await expect(canvas.getByLabelText("Start date")).toHaveValue(TODAY);
-    await expect(canvas.getByLabelText("Extra days")).toHaveValue(5);
+    await expect(canvas.getByLabelText("Extra visits")).toHaveValue(5);
     await expect(canvas.getByLabelText("Advance paid")).toHaveValue(1500);
     await expect(canvas.getByLabelText("Notes")).toHaveValue("Balance on the 15th.");
-    await expect(canvas.getByText(/35 days \(30 \+ 5\)/)).toBeVisible();
+    await expect(canvas.getByText("35 visits")).toBeVisible();
 
     // Submitting again posts the same plan, not an empty one.
     await userEvent.click(canvas.getByRole("button", { name: "Enrol in package" }));

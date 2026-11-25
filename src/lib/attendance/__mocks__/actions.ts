@@ -6,7 +6,7 @@ import type * as Actual from "../actions";
 
 const saved = async () => ({ status: "success" as const, message: "Saved." });
 
-export const kioskCheckIn: typeof Actual.kioskCheckIn = fn(async () => ({ status: "checked_in" as const, firstName: "Priya", time: "7:42 am", visitsThisMonth: 9, todayVisits: 23 })).mockName("kioskCheckIn");
+export const kioskCheckIn: typeof Actual.kioskCheckIn = fn(async () => ({ status: "checked_in" as const, firstName: "Priya", time: "7:42 am", visitsThisMonth: 9, todayVisits: 23, packageName: "3 months", visitsLeft: 41 })).mockName("kioskCheckIn");
 export const findKioskMobileMatches: typeof Actual.findKioskMobileMatches = fn(async () => []).mockName("findKioskMobileMatches");
 export const recordAttendance: typeof Actual.recordAttendance = fn(saved).mockName("recordAttendance");
 export const deleteAttendance: typeof Actual.deleteAttendance = fn(async () => {}).mockName("deleteAttendance");

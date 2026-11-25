@@ -10,7 +10,7 @@ import { can } from "@/lib/access/can";
 import type { FormState } from "@/lib/members/form-state";
 import { UUID_RE } from "@/lib/members/form-defaults";
 import { today } from "@/lib/members/dates";
-import { activePlan, insertMember, invalid } from "@/lib/members/intake";
+import { activePlan, insertMember, invalid, welcomeMember } from "@/lib/members/intake";
 import { flattenErrors, formDataToObject, intakeSchema, type FieldErrors } from "@/lib/members/validation";
 import { CONTACT_ACTIVITY_TYPES, isOpenStatus } from "./constants";
 import { activitySchema, inquirySchema, lostSchema, type InquiryInput } from "./validation";
@@ -226,11 +226,11 @@ export async function convertInquiry(inquiryId: string, _prev: FormState, formDa
   const plan = pkg ? await activePlan(pkg.planId, "package.") : null;
   if (plan && "status" in plan) return plan;
 
-  const memberId = await db.transaction(async (tx) => {
-    const newId = await insertMember(tx, parsed.data, plan, currentUser.id, `Baseline from enquiry #${existing.row.serialNo}`);
+  const created = await db.transaction(async (tx) => {
+    const newMember = await insertMember(tx, parsed.data, plan, currentUser.id, `Baseline from enquiry #${existing.row.serialNo}`);
     await tx
       .update(inquiry)
-      .set({ status: "converted", convertedMemberId: newId, closedAt: new Date(), nextFollowUpOn: null })
+      .set({ status: "converted", convertedMemberId: newMember.id, closedAt: new Date(), nextFollowUpOn: null })
       .where(eq(inquiry.id, id));
     await tx.insert(inquiryActivity).values({
       inquiryId: id,
@@ -239,10 +239,11 @@ export async function convertInquiry(inquiryId: string, _prev: FormState, formDa
       notes: "Converted to member",
       recordedBy: currentUser.id,
     });
-    return newId;
+    return newMember;
   });
+  welcomeMember(created, parsed.data);
 
   revalidate(id);
   revalidatePath("/members");
-  redirect(`/members/${memberId}`);
+  redirect(`/members/${created.id}`);
 }

@@ -17,16 +17,16 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Active: Story = {};
-export const EndingSoon: Story = { args: { state: "expiring" } };
+export const FewVisitsLeft: Story = { args: { state: "low" } };
 export const Upcoming: Story = { args: { state: "upcoming" } };
-export const Expired: Story = { args: { state: "expired" } };
+export const UsedUp: Story = { args: { state: "used_up" } };
 export const Completed: Story = { args: { state: "completed" } };
 export const Cancelled: Story = { args: { state: "cancelled" } };
 export const NoPackage: Story = { args: { state: null } };
 export const AllStates: Story = {
   render: () => (
     <div className="flex flex-wrap gap-2">
-      {(["active", "expiring", "upcoming", "expired", "completed", "cancelled", null] as const).map((state) => (
+      {(["active", "low", "upcoming", "used_up", "completed", "cancelled", null] as const).map((state) => (
         <PackageBadge key={String(state)} state={state} />
       ))}
     </div>

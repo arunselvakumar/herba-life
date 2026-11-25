@@ -1,14 +1,15 @@
 import { relations } from "drizzle-orm";
-import { date, index, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { date, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { session, user } from "./auth-schema";
-import { member } from "./members-schema";
+import { member, memberPackage } from "./members-schema";
 
 /**
  * Attendance: one row per visit to the branch.
  *
- * Members check themselves in on a tablet at the entrance ("Attendance Mode"),
- * so a member can have several rows on the same day: a morning visit for the
- * breakfast shake and an evening one for the tea. `day` and `period` are
+ * Members check themselves in on a tablet at the entrance ("Attendance Mode").
+ * A package is a number of visits, and a member can take at most one a day,
+ * so there is at most one row per member per `day`; the database enforces it.
+ * Each row names the package the visit was taken from. `day` and `period` are
  * written at check-in time (in the branch's local time) so that reports can
  * group by day without caring about time zones.
  */
@@ -23,6 +24,8 @@ export const attendance = pgTable(
     memberId: uuid("member_id")
       .notNull()
       .references(() => member.id, { onDelete: "cascade" }),
+    /** The package this visit was taken from. Null once that package has been deleted. */
+    memberPackageId: uuid("member_package_id").references(() => memberPackage.id, { onDelete: "set null" }),
     /** The exact instant the member tapped "Check in" (or the staff recorded the visit). */
     checkedInAt: timestamp("checked_in_at", { withTimezone: true }).notNull().defaultNow(),
     /** Local calendar day of the visit, for grouping. */
@@ -38,6 +41,8 @@ export const attendance = pgTable(
   (table) => [
     index("attendance_day_idx").on(table.day, table.checkedInAt),
     index("attendance_member_idx").on(table.memberId, table.checkedInAt),
+    uniqueIndex("attendance_member_day_uq").on(table.memberId, table.day),
+    index("attendance_package_idx").on(table.memberPackageId),
   ],
 );
 
@@ -60,6 +65,7 @@ export const kioskLock = pgTable("kiosk_lock", {
 
 export const attendanceRelations = relations(attendance, ({ one }) => ({
   member: one(member, { fields: [attendance.memberId], references: [member.id] }),
+  memberPackage: one(memberPackage, { fields: [attendance.memberPackageId], references: [memberPackage.id] }),
   recordedByUser: one(user, { fields: [attendance.recordedBy], references: [user.id] }),
 }));
 

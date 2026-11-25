@@ -240,7 +240,7 @@ async function InquiryDetailView({ params }: { params: PageProps<"/inquiries/[id
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">
             {inquiry.interestedPlan
-              ? `${inquiry.interestedPlan.durationDays} days · ${formatMoney(inquiry.interestedPlan.price)}${inquiry.interestedPlan.isActive ? "" : " · archived"}`
+              ? `${inquiry.interestedPlan.visits} visits · ${formatMoney(inquiry.interestedPlan.price)}${inquiry.interestedPlan.isActive ? "" : " · archived"}`
               : "No package picked yet."}
           </CardContent>
         </Card>

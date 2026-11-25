@@ -15,12 +15,13 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** One member in each package state: active, ending soon, upcoming, expired and none. */
+/** One member in each package state: active, few visits left, upcoming, used up and none. */
 export const MixedStates: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByRole("link", { name: "Priya Sharma" })).toHaveAttribute("href", `/members/${memberRows[0]?.id}`);
-    await expect(canvas.getByText(/1 month · 3 days left/)).toBeVisible();
-    await expect(canvas.getByText(/ended/)).toBeVisible();
+    await expect(canvas.getByText(/1 month · 3 visits left/)).toBeVisible();
+    await expect(canvas.getByText(/3 months · starts/)).toBeVisible();
+    await expect(canvas.getByText("Used up")).toBeVisible();
     // No follow-up recorded yet, and no way to reach George but email.
     await expect(canvas.getAllByText("Never")).toHaveLength(2);
     await expect(canvas.getByText("george@example.com")).toBeVisible();

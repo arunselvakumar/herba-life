@@ -211,7 +211,7 @@ export const openInquiry: InquiryDetail = {
   interestedPlan: {
     id: threeMonths.id,
     name: threeMonths.name,
-    durationDays: threeMonths.durationDays,
+    visits: threeMonths.visits,
     price: threeMonths.price,
     isActive: true,
   },
@@ -241,7 +241,7 @@ export const archivedPlanInquiry: InquiryDetail = {
   interestedPlan: {
     id: archivedPlan.id,
     name: archivedPlan.name,
-    durationDays: archivedPlan.durationDays,
+    visits: archivedPlan.visits,
     price: archivedPlan.price,
     isActive: false,
   },
@@ -285,7 +285,7 @@ export const lostInquiry: InquiryDetail = {
   closedAt: at(-20, 16),
   referredByMember: null,
   referredByMemberId: null,
-  interestedPlan: { id: oneMonth.id, name: oneMonth.name, durationDays: oneMonth.durationDays, price: oneMonth.price, isActive: true },
+  interestedPlan: { id: oneMonth.id, name: oneMonth.name, visits: oneMonth.visits, price: oneMonth.price, isActive: true },
   interestedPlanId: oneMonth.id,
   activities: [
     makeActivity({ type: "status", occurredOn: daysFromToday(-20), notes: "Marked lost: joined a gym near his office." }),

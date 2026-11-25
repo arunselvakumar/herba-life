@@ -87,5 +87,7 @@ export const MEASUREMENTS: readonly {
 
 /** How long a member may go without a follow-up before the dashboard flags them. */
 export const FOLLOW_UP_INTERVAL_DAYS = 30;
-/** Packages ending within this window show up as "expiring soon". */
-export const EXPIRING_SOON_DAYS = 14;
+/** A package with this many visits left, or fewer, shows up as "few visits left". */
+export const LOW_VISITS_THRESHOLD = 5;
+/** Visits left at which the member is reminded on WhatsApp to renew. */
+export const LOW_VISITS_REMINDER = 3;

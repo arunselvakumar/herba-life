@@ -51,7 +51,7 @@ const planId = z
 
 export const packageSchema = z.object({
   planId: z.preprocess((value) => (typeof value === "string" && value.trim() === "" ? undefined : value), planId),
-  extraDays: z.preprocess(blankToNull, z.coerce.number().int().min(0).max(3650).nullable()).default(null),
+  extraVisits: z.preprocess(blankToNull, z.coerce.number().int().min(0).max(3650).nullable()).default(null),
   startDate: day,
   amountPaid: z.preprocess(blankToNull, z.coerce.number().min(0).max(10_000_000).nullable()).default(null),
   notes: optionalText(2000),

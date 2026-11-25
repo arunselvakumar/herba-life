@@ -33,7 +33,7 @@ export const Mobile: Story = {
 export const Create: Story = {
   play: async ({ canvas, userEvent }) => {
     await userEvent.type(await canvas.findByLabelText("Name"), "12 months");
-    await userEvent.type(canvas.getByLabelText("Duration"), "365");
+    await userEvent.type(canvas.getByLabelText("Visits"), "365");
     await userEvent.click(canvas.getByRole("button", { name: "Create package" }));
     await waitFor(() => expect(createPlan).toHaveBeenCalledOnce());
     const data = mocked(createPlan).mock.calls[0]?.[1];

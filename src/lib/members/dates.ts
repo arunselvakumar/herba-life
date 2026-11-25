@@ -95,11 +95,6 @@ export function ageOn(dateOfBirth: string, on: string = today()): number {
   return age;
 }
 
-/** Last covered day of a package. A 30-day package starting on the 1st ends on the 30th. */
-export function packageEndDate(startDate: string, durationDays: number, extraDays = 0): string {
-  return addDays(startDate, durationDays + extraDays - 1);
-}
-
 const longDate = new Intl.DateTimeFormat("en-IN", {
   day: "numeric",
   month: "short",

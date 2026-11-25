@@ -1,14 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect } from "storybook/test";
 import { PackageFields } from "@/components/members/package-fields";
-import { formatDay } from "@/lib/members/dates";
 import { formatMoney } from "@/lib/members/format";
 import { idleState, makeValueReader } from "@/lib/members/form-state";
 import { onSurface } from "@/stories/decorators";
 import { planOptions } from "@/stories/fixtures/members";
 import { daysFromToday, TODAY } from "@/stories/fixtures/time";
 
-const threeMonths = planOptions.find((p) => p.durationDays === 90)!;
+const threeMonths = planOptions.find((p) => p.visits === 90)!;
 
 const meta = {
   title: "Members/PackageFields",
@@ -24,16 +23,16 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByLabelText("Package")).toHaveValue("");
-    await expect(canvas.getByText("Choose a package and start date")).toBeVisible();
+    await expect(canvas.getByText("Choose a package")).toBeVisible();
   },
 };
 
-/** Prefilled from a failed submit: plan, extra days and the end date preview. */
+/** Prefilled from a failed submit: plan, extra visits and the total-visits preview. */
 export const Selected: Story = {
-  args: { read: makeValueReader(idleState, { planId: threeMonths.id, startDate: TODAY, extraDays: "10", amountPaid: "4500" }) },
+  args: { read: makeValueReader(idleState, { planId: threeMonths.id, startDate: TODAY, extraVisits: "10", amountPaid: "4500" }) },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText(formatDay("2027-02-16"))).toBeVisible();
-    await expect(canvas.getByText(/100 days \(90 \+ 10\)/)).toBeVisible();
+    await expect(canvas.getByText("100 visits")).toBeVisible();
+    await expect(canvas.getByText(/\(90 \+ 10\) · one a day, no end date/)).toBeVisible();
     await expect(canvas.getByText(formatMoney(9000))).toBeVisible();
   },
 };
@@ -57,7 +56,7 @@ export const Errors: Story = {
     errors: {
       planId: ["Choose a package."],
       startDate: ["Enter a start date."],
-      extraDays: ["Extra days can't be negative."],
+      extraVisits: ["Extra visits can't be negative."],
       amountPaid: ["The advance can't be more than the price."],
     },
   },

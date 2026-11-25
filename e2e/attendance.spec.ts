@@ -1,5 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
+import { LOW_VISITS_THRESHOLD } from "../src/lib/members/constants";
 import { toDay } from "../src/lib/members/dates";
+import { isUsable, packageState, pickCurrentPackage, visitsLeft } from "../src/lib/members/format";
 
 const ADMIN = {
   email: "admin@herbalife.local",
@@ -37,10 +39,10 @@ async function exitKiosk(page: Page) {
   await expect(page).toHaveURL(/\/attendance$/);
 }
 
-async function createPlan(page: Page, name: string) {
+async function createPlan(page: Page, name: string, visits = 90) {
   await page.goto("/packages/new");
   await page.getByLabel("Name").fill(name);
-  await page.getByLabel("Duration").fill("90");
+  await page.getByLabel("Visits").fill(String(visits));
   await page.getByLabel("Price").fill("12000");
   await page.getByRole("button", { name: "Create package" }).click();
   await expect(page).toHaveURL(/\/packages$/);
@@ -54,7 +56,10 @@ async function deletePlan(page: Page, name: string) {
 }
 
 /** Adds a member joining today, enrolled in `planName` if one is given, and returns their profile URL. */
-async function createMember(page: Page, member: { firstName: string; lastName: string; mobile: string; planName?: string }): Promise<string> {
+async function createMember(
+  page: Page,
+  member: { firstName: string; lastName: string; mobile: string; planName?: string; visits?: number },
+): Promise<string> {
   await page.goto("/members/new");
   await page.getByLabel("First name").fill(member.firstName);
   await page.getByLabel("Last name").fill(member.lastName);
@@ -62,7 +67,7 @@ async function createMember(page: Page, member: { firstName: string; lastName: s
   await page.getByLabel("Mobile").fill(member.mobile);
   if (member.planName) {
     await page.getByText("Start a package now").click();
-    await page.getByLabel("Package", { exact: true }).selectOption({ label: `${member.planName} · 90 days · ₹12,000` });
+    await page.getByLabel("Package", { exact: true }).selectOption({ label: `${member.planName} · ${member.visits ?? 90} visits · ₹12,000` });
   }
   await page.getByRole("button", { name: "Save member" }).click();
   await expect(page).toHaveURL(/\/members\/[0-9a-f-]{36}$/);
@@ -79,10 +84,10 @@ async function deleteMember(page: Page, url: string) {
 const SEARCH = "Search by name, mobile or member number";
 
 test.describe("attendance", () => {
-  test("a member checks in from the kiosk, is guarded against a double tap, and shows on the attendance page", async ({ page }) => {
+  test("a member checks in once a day: the visit comes off the package, and a second check-in is refused", async ({ page }) => {
     await signIn(page);
 
-    // A fresh member so the cooldown guard cannot be tripped by earlier runs.
+    // A fresh member, so nobody has checked them in today already.
     const stamp = Date.now().toString().slice(-6);
     const firstName = `Kiosk${stamp}`;
     const planName = `Kiosk plan ${stamp}`;
@@ -97,14 +102,18 @@ test.describe("attendance", () => {
     await expect(page.getByRole("heading", { name: `Welcome, ${firstName}!` })).toBeVisible();
     await expect(page.getByText("Visit this month")).toBeVisible();
     await expect(page.getByText("1st", { exact: true })).toBeVisible();
+    // The visit came off the package: 90 visits, one used.
+    await expect(page.getByText("89 visits left", { exact: true })).toBeVisible();
 
-    // Tap anywhere to go back, then try again: still inside the cooldown.
+    // Tap anywhere to go back, then try again: one visit a day.
     await page.getByRole("heading", { name: `Welcome, ${firstName}!` }).click();
     await page.getByLabel(SEARCH).fill(firstName);
     await page.getByRole("button", { name: `${firstName} Visitor` }).click();
+    await expect(page.getByRole("dialog").getByText(/89 visits left/)).toBeVisible();
     await page.getByRole("button", { name: "Yes, check me in" }).click();
-    await expect(page.getByRole("heading", { name: `You’re already in, ${firstName}` })).toBeVisible();
-    await page.getByRole("heading", { name: `You’re already in, ${firstName}` }).click();
+    await expect(page.getByRole("heading", { name: `Already checked in, ${firstName}` })).toBeVisible();
+    await expect(page.getByText(/You have already checked in today at \d{1,2}:\d{2} [ap]m\. You can’t check in again today\./)).toBeVisible();
+    await page.getByRole("heading", { name: `Already checked in, ${firstName}` }).click();
 
     // Leaving needs the staff password.
     await page.getByRole("button", { name: "Exit", exact: true }).click();
@@ -119,9 +128,29 @@ test.describe("attendance", () => {
     const log = page.getByRole("table").filter({ has: page.getByRole("columnheader", { name: "Time" }) });
     await expect(log.getByRole("link", { name: new RegExp(`${firstName} Visitor`) })).toHaveCount(1);
 
-    // The member profile shows it too.
+    // Staff cannot record a second visit for today either.
+    await page.getByRole("button", { name: "Record a visit" }).click();
+    const picker = page.getByLabel("Member", { exact: true });
+    await picker.selectOption({ label: (await picker.locator("option").filter({ hasText: firstName }).innerText()).trim() });
+    await page.getByRole("button", { name: "Mark present" }).click();
+    await expect(page.getByText(new RegExp(`${firstName} has already checked in today at .+\\. Only one visit a day can be recorded\\.`))).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    // The member profile shows the visit, and the package one visit down.
     await page.goto(memberUrl);
     await expect(page.getByText("Last visit today at")).toBeVisible();
+    await expect(page.getByText("89 visits left · 1 of 90 used")).toBeVisible();
+    await expect(page.getByText("1 of 90 visits used · 89 visits left")).toBeVisible();
+
+    // Removing the check-in gives the visit back.
+    await page.goto("/attendance");
+    await log.getByRole("row").filter({ hasText: `${firstName} Visitor` }).getByRole("button", { name: "Remove" }).click();
+    await page.getByRole("button", { name: "Remove", exact: true }).last().click();
+    // The page behind the confirmation is hidden while it is open, so wait for it to close first.
+    await expect(page.getByRole("button", { name: "Record a visit" })).toBeVisible();
+    await expect(log.getByRole("link", { name: new RegExp(`${firstName} Visitor`) })).toHaveCount(0);
+    await page.goto(memberUrl);
+    await expect(page.getByText("90 visits left · 0 of 90 used")).toBeVisible();
 
     // Clean up: deleting the member removes the attendance with it.
     await deleteMember(page, memberUrl);
@@ -180,6 +209,46 @@ test.describe("attendance", () => {
     await deletePlan(page, planName);
   });
 
+  test("a package is over when its visits are used, and its last visit says so", async ({ page }) => {
+    await signIn(page);
+
+    const stamp = Date.now().toString().slice(-6);
+    const firstName = `Last${stamp}`;
+    const planName = `One visit ${stamp}`;
+    await createPlan(page, planName, 1);
+    const memberUrl = await createMember(page, { firstName, lastName: "Visit", mobile: `4${stamp}4321`, planName, visits: 1 });
+
+    await openKiosk(page);
+    const search = page.getByLabel(SEARCH);
+    await search.fill(firstName);
+    await page.getByRole("button", { name: `${firstName} Visit` }).click();
+    await expect(page.getByRole("dialog").getByText(/1 visit left/)).toBeVisible();
+    await page.getByRole("button", { name: "Yes, check me in" }).click();
+    await expect(page.getByRole("heading", { name: `Welcome, ${firstName}!` })).toBeVisible();
+    await expect(page.getByText("No visits left", { exact: true })).toBeVisible();
+    await expect(page.getByText("That was the last visit on your package. Please renew at the front desk.")).toBeVisible();
+    await page.getByRole("heading", { name: `Welcome, ${firstName}!` }).click();
+
+    // Still on the list today, so a second try is told they are checked in rather than left searching.
+    await search.fill(firstName);
+    await page.getByRole("button", { name: `${firstName} Visit` }).click();
+    await page.getByRole("button", { name: "Yes, check me in" }).click();
+    await expect(page.getByRole("heading", { name: `Already checked in, ${firstName}` })).toBeVisible();
+    await page.getByRole("heading", { name: `Already checked in, ${firstName}` }).click();
+
+    // The package is used up, and staff can no longer pick the member.
+    await exitKiosk(page);
+    await page.getByRole("button", { name: "Record a visit" }).click();
+    await expect(page.getByLabel("Member", { exact: true }).locator("option").filter({ hasText: firstName })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await page.goto(memberUrl);
+    await expect(page.getByText("Used up").first()).toBeVisible();
+    await expect(page.getByText("All 1 visits used")).toBeVisible();
+
+    await deleteMember(page, memberUrl);
+    await deletePlan(page, planName);
+  });
+
   test("only members with an active package can have attendance recorded", async ({ page, browser }) => {
     await signIn(page);
 
@@ -233,11 +302,48 @@ test.describe("attendance", () => {
     await page.getByLabel("Day", { exact: true }).fill(toDay(yesterday));
     await page.getByLabel("Time", { exact: true }).fill("09:00");
     await page.getByRole("button", { name: "Mark present" }).click();
-    await expect(page.getByText(`${active} has no active package on that day.`)).toBeVisible();
+    await expect(page.getByText(`${active} has no package with visits left on that day.`)).toBeVisible();
 
     await deleteMember(page, activeUrl);
     await deleteMember(page, lapsedUrl);
     await deleteMember(page, noneUrl);
     await deletePlan(page, planName);
+  });
+});
+
+test.describe("packages are counted in visits", () => {
+  const pkg = (over: Partial<{ status: "active" | "completed" | "cancelled"; startDate: string; visits: number; extraVisits: number; visitsUsed: number; createdAt: Date }> = {}) => ({
+    status: "active" as const,
+    startDate: "2026-01-01",
+    visits: 30,
+    extraVisits: 0,
+    visitsUsed: 0,
+    createdAt: new Date("2026-01-01T00:00:00Z"),
+    ...over,
+  });
+
+  test("a package has no end date: skipped days cost nothing", () => {
+    // Started most of a year ago, came ten times: twenty visits are still there.
+    const old = pkg({ visitsUsed: 10 });
+    expect(visitsLeft(old)).toBe(20);
+    expect(isUsable(old, "2026-11-25")).toBe(true);
+    expect(packageState(old, LOW_VISITS_THRESHOLD, "2026-11-25")).toBe("active");
+  });
+
+  test("the state follows the visits left", () => {
+    expect(packageState(pkg({ visitsUsed: 25 }), 5, "2026-11-25")).toBe("low");
+    expect(packageState(pkg({ visitsUsed: 30 }), 5, "2026-11-25")).toBe("used_up");
+    expect(packageState(pkg({ extraVisits: 5, visitsUsed: 30 }), 5, "2026-11-25")).toBe("low");
+    expect(packageState(pkg({ startDate: "2026-12-01" }), 5, "2026-11-25")).toBe("upcoming");
+    expect(packageState(pkg({ status: "cancelled", visitsUsed: 3 }), 5, "2026-11-25")).toBe("cancelled");
+    expect(isUsable(pkg({ startDate: "2026-12-01" }), "2026-11-25")).toBe(false);
+    expect(isUsable(pkg({ status: "completed" }), "2026-11-25")).toBe(false);
+  });
+
+  test("visits come off the oldest package first, so a renewal waits its turn", () => {
+    const first = pkg({ startDate: "2026-10-01", visitsUsed: 28 });
+    const renewal = pkg({ startDate: "2026-11-20", createdAt: new Date("2026-11-20T00:00:00Z") });
+    expect(pickCurrentPackage([renewal, first], "2026-11-25")).toBe(first);
+    expect(pickCurrentPackage([renewal, { ...first, visitsUsed: 30 }], "2026-11-25")).toBe(renewal);
   });
 });

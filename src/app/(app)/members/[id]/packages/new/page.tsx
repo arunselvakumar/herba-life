@@ -42,7 +42,7 @@ async function NewPackage({ params }: { params: PageProps<"/members/[id]/package
       <PageHeader
         eyebrow={`Member #${member.serialNo}`}
         title={`New package for ${fullName(member)}`}
-        description="Choose a package from the catalog. Extra days extend it beyond its base duration."
+        description="Choose a package from the catalog. Extra visits are added on top of the package's own."
       />
       <div className="max-w-4xl">
         <PackageForm action={createPackage.bind(null, member.id)} today={today()} cancelHref={`/members/${member.id}`} plans={plans} />

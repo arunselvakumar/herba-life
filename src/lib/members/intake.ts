@@ -1,11 +1,14 @@
 import "server-only";
 
 import { eq } from "drizzle-orm";
+import { after } from "next/server";
 import type { Database } from "@/db";
 import { db } from "@/db";
 import { member, memberCheckin, memberPackage, packagePlan, type PackagePlan } from "@/db/schema";
+import { packageConfirmationMessage, welcomeMessage } from "@/lib/whatsapp/messages";
+import { sendWhatsApp } from "@/lib/whatsapp/send";
 import type { FormState } from "./form-state";
-import { packageEndDate } from "./dates";
+import { today } from "./dates";
 import type { FieldErrors, IntakeInput, MeasurementsInput } from "./validation";
 
 /**
@@ -34,36 +37,34 @@ export async function activePlan(planId: string, prefix = ""): Promise<PackagePl
 
 export function enrolmentValues(
   plan: PackagePlan,
-  input: { extraDays: number | null; startDate: string; amountPaid: number | null; notes: string | null },
+  input: { extraVisits: number | null; startDate: string; amountPaid: number | null; notes: string | null },
 ) {
-  const extraDays = input.extraDays ?? 0;
   return {
     planId: plan.id,
     name: plan.name,
-    durationDays: plan.durationDays,
-    extraDays,
+    visits: plan.visits,
+    extraVisits: input.extraVisits ?? 0,
     startDate: input.startDate,
-    endDate: packageEndDate(input.startDate, plan.durationDays, extraDays),
     price: plan.price,
     amountPaid: input.amountPaid ?? 0,
     notes: input.notes,
   };
 }
 
-/** Insert the member record (and baseline / package) inside `tx`; returns the new member id. */
+/** Insert the member record (and baseline / package) inside `tx`; returns the new member's id and serial number. */
 export async function insertMember(
   tx: Tx,
   input: IntakeInput,
   plan: PackagePlan | null,
   userId: string,
   baselineRemark = "Baseline at enrolment",
-): Promise<string> {
+): Promise<{ id: string; serialNo: number }> {
   const { baseline, package: pkg, lastName, ...details } = input;
 
   const [created] = await tx
     .insert(member)
     .values({ ...details, lastName: lastName ?? "", createdBy: userId })
-    .returning({ id: member.id });
+    .returning({ id: member.id, serialNo: member.serialNo });
   if (!created) throw new Error("Insert failed");
 
   if (hasAnyMeasurement(baseline)) {
@@ -83,5 +84,48 @@ export async function insertMember(
       createdBy: userId,
     });
   }
-  return created.id;
+  return created;
+}
+
+/**
+ * Welcome a member on WhatsApp once their enrolment is saved, so call this
+ * after the transaction, never inside it. Only someone who joined today is
+ * welcomed: a record typed in later from the paper sheets carries its own
+ * earlier date, and that member joined long ago.
+ */
+export function welcomeMember(created: { id: string; serialNo: number }, input: Pick<IntakeInput, "firstName" | "mobile" | "joinedOn">) {
+  if (input.joinedOn !== today()) return;
+  after(() =>
+    sendWhatsApp({
+      memberId: created.id,
+      mobile: input.mobile,
+      message: welcomeMessage({ firstName: input.firstName, serialNo: created.serialNo, joinedOn: input.joinedOn }),
+    }),
+  );
+}
+
+/**
+ * Confirm a package added to an enrolled member on WhatsApp, once it is
+ * saved. A package that started before today is history being filled in, and
+ * gets nothing.
+ */
+export function confirmPackage(memberId: string, pkg: { name: string; startDate: string; visits: number; extraVisits: number }) {
+  if (pkg.startDate < today()) return;
+  after(async () => {
+    const found = await db.query.member.findFirst({
+      where: eq(member.id, memberId),
+      columns: { firstName: true, mobile: true },
+    });
+    if (!found) return;
+    await sendWhatsApp({
+      memberId,
+      mobile: found.mobile,
+      message: packageConfirmationMessage({
+        firstName: found.firstName,
+        packageName: pkg.name,
+        startDate: pkg.startDate,
+        visits: pkg.visits + pkg.extraVisits,
+      }),
+    });
+  });
 }

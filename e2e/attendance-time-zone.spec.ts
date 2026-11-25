@@ -72,7 +72,7 @@ async function exitKiosk(page: Page) {
 async function createPlan(page: Page, name: string) {
   await page.goto("/packages/new");
   await page.getByLabel("Name").fill(name);
-  await page.getByLabel("Duration").fill("90");
+  await page.getByLabel("Visits").fill("90");
   await page.getByLabel("Price").fill("12000");
   await page.getByRole("button", { name: "Create package" }).click();
   await expect(page).toHaveURL(/\/packages$/);
@@ -93,7 +93,7 @@ async function createMember(page: Page, firstName: string, mobile: string, planN
   await page.getByLabel("Joined on").fill(shiftDay(india().day, -7));
   await page.getByLabel("Mobile").fill(mobile);
   await page.getByText("Start a package now").click();
-  await page.getByLabel("Package", { exact: true }).selectOption({ label: `${planName} · 90 days · ₹12,000` });
+  await page.getByLabel("Package", { exact: true }).selectOption({ label: `${planName} · 90 visits · ₹12,000` });
   await page.getByRole("button", { name: "Save member" }).click();
   await expect(page).toHaveURL(/\/members\/[0-9a-f-]{36}$/);
   return page.url();

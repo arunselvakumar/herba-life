@@ -20,14 +20,14 @@ export function makeKioskMember(overrides: Partial<KioskMember> & Pick<KioskMemb
     firstName: "Priya",
     lastName: "Sharma",
     mobileHint: "2345",
-    packageDaysLeft: 42,
+    packageVisitsLeft: 42,
     packageName: "3 months",
     ...overrides,
   };
 }
 
 export const kioskPriya = makeKioskMember({ serialNo: 101, firstName: "Priya", lastName: "Sharma", mobileHint: "2345" });
-export const kioskPriyaNair = makeKioskMember({ serialNo: 134, firstName: "Priya", lastName: "Nair", mobileHint: "7781", packageDaysLeft: 3, packageName: "1 month" });
+export const kioskPriyaNair = makeKioskMember({ serialNo: 134, firstName: "Priya", lastName: "Nair", mobileHint: "7781", packageVisitsLeft: 3, packageName: "1 month" });
 export const kioskRahul = makeKioskMember({ serialNo: 102, firstName: "Rahul", lastName: "Iyer", mobileHint: "4410" });
 /** Not in the kiosk's list by mobile hint: only the server can find "98400 77…" for her. */
 export const mobileLookupMember = makeKioskMember({ serialNo: 106, firstName: "Lakshmi", lastName: "Venkatesh", mobileHint: "3021" });
@@ -37,11 +37,11 @@ export const kioskMembers = [
   kioskPriya,
   kioskPriyaNair,
   kioskRahul,
-  makeKioskMember({ serialNo: 103, firstName: "Karthik", lastName: "Subramanian", mobileHint: "9012", packageDaysLeft: 0, packageName: "1 month" }),
+  makeKioskMember({ serialNo: 103, firstName: "Karthik", lastName: "Subramanian", mobileHint: "9012", packageVisitsLeft: 0, packageName: "1 month" }),
   makeKioskMember({ serialNo: 104, firstName: "Anitha", lastName: "Rajan", mobileHint: "5566" }),
-  makeKioskMember({ serialNo: 105, firstName: "Mohammed", lastName: "Faizal", mobileHint: null, packageDaysLeft: 1 }),
+  makeKioskMember({ serialNo: 105, firstName: "Mohammed", lastName: "Faizal", mobileHint: null, packageVisitsLeft: 1 }),
   mobileLookupMember,
-  makeKioskMember({ serialNo: 107, firstName: "Suresh", lastName: "Babu", mobileHint: "8890", packageName: "6 months", packageDaysLeft: 120 }),
+  makeKioskMember({ serialNo: 107, firstName: "Suresh", lastName: "Babu", mobileHint: "8890", packageName: "6 months", packageVisitsLeft: 120 }),
   makeKioskMember({ serialNo: 108, firstName: "Divya", lastName: "Krishnan", mobileHint: "1203" }),
   makeKioskMember({ serialNo: 109, firstName: "Venkatalakshmi", lastName: "Ramachandran Subramaniam", mobileHint: "6655" }),
   makeKioskMember({ serialNo: 110, firstName: "Arjun", lastName: "Menon", mobileHint: "7432" }),
@@ -51,8 +51,10 @@ export const kioskMembers = [
 ] satisfies KioskMember[];
 
 export const checkInResults = {
-  checkedIn: { status: "checked_in", firstName: "Priya", time: "10:30 am", visitsThisMonth: 7, todayVisits: 24 },
-  firstOfMonth: { status: "checked_in", firstName: "Priya", time: "10:30 am", visitsThisMonth: 1, todayVisits: 24 },
+  checkedIn: { status: "checked_in", firstName: "Priya", time: "10:30 am", visitsThisMonth: 7, todayVisits: 24, packageName: "3 months", visitsLeft: 41 },
+  firstOfMonth: { status: "checked_in", firstName: "Priya", time: "10:30 am", visitsThisMonth: 1, todayVisits: 24, packageName: "3 months", visitsLeft: 41 },
+  oneVisitLeft: { status: "checked_in", firstName: "Priya", time: "10:30 am", visitsThisMonth: 7, todayVisits: 24, packageName: "1 month", visitsLeft: 1 },
+  lastVisit: { status: "checked_in", firstName: "Priya", time: "10:30 am", visitsThisMonth: 7, todayVisits: 24, packageName: "1 month", visitsLeft: 0 },
   already: { status: "already", firstName: "Priya", time: "7:42 am", todayVisits: 23 },
   noPackage: { status: "no_package", firstName: "Priya" },
   error: { status: "error", message: "We could not reach the server. Please try again in a moment." },
@@ -80,6 +82,7 @@ function makeRow({ member, days, hour, minute, source = "kiosk", note, by = admi
   return {
     id: rowId(),
     memberId: member.id,
+    memberPackageId: null,
     checkedInAt,
     day: daysFromToday(days),
     period: periodFor(checkedInAt),
@@ -182,6 +185,7 @@ function totals(months: CalendarMonth[]) {
 export const lastVisit = {
   id: rowId(),
   memberId: calendarMemberId,
+  memberPackageId: null,
   checkedInAt: at(0, 7, 42),
   day: TODAY,
   period: "morning",

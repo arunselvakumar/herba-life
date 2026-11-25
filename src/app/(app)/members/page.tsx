@@ -24,7 +24,7 @@ const FILTERS: readonly { value: MemberFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "active", label: "On a package" },
   { value: "due", label: "Follow-up due" },
-  { value: "expiring", label: "Ending soon" },
+  { value: "low", label: "Few visits left" },
   { value: "no-package", label: "No package" },
 ];
 

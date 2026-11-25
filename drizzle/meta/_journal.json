@@ -57,6 +57,27 @@
       "when": 1794220433415,
       "tag": "0007_kiosk_lock",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795063546516,
+      "tag": "0008_package_expiry_reminder",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795590663194,
+      "tag": "0009_visits",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795590672978,
+      "tag": "0010_drop_package_days",
+      "breakpoints": true
     }
   ]
 }

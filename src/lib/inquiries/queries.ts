@@ -77,7 +77,7 @@ export async function listInquiries({ q, filter = "open", today }: ListInquiries
 
 export type InquiryDetail = Inquiry & {
   activities: (InquiryActivity & { recordedByUser: Named | null })[];
-  interestedPlan: { id: string; name: string; durationDays: number; price: number | null; isActive: boolean } | null;
+  interestedPlan: { id: string; name: string; visits: number; price: number | null; isActive: boolean } | null;
   assignedUser: Named | null;
   createdByUser: Named | null;
   referredByMember: MemberRef | null;
@@ -92,7 +92,7 @@ export async function getInquiry(id: string): Promise<InquiryDetail | null> {
         orderBy: [desc(inquiryActivity.occurredOn), desc(inquiryActivity.createdAt)],
         with: { recordedByUser: { columns: { name: true } } },
       },
-      interestedPlan: { columns: { id: true, name: true, durationDays: true, price: true, isActive: true } },
+      interestedPlan: { columns: { id: true, name: true, visits: true, price: true, isActive: true } },
       assignedUser: { columns: { name: true } },
       createdByUser: { columns: { name: true } },
       referredByMember: { columns: memberRefColumns },

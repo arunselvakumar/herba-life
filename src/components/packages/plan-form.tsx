@@ -10,11 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field, FormSection } from "@/components/members/field";
 import { idleState, makeValueReader, withValues, type Defaults, type FormAction } from "@/lib/members/form-state";
 
-const QUICK_DURATIONS = [
-  { label: "1 month", days: 30 },
-  { label: "3 months", days: 90 },
-  { label: "6 months", days: 180 },
-  { label: "12 months", days: 365 },
+/** A member takes at most one visit a day, so a "month" is 30 visits. */
+const QUICK_VISITS = [
+  { label: "1 month", visits: 30 },
+  { label: "3 months", visits: 90 },
+  { label: "6 months", visits: 180 },
+  { label: "12 months", visits: 365 },
 ] as const;
 
 export function PlanForm({
@@ -41,18 +42,18 @@ export function PlanForm({
       ) : null}
       <FormSection
         title="Package details"
-        description="What the branch sells. Members enrolled later get these values copied to their record."
+        description="What the branch sells: a number of visits, used one a day, with no end date. Members enrolled later get these values copied to their record."
         icon={PackageIcon}
       >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="Name" htmlFor="name" error={errors.name} className="sm:col-span-2">
             <Input id="name" name="name" defaultValue={read.text("name")} placeholder="e.g. 3 months" required autoFocus />
           </Field>
-          <Field label="Duration" htmlFor="durationDays" error={errors.durationDays} hint="days">
-            <Input id="durationDays" name="durationDays" type="number" min={1} inputMode="numeric" defaultValue={read.text("durationDays")} required list="quick-durations" />
-            <datalist id="quick-durations">
-              {QUICK_DURATIONS.map((q) => (
-                <option key={q.days} value={q.days}>
+          <Field label="Visits" htmlFor="visits" error={errors.visits} hint="one a day">
+            <Input id="visits" name="visits" type="number" min={1} inputMode="numeric" defaultValue={read.text("visits")} required list="quick-visits" />
+            <datalist id="quick-visits">
+              {QUICK_VISITS.map((q) => (
+                <option key={q.visits} value={q.visits}>
                   {q.label}
                 </option>
               ))}

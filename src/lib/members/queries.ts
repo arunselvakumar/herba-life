@@ -4,9 +4,10 @@ import { and, asc, count, desc, eq, gte, ilike, inArray, lte, or, sql } from "dr
 import { db } from "@/db";
 import { member, memberCheckin, memberPackage, user } from "@/db/schema";
 import type { Member, MemberCheckin, MemberPackage } from "@/db/schema";
-import { EXPIRING_SOON_DAYS, FOLLOW_UP_INTERVAL_DAYS } from "./constants";
+import { FOLLOW_UP_INTERVAL_DAYS, LOW_VISITS_THRESHOLD } from "./constants";
 import { addDays } from "./dates";
-import { packageState, type PackageState } from "./format";
+import { packageState, pickCurrentPackage, type PackageState } from "./format";
+import { inUseOn, usableOn, visitsLeftSql } from "./package-sql";
 
 export type MemberListRow = Member & {
   latestCheckin: MemberCheckin | null;
@@ -14,7 +15,7 @@ export type MemberListRow = Member & {
   packageState: PackageState | null;
 };
 
-export type MemberFilter = "all" | "active" | "expiring" | "no-package" | "due";
+export type MemberFilter = "all" | "active" | "low" | "no-package" | "due";
 
 export type ListMembersParams = {
   q?: string | undefined;
@@ -47,37 +48,27 @@ export async function listMembers({ q, filter = "all", today }: ListMembersParam
       ...rest,
       latestCheckin: checkins[0] ?? null,
       currentPackage: current,
-      packageState: current ? packageState(current, EXPIRING_SOON_DAYS, today) : null,
+      packageState: current ? packageState(current, LOW_VISITS_THRESHOLD, today) : null,
     } satisfies MemberListRow;
   });
 
   const dueBefore = addDays(today, -FOLLOW_UP_INTERVAL_DAYS);
   switch (filter) {
     case "active":
-      return list.filter((c) => c.packageState === "active" || c.packageState === "expiring");
-    case "expiring":
-      return list.filter((c) => c.packageState === "expiring");
+      return list.filter((c) => c.packageState === "active" || c.packageState === "low");
+    case "low":
+      return list.filter((c) => c.packageState === "low");
     case "no-package":
-      return list.filter((c) => !c.currentPackage || c.packageState === "expired");
+      return list.filter((c) => !c.currentPackage || c.packageState === "used_up");
     case "due":
       return list.filter(
         (c) =>
-          (c.packageState === "active" || c.packageState === "expiring") &&
+          (c.packageState === "active" || c.packageState === "low") &&
           (!c.latestCheckin || c.latestCheckin.recordedOn <= dueBefore),
       );
     default:
       return list;
   }
-}
-
-/**
- * The package that matters right now: the latest active one, falling back to
- * the most recent of any status so the list can show "expired on …".
- */
-export function pickCurrentPackage(packages: MemberPackage[], today: string): MemberPackage | null {
-  const active = packages.filter((p) => p.status === "active");
-  const running = active.find((p) => p.startDate <= today && p.endDate >= today);
-  return running ?? active[0] ?? packages[0] ?? null;
 }
 
 export type MemberDetail = Member & {
@@ -104,48 +95,36 @@ export async function getMember(id: string): Promise<MemberDetail | null> {
 export type DashboardData = {
   totalMembers: number;
   activePackages: number;
-  expiringSoon: number;
+  /** Members whose package in use has few visits left: the same people as the "Few visits left" filter. */
+  lowPackages: number;
   checkinsThisMonth: number;
   newMembersThisMonth: number;
   followUpsDue: MemberListRow[];
-  expiringPackages: (MemberPackage & { member: Member })[];
+  lowPackageList: (MemberPackage & { member: Member })[];
   recentCheckins: (MemberCheckin & { member: Member; recordedByUser: { name: string } | null })[];
 };
 
 export async function getDashboardData(today: string): Promise<DashboardData> {
   const monthStart = `${today.slice(0, 7)}-01`;
-  const expiringEnd = addDays(today, EXPIRING_SOON_DAYS);
+  // Only the package a member is taking visits from counts, as in `listMembers`,
+  // so this list and the "Few visits left" filter it links to show the same people.
+  const runningLow = and(inUseOn(today), lte(visitsLeftSql, LOW_VISITS_THRESHOLD));
 
-  const [[members], [active], [expiring], [checkins], [newMembers], followUps, expiringPackages, recentCheckins] =
+  const [[members], [active], [low], [checkins], [newMembers], followUps, lowPackageList, recentCheckins] =
     await Promise.all([
       db.select({ value: count() }).from(member),
-      db
-        .select({ value: count() })
-        .from(memberPackage)
-        .where(and(eq(memberPackage.status, "active"), lte(memberPackage.startDate, today), gte(memberPackage.endDate, today))),
-      db
-        .select({ value: count() })
-        .from(memberPackage)
-        .where(
-          and(
-            eq(memberPackage.status, "active"),
-            gte(memberPackage.endDate, today),
-            lte(memberPackage.endDate, expiringEnd),
-          ),
-        ),
+      db.select({ value: count() }).from(memberPackage).where(usableOn(today)),
+      db.select({ value: count() }).from(memberPackage).where(runningLow),
       db.select({ value: count() }).from(memberCheckin).where(gte(memberCheckin.recordedOn, monthStart)),
       db.select({ value: count() }).from(member).where(gte(member.joinedOn, monthStart)),
       listMembers({ filter: "due", today }),
-      db.query.memberPackage.findMany({
-        where: and(
-          eq(memberPackage.status, "active"),
-          gte(memberPackage.endDate, today),
-          lte(memberPackage.endDate, expiringEnd),
-        ),
-        with: { member: true },
-        orderBy: [asc(memberPackage.endDate)],
-        limit: 8,
-      }),
+      db
+        .select({ pkg: memberPackage, member })
+        .from(memberPackage)
+        .innerJoin(member, eq(member.id, memberPackage.memberId))
+        .where(runningLow)
+        .orderBy(asc(visitsLeftSql), asc(memberPackage.startDate))
+        .limit(8),
       db.query.memberCheckin.findMany({
         with: { member: true, recordedByUser: { columns: { name: true } } },
         orderBy: [desc(memberCheckin.recordedOn), desc(memberCheckin.createdAt)],
@@ -156,11 +135,11 @@ export async function getDashboardData(today: string): Promise<DashboardData> {
   return {
     totalMembers: members?.value ?? 0,
     activePackages: active?.value ?? 0,
-    expiringSoon: expiring?.value ?? 0,
+    lowPackages: low?.value ?? 0,
     checkinsThisMonth: checkins?.value ?? 0,
     newMembersThisMonth: newMembers?.value ?? 0,
     followUpsDue: followUps.slice(0, 8),
-    expiringPackages,
+    lowPackageList: lowPackageList.map((row) => ({ ...row.pkg, member: row.member })),
     recentCheckins,
   };
 }

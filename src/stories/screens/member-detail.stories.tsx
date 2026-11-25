@@ -22,6 +22,7 @@ const member = memberWithEverything;
 const lastVisit = {
   id: "5e6f7081-0000-4000-8000-000000000001",
   memberId: member.id,
+  memberPackageId: null,
   checkedInAt: at(-1, 8, 42),
   day: daysFromToday(-1),
   period: "morning",

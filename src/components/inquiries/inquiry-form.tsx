@@ -167,7 +167,7 @@ export function InquiryForm({
                 <NativeSelectOption value="">Not decided yet</NativeSelectOption>
                 {plans.map((p) => (
                   <NativeSelectOption key={p.id} value={p.id}>
-                    {p.name} · {p.durationDays} days{p.price !== null ? ` · ${formatMoney(p.price)}` : ""}
+                    {p.name} · {p.visits} visits{p.price !== null ? ` · ${formatMoney(p.price)}` : ""}
                   </NativeSelectOption>
                 ))}
               </NativeSelect>

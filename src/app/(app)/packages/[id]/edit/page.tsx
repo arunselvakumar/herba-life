@@ -42,7 +42,7 @@ async function EditPlan({ params }: { params: PageProps<"/packages/[id]/edit">["
           action={updatePlan.bind(null, plan.id)}
           defaults={{
             name: plan.name,
-            durationDays: String(plan.durationDays),
+            visits: String(plan.visits),
             price: plan.price === null ? "" : String(plan.price),
             description: plan.description ?? "",
             sortOrder: String(plan.sortOrder),

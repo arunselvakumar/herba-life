@@ -1,14 +1,14 @@
 import { Badge } from "@/components/ui/badge";
-import type { PackageState } from "@/lib/members/format";
+import { PACKAGE_STATE_LABELS, type PackageState } from "@/lib/members/format";
 import { cn } from "@/lib/utils";
 
-const styles: Record<PackageState, { label: string; className: string }> = {
-  active: { label: "Active", className: "bg-brand-100 text-brand-700" },
-  expiring: { label: "Ending soon", className: "bg-warning/20 text-amber-800" },
-  upcoming: { label: "Upcoming", className: "bg-accent-soft/60 text-foreground" },
-  expired: { label: "Expired", className: "bg-destructive/10 text-destructive" },
-  completed: { label: "Completed", className: "bg-muted text-muted-foreground" },
-  cancelled: { label: "Cancelled", className: "bg-muted text-muted-foreground line-through" },
+const styles: Record<PackageState, string> = {
+  active: "bg-brand-100 text-brand-700",
+  low: "bg-warning/20 text-amber-800",
+  upcoming: "bg-accent-soft/60 text-foreground",
+  used_up: "bg-destructive/10 text-destructive",
+  completed: "bg-muted text-muted-foreground",
+  cancelled: "bg-muted text-muted-foreground line-through",
 };
 
 export function PackageBadge({ state, className }: { state: PackageState | null; className?: string }) {
@@ -19,10 +19,9 @@ export function PackageBadge({ state, className }: { state: PackageState | null;
       </Badge>
     );
   }
-  const style = styles[state];
   return (
-    <Badge className={cn("rounded-full border-transparent font-semibold", style.className, className)}>
-      {style.label}
+    <Badge className={cn("rounded-full border-transparent font-semibold", styles[state], className)}>
+      {PACKAGE_STATE_LABELS[state]}
     </Badge>
   );
 }

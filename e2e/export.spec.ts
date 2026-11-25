@@ -92,7 +92,7 @@ test.describe("export to Excel", () => {
     for (const header of ["Member no.", "First name", "Mobile", "Joined on", "Current package", "Last follow-up", "Visits", "Breakfast", "Blood pressure", "Member ID"]) {
       expect(memberHeaders).toContain(header);
     }
-    expect(headers(workbook, "Enrolments")).toEqual(expect.arrayContaining(["Member no.", "Package", "Start date", "End date", "Amount paid", "Balance", "Status"]));
+    expect(headers(workbook, "Enrolments")).toEqual(expect.arrayContaining(["Member no.", "Package", "Visits", "Visits used", "Visits left", "Start date", "Amount paid", "Balance", "Status"]));
     expect(headers(workbook, "Follow-ups")).toEqual(expect.arrayContaining(["Recorded on", "Weight (kg)", "Body fat (%)", "BMI", "Waist (cm)"]));
     expect(headers(workbook, "Attendance")).toEqual(expect.arrayContaining(["Day", "Time", "Period", "Member no.", "Source"]));
 

@@ -5,10 +5,9 @@ import { CalendarCheckIcon, ClockIcon, TicketIcon, type LucideIcon } from "lucid
 import { PixelMark } from "@/components/brand/pixel-mark";
 import { MOTION, gsap, prefersReducedMotion, useGSAP } from "@/components/motion/gsap";
 import type { KioskCheckInResult } from "@/lib/attendance/actions";
+import { describeVisitsLeft } from "@/lib/members/format";
 import { cn } from "@/lib/utils";
 import { ResultBadge } from "./result-badge";
-
-export type KioskPackage = { name: string; daysLeft: number };
 
 /**
  * Full-screen confirmation after a tap. The badge draws itself in, then the
@@ -18,12 +17,10 @@ export type KioskPackage = { name: string; daysLeft: number };
 export function KioskResult({
   result,
   seconds,
-  pkg,
   onDismiss,
 }: {
   result: KioskCheckInResult;
   seconds: number;
-  pkg: KioskPackage;
   onDismiss: () => void;
 }) {
   const ref = useRef<HTMLButtonElement>(null);
@@ -76,22 +73,24 @@ export function KioskResult({
           <div className="flex flex-wrap items-stretch justify-center gap-3 md:gap-4">
             <StatTile icon={ClockIcon} value={result.time} label="Checked in" />
             <StatTile icon={CalendarCheckIcon} value={ordinal(result.visitsThisMonth)} label="Visit this month" />
-            <StatTile icon={TicketIcon} value={packageValue(pkg.daysLeft)} label={`${pkg.name} package`} />
+            <StatTile icon={TicketIcon} value={describeVisitsLeft(result.visitsLeft)} label={`${result.packageName} package`} />
           </div>
           <p data-reveal className="text-base text-white/60">
-            Enjoy your shake. Tap anywhere to continue.
+            {result.visitsLeft === 0
+              ? "That was the last visit on your package. Please renew at the front desk."
+              : "Enjoy your shake. Tap anywhere to continue."}
           </p>
         </>
       ) : result.status === "already" ? (
         <>
           <h2 data-reveal className="font-heading text-5xl font-bold tracking-tight md:text-7xl">
-            You&rsquo;re already in, {result.firstName}
+            Already checked in, {result.firstName}
           </h2>
           <div className="flex flex-wrap items-stretch justify-center gap-3 md:gap-4">
             <StatTile icon={ClockIcon} value={result.time} label="Checked in today" />
           </div>
-          <p data-reveal className="text-base text-white/60">
-            Nothing more to do. Coming back later today? Check in again then.
+          <p data-reveal className="max-w-xl text-2xl font-medium text-white/90">
+            You have already checked in today at {result.time}. You can&rsquo;t check in again today.
           </p>
         </>
       ) : result.status === "no_package" ? (
@@ -145,9 +144,4 @@ function ordinal(n: number): string {
   const mod100 = n % 100;
   const suffix = mod100 >= 11 && mod100 <= 13 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th");
   return `${n}${suffix}`;
-}
-
-function packageValue(daysLeft: number): string {
-  if (daysLeft === 0) return "Last day";
-  return `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`;
 }

@@ -1,5 +1,5 @@
 import { REFERENCE, type MeasurementKey } from "./constants";
-import { today, daysBetween, ageOn } from "./dates";
+import { today, ageOn } from "./dates";
 
 export const currency = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -78,23 +78,73 @@ export function rangeVerdict(
   return "ok";
 }
 
+/**
+ * A package is a number of visits, not a stretch of the calendar. It has a
+ * first day but no last one: it is over when its visits have been used.
+ */
 export type PackageLike = {
   status: "active" | "completed" | "cancelled";
   startDate: string;
-  endDate: string;
+  visits: number;
+  extraVisits: number;
+  visitsUsed: number;
 };
 
-export type PackageState = "upcoming" | "active" | "expiring" | "expired" | "completed" | "cancelled";
+type VisitCount = Pick<PackageLike, "visits" | "extraVisits" | "visitsUsed">;
 
-export function packageState(pkg: PackageLike, expiringWithinDays: number, on: string = today()): PackageState {
+export function visitsTotal(pkg: Pick<PackageLike, "visits" | "extraVisits">): number {
+  return pkg.visits + pkg.extraVisits;
+}
+
+export function visitsLeft(pkg: VisitCount): number {
+  return Math.max(visitsTotal(pkg) - pkg.visitsUsed, 0);
+}
+
+/** "1 visit left", "12 visits left", "No visits left". */
+export function describeVisitsLeft(left: number): string {
+  if (left <= 0) return "No visits left";
+  return `${left} visit${left === 1 ? "" : "s"} left`;
+}
+
+/**
+ * `low` is a package still in use with few visits left; `used_up` is one
+ * nobody has closed whose visits are all gone.
+ */
+export type PackageState = "upcoming" | "active" | "low" | "used_up" | "completed" | "cancelled";
+
+export const PACKAGE_STATE_LABELS: Record<PackageState, string> = {
+  upcoming: "Upcoming",
+  active: "Active",
+  low: "Few visits left",
+  used_up: "Used up",
+  completed: "Completed",
+  cancelled: "Cancelled",
+};
+
+export function packageState(pkg: PackageLike, lowAtVisits: number, on: string = today()): PackageState {
   if (pkg.status !== "active") return pkg.status;
+  const left = visitsLeft(pkg);
+  if (left === 0) return "used_up";
   if (pkg.startDate > on) return "upcoming";
-  const left = daysBetween(on, pkg.endDate);
-  if (left < 0) return "expired";
-  if (left <= expiringWithinDays) return "expiring";
+  if (left <= lowAtVisits) return "low";
   return "active";
 }
 
-export function daysLeft(pkg: PackageLike, on: string = today()): number {
-  return daysBetween(on, pkg.endDate);
+/** Whether a visit can be taken from this package on `on`. */
+export function isUsable(pkg: PackageLike, on: string = today()): boolean {
+  return pkg.status === "active" && pkg.startDate <= on && visitsLeft(pkg) > 0;
+}
+
+/**
+ * The package that matters right now: the one visits are being taken from,
+ * which is the oldest open package that has started and has visits left.
+ * Failing that, one still to start, then the most recent of any status so a
+ * list can show "used up" or "cancelled".
+ */
+export function pickCurrentPackage<T extends PackageLike & { createdAt: Date }>(packages: readonly T[], on: string = today()): T | null {
+  const newestFirst = [...packages].sort((a, b) => b.startDate.localeCompare(a.startDate) || b.createdAt.getTime() - a.createdAt.getTime());
+  const active = newestFirst.filter((p) => p.status === "active");
+  const inUse = active.findLast((p) => isUsable(p, on));
+  const upcoming = active.findLast((p) => visitsLeft(p) > 0);
+  return inUse ?? upcoming ?? active[0] ?? newestFirst[0] ?? null;
 }
