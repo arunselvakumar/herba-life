@@ -60,13 +60,13 @@ export const WithProgress: Story = {
 export const LeafProgress: Story = {
   args: {
     stat: {
-      id: "expiring",
-      label: "Ending soon",
+      id: "low",
+      label: "Few visits left",
       value: 7,
-      hint: "within the next 14 days",
+      hint: "5 visits or fewer",
       icon: HourglassIcon,
       tone: "warning",
-      progress: { value: 7 / 96, tone: "leaf", label: "Share of active packages ending soon" },
+      progress: { value: 7 / 96, tone: "leaf", label: "Share of active packages with few visits left" },
     },
   },
 };
@@ -90,7 +90,7 @@ export const TextValue: Story = {
 
 export const Zero: Story = {
   args: {
-    stat: { id: "expiring", label: "Ending soon", value: 0, hint: "within the next 14 days", icon: HourglassIcon },
+    stat: { id: "low", label: "Few visits left", value: 0, hint: "5 visits or fewer", icon: HourglassIcon },
   },
 };
 

@@ -23,13 +23,6 @@ export const SOURCES = [
 ] as const;
 export type Source = (typeof SOURCES)[number]["value"];
 
-/**
- * A second tap within this window is treated as the same visit, so a member
- * who taps twice (or comes back for a forgotten bottle) does not get counted
- * twice. Morning and evening visits are far enough apart to both count.
- */
-export const CHECKIN_COOLDOWN_MINUTES = 45;
-
 /** Members on an active package who have not visited for this long are flagged. */
 export const NOT_SEEN_AFTER_DAYS = 7;
 

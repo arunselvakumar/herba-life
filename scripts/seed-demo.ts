@@ -2,7 +2,7 @@ import "dotenv/config";
 import { eq } from "drizzle-orm";
 import { db } from "../src/db";
 import { attendance, inquiry, inquiryActivity, member, memberCheckin, memberPackage, packagePlan, user } from "../src/db/schema";
-import { addDays, packageEndDate, parseDay, today } from "../src/lib/members/dates";
+import { addDays, parseDay, today } from "../src/lib/members/dates";
 import { combineDayAndTime, periodFor } from "../src/lib/attendance/time";
 
 /**
@@ -28,15 +28,15 @@ type DemoMember = {
   habits: Partial<Record<"wakeUpTime" | "teaCoffee" | "breakfast" | "lunch" | "eveningSnacks" | "dinner" | "waterIntake", string>>;
   health: { bp?: boolean; sugar?: boolean; cardiac?: boolean; medicines?: string; symptoms?: string[]; painAreas?: string[] };
   remarks?: string;
-  pkg?: { name: string; days: number; extra?: number; startDaysAgo: number; price: number; paid: number; status?: "active" | "completed" | "cancelled" };
+  pkg?: { name: string; visits: number; extra?: number; startDaysAgo: number; price: number; paid: number; status?: "active" | "completed" | "cancelled" };
   checkins: DemoCheckin[];
 };
 
 const PLANS = [
-  { name: "1 month", durationDays: 30, price: 4500, description: "Starter programme", sortOrder: 1 },
-  { name: "3 months", durationDays: 90, price: 12000, description: "Most popular", sortOrder: 2 },
-  { name: "6 months", durationDays: 180, price: 22000, description: "Best value for bigger goals", sortOrder: 3 },
-  { name: "12 months", durationDays: 365, price: 40000, description: "Full year of coaching", sortOrder: 4 },
+  { name: "1 month", visits: 30, price: 4500, description: "Starter programme", sortOrder: 1 },
+  { name: "3 months", visits: 90, price: 12000, description: "Most popular", sortOrder: 2 },
+  { name: "6 months", visits: 180, price: 22000, description: "Best value for bigger goals", sortOrder: 3 },
+  { name: "12 months", visits: 365, price: 40000, description: "Full year of coaching", sortOrder: 4 },
 ] as const;
 
 const DEMO: DemoMember[] = [
@@ -55,7 +55,7 @@ const DEMO: DemoMember[] = [
     habits: { wakeUpTime: "6:00 am", teaCoffee: "2 cups coffee with sugar", breakfast: "Idli, sambar", lunch: "Rice, sambar, poriyal", eveningSnacks: "Biscuits", dinner: "Chapati", waterIntake: "1.5 L" },
     health: { symptoms: ["tiredness", "acidity"], },
     remarks: "Goal: lose 8 kg before her sister's wedding in March.",
-    pkg: { name: "3 months", days: 90, extra: 10, startDaysAgo: 95, price: 12000, paid: 12000 },
+    pkg: { name: "3 months", visits: 90, extra: 10, startDaysAgo: 95, price: 12000, paid: 12000 },
     checkins: [
       { daysAgo: 95, weight: 74.2, fat: 36.1, vf: 9, bmr: 1380, ba: 46, mm: 24.1, waist: 94, remarks: "Baseline at enrolment" },
       { daysAgo: 64, weight: 72.4, fat: 35.0, vf: 8.5, bmr: 1392, ba: 44, mm: 24.6, waist: 92 },
@@ -76,7 +76,7 @@ const DEMO: DemoMember[] = [
     habits: { wakeUpTime: "7:30 am", teaCoffee: "3 cups tea", breakfast: "Skips mostly", lunch: "Hotel meals", eveningSnacks: "Vada, bajji", dinner: "Rice, chicken", waterIntake: "1 L" },
     health: { bp: true, sugar: true, medicines: "Metformin 500 mg twice daily; Amlodipine 5 mg", symptoms: ["tiredness", "pain", "sleeping_disorder"], painAreas: ["knee", "back"] },
     remarks: "Doctor advised weight loss. Wife is very supportive.",
-    pkg: { name: "6 months", days: 180, startDaysAgo: 48, price: 22000, paid: 10000 },
+    pkg: { name: "6 months", visits: 180, startDaysAgo: 48, price: 22000, paid: 10000 },
     checkins: [
       { daysAgo: 48, weight: 96.8, fat: 31.4, vf: 16, bmr: 1890, ba: 58, mm: 29.1, waist: 108, remarks: "Baseline at enrolment" },
       { daysAgo: 18, weight: 94.9, fat: 30.6, vf: 15, bmr: 1878, ba: 56, mm: 29.5, waist: 106, remarks: "Replaced breakfast with shake" },
@@ -91,13 +91,13 @@ const DEMO: DemoMember[] = [
     email: "meena.k@example.com",
     address: "Velachery, Chennai",
     referredBy: "Priya Raghunathan",
-    joinedDaysAgo: 12,
+    joinedDaysAgo: 33,
     heightCm: 162,
     diet: "eggetarian",
     habits: { wakeUpTime: "6:45 am", breakfast: "Oats", lunch: "Office canteen", dinner: "Dosa", waterIntake: "2 L" },
     health: { symptoms: ["headache", "constipation"] },
-    pkg: { name: "1 month", days: 30, startDaysAgo: 12, price: 4500, paid: 4500 },
-    checkins: [{ daysAgo: 12, weight: 61.3, fat: 29.8, vf: 6, bmr: 1290, ba: 30, mm: 27.9, waist: 80, remarks: "Baseline at enrolment" }],
+    pkg: { name: "1 month", visits: 30, startDaysAgo: 33, price: 4500, paid: 4500 },
+    checkins: [{ daysAgo: 33, weight: 61.3, fat: 29.8, vf: 6, bmr: 1290, ba: 30, mm: 27.9, waist: 80, remarks: "Baseline at enrolment" }],
   },
   {
     firstName: "Rajesh",
@@ -112,7 +112,7 @@ const DEMO: DemoMember[] = [
     habits: { wakeUpTime: "5:30 am", teaCoffee: "1 cup", breakfast: "Pongal", lunch: "Rice", dinner: "Chapati", waterIntake: "3 L" },
     health: {},
     remarks: "Completed the programme; now on maintenance.",
-    pkg: { name: "6 months", days: 180, startDaysAgo: 220, price: 22000, paid: 22000, status: "completed" },
+    pkg: { name: "6 months", visits: 180, startDaysAgo: 220, price: 22000, paid: 22000, status: "completed" },
     checkins: [
       { daysAgo: 220, weight: 88.0, fat: 27.0, vf: 12, bmr: 1800, ba: 44, mm: 31.0, waist: 98, remarks: "Baseline at enrolment" },
       { daysAgo: 160, weight: 84.5, fat: 25.1, vf: 11, bmr: 1790, ba: 40, mm: 31.8, waist: 95 },
@@ -132,7 +132,7 @@ const DEMO: DemoMember[] = [
     diet: "non_veg",
     habits: { wakeUpTime: "6:00 am", teaCoffee: "2 cups", waterIntake: "1 L" },
     health: { bp: true, cardiac: true, medicines: "Telmisartan 40 mg", symptoms: ["breathing_problem", "giddiness"] },
-    pkg: { name: "3 months", days: 90, startDaysAgo: 400, price: 12000, paid: 12000 },
+    pkg: { name: "3 months", visits: 90, startDaysAgo: 400, price: 12000, paid: 12000 },
     checkins: [
       { daysAgo: 400, weight: 79.0, fat: 40.2, vf: 12, bmr: 1350, ba: 60, mm: 22.0, waist: 101, remarks: "Baseline at enrolment" },
       { daysAgo: 340, weight: 77.1, fat: 39.0, vf: 11.5, bmr: 1355, ba: 58, mm: 22.4, waist: 99 },
@@ -212,10 +212,9 @@ async function main(): Promise<void> {
         memberId: created.id,
         planId: planIds.get(demo.pkg.name) ?? null,
         name: demo.pkg.name,
-        durationDays: demo.pkg.days,
-        extraDays: demo.pkg.extra ?? 0,
+        visits: demo.pkg.visits,
+        extraVisits: demo.pkg.extra ?? 0,
         startDate,
-        endDate: packageEndDate(startDate, demo.pkg.days, demo.pkg.extra ?? 0),
         price: demo.pkg.price,
         amountPaid: demo.pkg.paid,
         status: demo.pkg.status ?? "active",
@@ -244,7 +243,10 @@ async function main(): Promise<void> {
   }
 
   // Inquiries: prospects at various stages of follow-up. Skipped when any exist.
-  // Attendance: a realistic 60 days of self check-ins for the demo members.
+  // Attendance: self check-ins for the demo members, from the day each
+  // package started. The same rules as the app: one visit a day, and only
+  // while a package that has started still has visits left, so each
+  // package's count matches the visits that point at it.
   // Deterministic (seeded PRNG) so re-runs on a fresh database look the same;
   // skipped entirely once any attendance exists.
   const [existingAttendance] = await db.select({ id: attendance.id }).from(attendance).limit(1);
@@ -258,35 +260,54 @@ async function main(): Promise<void> {
     };
     const demoMembers = await db.select({ id: member.id, mobile: member.mobile }).from(member);
     const byMobile = new Map(demoMembers.map((m) => [m.mobile, m.id]));
-    // Per member: how often they come (0–1), and whether they tend to come twice a day.
-    const habits: { mobile: string; regularity: number; twice: number; morningHour: number; eveningHour: number }[] = [
-      { mobile: "98400 12345", regularity: 0.85, twice: 0.5, morningHour: 7, eveningHour: 18 },
-      { mobile: "98410 55667", regularity: 0.6, twice: 0.15, morningHour: 8, eveningHour: 19 },
+    const packages = await db
+      .select({
+        id: memberPackage.id,
+        memberId: memberPackage.memberId,
+        startDate: memberPackage.startDate,
+        visits: memberPackage.visits,
+        extraVisits: memberPackage.extraVisits,
+        status: memberPackage.status,
+      })
+      .from(memberPackage);
+    const used = new Map<string, number>();
+    // Per member: how often they come (0–1), and the hour they tend to come at.
+    const habits: { mobile: string; regularity: number; hour: number }[] = [
+      { mobile: "98400 12345", regularity: 0.85, hour: 7 },
+      { mobile: "98410 55667", regularity: 0.6, hour: 8 },
+      // In nearly every day, so her 1 month is down to its last few visits.
+      { mobile: "99620 77889", regularity: 1, hour: 18 },
     ];
     for (const demo of DEMO) {
       if (!habits.some((h) => h.mobile === demo.mobile)) {
-        habits.push({ mobile: demo.mobile, regularity: 0.3 + random() * 0.5, twice: random() * 0.3, morningHour: 7 + Math.floor(random() * 3), eveningHour: 17 + Math.floor(random() * 3) });
+        habits.push({ mobile: demo.mobile, regularity: 0.3 + random() * 0.5, hour: random() < 0.7 ? 7 + Math.floor(random() * 3) : 17 + Math.floor(random() * 3) });
       }
     }
     const rows: (typeof attendance.$inferInsert)[] = [];
-    for (let daysAgo = 60; daysAgo >= 0; daysAgo--) {
+    for (let daysAgo = 400; daysAgo >= 0; daysAgo--) {
       const day = addDays(now, -daysAgo);
       const weekday = parseDay(day).getDay();
       if (weekday === 0) continue; // closed on Sundays
       for (const habit of habits) {
         const memberId = byMobile.get(habit.mobile);
         if (!memberId) continue;
+        // A closed package took its last visit a while ago.
+        const pkg = packages.find(
+          (p) => p.memberId === memberId && p.startDate <= day && (used.get(p.id) ?? 0) < p.visits + p.extraVisits && (p.status === "active" || daysAgo > 30),
+        );
+        if (!pkg) continue;
         const chance = weekday === 6 ? habit.regularity * 0.6 : habit.regularity;
         if (random() > chance) continue;
-        const visits = random() < habit.twice ? [habit.morningHour, habit.eveningHour] : [random() < 0.7 ? habit.morningHour : habit.eveningHour];
-        for (const hour of visits) {
-          const at = combineDayAndTime(day, `${hour}:${Math.floor(random() * 60)}`);
-          if (at.getTime() > Date.now()) continue;
-          rows.push({ memberId, checkedInAt: at, day, period: periodFor(at), source: "kiosk", recordedBy: createdBy });
-        }
+        const at = combineDayAndTime(day, `${habit.hour}:${Math.floor(random() * 60)}`);
+        if (at.getTime() > Date.now()) continue;
+        rows.push({ memberId, memberPackageId: pkg.id, checkedInAt: at, day, period: periodFor(at), source: "kiosk", recordedBy: createdBy });
+        used.set(pkg.id, (used.get(pkg.id) ?? 0) + 1);
       }
     }
     if (rows.length) await db.insert(attendance).values(rows);
+    for (const [packageId, visitsUsed] of used) {
+      await db.update(memberPackage).set({ visitsUsed }).where(eq(memberPackage.id, packageId));
+    }
     console.log(`✓ created ${rows.length} attendance check-ins`);
   }
 

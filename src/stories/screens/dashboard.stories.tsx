@@ -44,7 +44,7 @@ export const Desktop: Story = {
     const metrics = await canvas.findByRole("region", { name: "Key metrics" });
     await expect(metrics).toHaveTextContent("Members");
     await expect(await canvas.findByRole("link", { name: "Open Members" })).toHaveAttribute("href", "/members");
-    await expect(await canvas.findByText("Packages ending soon")).toBeVisible();
+    await expect(await canvas.findByText("Packages running low")).toBeVisible();
     await expect(canvas.getAllByRole("link", { name: "Anjali Menon" }).length).toBeGreaterThan(0);
     await expect(getDashboardData).toHaveBeenCalledWith(TODAY);
   },
@@ -54,7 +54,7 @@ export const Mobile: Story = {
   globals: { viewport: { value: "mobile" } },
   play: async ({ canvas }) => {
     await expect(await canvas.findByRole("region", { name: "Key metrics" })).toBeInTheDocument();
-    await expect(await canvas.findByText("Packages ending soon")).toBeInTheDocument();
+    await expect(await canvas.findByText("Packages running low")).toBeInTheDocument();
   },
 };
 

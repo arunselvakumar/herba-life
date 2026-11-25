@@ -1,5 +1,5 @@
 import type { Member, MemberCheckin, MemberPackage, PackagePlan } from "@/db/schema";
-import { EXPIRING_SOON_DAYS } from "@/lib/members/constants";
+import { LOW_VISITS_THRESHOLD } from "@/lib/members/constants";
 import { packageState } from "@/lib/members/format";
 import type { MemberDetail, MemberFilter, MemberListRow } from "@/lib/members/queries";
 import type { PlanOption } from "@/components/members/package-fields";
@@ -50,22 +50,20 @@ export function makeMember(overrides: Partial<Member> = {}): Member {
 }
 
 export function makePackage(overrides: Partial<MemberPackage> = {}): MemberPackage {
-  const startDate = overrides.startDate ?? daysFromToday(-30);
-  const durationDays = overrides.durationDays ?? 90;
   return {
     id: id("2b3c4d5e"),
     memberId: overrides.memberId ?? "",
     planId: null,
     name: "3 months",
-    durationDays,
-    extraDays: 0,
-    startDate,
-    endDate: overrides.endDate ?? addDays(startDate, durationDays - 1),
+    visits: 90,
+    extraVisits: 0,
+    visitsUsed: 22,
+    startDate: daysFromToday(-30),
     price: 9000,
     amountPaid: 9000,
     status: "active",
     notes: null,
-    expiryReminderSentAt: null,
+    lowVisitsReminderSentAt: null,
     createdBy: adminUser.id,
     createdAt: at(-30, 10),
     updatedAt: at(-30, 10),
@@ -93,18 +91,12 @@ export function makeCheckin(overrides: Partial<MemberCheckin> = {}): MemberCheck
   };
 }
 
-function addDays(day: string, days: number): string {
-  const d = new Date(`${day}T00:00:00.000Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
 function listRow(m: Member, pkg: MemberPackage | null, checkin: MemberCheckin | null): MemberListRow {
   return {
     ...m,
     currentPackage: pkg,
     latestCheckin: checkin,
-    packageState: pkg ? packageState(pkg, EXPIRING_SOON_DAYS, TODAY) : null,
+    packageState: pkg ? packageState(pkg, LOW_VISITS_THRESHOLD, TODAY) : null,
   };
 }
 
@@ -123,18 +115,18 @@ const fatima = makeMember({ serialNo: 103, firstName: "Fatima", lastName: "Begum
 const george = makeMember({ serialNo: 104, firstName: "George", lastName: "Mathew", gender: "male", mobile: null, email: "george@example.com" });
 const lakshmi = makeMember({ serialNo: 105, firstName: "Lakshmi", lastName: "Narayanan", joinedOn: daysFromToday(-3) });
 
-/** One member in each package state: active, ending soon, upcoming, expired, none. */
+/** One member in each package state: active, few visits left, upcoming, used up, none. */
 export const memberRows: MemberListRow[] = [
   listRow(priya, makePackage({ memberId: priya.id }), makeCheckin({ memberId: priya.id })),
   listRow(
     rahul,
-    makePackage({ memberId: rahul.id, name: "1 month", durationDays: 30, startDate: daysFromToday(-26), price: 3500, amountPaid: 2000 }),
+    makePackage({ memberId: rahul.id, name: "1 month", visits: 30, visitsUsed: 27, startDate: daysFromToday(-34), price: 3500, amountPaid: 2000 }),
     makeCheckin({ memberId: rahul.id, recordedOn: daysFromToday(-40), weightKg: 82.1 }),
   ),
-  listRow(fatima, makePackage({ memberId: fatima.id, startDate: daysFromToday(4) }), null),
+  listRow(fatima, makePackage({ memberId: fatima.id, startDate: daysFromToday(4), visitsUsed: 0 }), null),
   listRow(
     george,
-    makePackage({ memberId: george.id, startDate: daysFromToday(-120) }),
+    makePackage({ memberId: george.id, startDate: daysFromToday(-120), visitsUsed: 90 }),
     makeCheckin({ memberId: george.id, recordedOn: daysFromToday(-35) }),
   ),
   listRow(lakshmi, null, null),
@@ -145,7 +137,7 @@ export const memberWithEverything: MemberDetail = {
   createdByUser: { name: adminUser.name },
   packages: [
     makePackage({ memberId: priya.id }),
-    makePackage({ memberId: priya.id, name: "1 month", durationDays: 30, startDate: daysFromToday(-61), status: "completed" }),
+    makePackage({ memberId: priya.id, name: "1 month", visits: 30, visitsUsed: 30, startDate: daysFromToday(-61), status: "completed" }),
   ],
   checkins: [
     { ...makeCheckin({ memberId: priya.id, recordedOn: daysFromToday(-7), weightKg: 68.4, bmi: 26.1 }), recordedByUser: { name: adminUser.name } },
@@ -165,7 +157,7 @@ export function makePlan(overrides: Partial<PackagePlan> = {}): PackagePlan {
   return {
     id: id("4d5e6f70"),
     name: "3 months",
-    durationDays: 90,
+    visits: 90,
     price: 9000,
     description: "Shakes, coaching and weekly measurements.",
     isActive: true,
@@ -178,16 +170,16 @@ export function makePlan(overrides: Partial<PackagePlan> = {}): PackagePlan {
 }
 
 export const plans: PackagePlan[] = [
-  makePlan({ name: "1 month", durationDays: 30, price: 3500, sortOrder: 0 }),
-  makePlan({ name: "3 months", durationDays: 90, price: 9000, sortOrder: 1 }),
-  makePlan({ name: "6 months", durationDays: 180, price: 16500, sortOrder: 2 }),
-  makePlan({ name: "Trial week", durationDays: 7, price: 0, isActive: false, sortOrder: 3, description: null }),
+  makePlan({ name: "1 month", visits: 30, price: 3500, sortOrder: 0 }),
+  makePlan({ name: "3 months", visits: 90, price: 9000, sortOrder: 1 }),
+  makePlan({ name: "6 months", visits: 180, price: 16500, sortOrder: 2 }),
+  makePlan({ name: "Trial week", visits: 7, price: 0, isActive: false, sortOrder: 3, description: null }),
 ];
 
-/** The `{ id, name, durationDays, price, description }` options the package pickers take. */
+/** The `{ id, name, visits, price, description }` options the package pickers take. */
 export const planOptions = plans
   .filter((p) => p.isActive)
-  .map(({ id: planId, name, durationDays, price, description }) => ({ id: planId, name, durationDays, price, description })) satisfies PlanOption[];
+  .map(({ id: planId, name, visits, price, description }) => ({ id: planId, name, visits, price, description })) satisfies PlanOption[];
 
 /** The catalog as the Packages page lists it, with enrolment counts. */
 export const planRows = [
@@ -201,12 +193,12 @@ export const planRows = [
 /** What `listMembers` returns for each filter on the Members page, from `memberRows`. */
 export const memberRowsByFilter = {
   all: memberRows,
-  active: memberRows.filter((r) => r.packageState === "active" || r.packageState === "expiring"),
-  expiring: memberRows.filter((r) => r.packageState === "expiring"),
-  "no-package": memberRows.filter((r) => !r.currentPackage || r.packageState === "expired"),
+  active: memberRows.filter((r) => r.packageState === "active" || r.packageState === "low"),
+  low: memberRows.filter((r) => r.packageState === "low"),
+  "no-package": memberRows.filter((r) => !r.currentPackage || r.packageState === "used_up"),
   due: memberRows.filter(
     (r) =>
-      (r.packageState === "active" || r.packageState === "expiring") &&
+      (r.packageState === "active" || r.packageState === "low") &&
       (!r.latestCheckin || r.latestCheckin.recordedOn <= daysFromToday(-30)),
   ),
 } satisfies Record<MemberFilter, MemberListRow[]>;
@@ -214,11 +206,11 @@ export const memberRowsByFilter = {
 /** One package in every state the member page shows, newest first. */
 export const packagesInEveryState = {
   active: makePackage({ memberId: priya.id, notes: "Formula 1 shake and Afresh included." }),
-  expiring: makePackage({ memberId: priya.id, name: "1 month", durationDays: 30, startDate: daysFromToday(-26), price: 3500, amountPaid: 2000 }),
-  upcoming: makePackage({ memberId: priya.id, startDate: daysFromToday(4), extraDays: 7, amountPaid: 4000 }),
-  expired: makePackage({ memberId: priya.id, startDate: daysFromToday(-120) }),
-  completed: makePackage({ memberId: priya.id, name: "1 month", durationDays: 30, startDate: daysFromToday(-180), price: 3500, amountPaid: 3500, status: "completed" }),
-  cancelled: makePackage({ memberId: priya.id, name: "6 months", durationDays: 180, startDate: daysFromToday(-240), price: 16500, amountPaid: 5000, status: "cancelled" }),
+  low: makePackage({ memberId: priya.id, name: "1 month", visits: 30, visitsUsed: 27, startDate: daysFromToday(-34), price: 3500, amountPaid: 2000 }),
+  upcoming: makePackage({ memberId: priya.id, startDate: daysFromToday(4), extraVisits: 7, visitsUsed: 0, amountPaid: 4000 }),
+  usedUp: makePackage({ memberId: priya.id, startDate: daysFromToday(-120), visitsUsed: 90 }),
+  completed: makePackage({ memberId: priya.id, name: "1 month", visits: 30, visitsUsed: 30, startDate: daysFromToday(-180), price: 3500, amountPaid: 3500, status: "completed" }),
+  cancelled: makePackage({ memberId: priya.id, name: "6 months", visits: 180, visitsUsed: 41, startDate: daysFromToday(-240), price: 16500, amountPaid: 5000, status: "cancelled" }),
 } satisfies Record<string, MemberPackage>;
 
 /** A member with health conditions, complaints and remarks filled in. */

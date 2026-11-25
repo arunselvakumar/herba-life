@@ -33,7 +33,7 @@ export function PlanTable({
           </span>
           <p className="font-semibold">No packages yet</p>
           <p className="max-w-sm text-sm text-muted-foreground">
-            Packages are the programmes members enrol in, for example “3 months” for 90 days.
+            Packages are the programmes members enrol in, for example “1 month” for 30 visits.
           </p>
           {canCreate ? (
             <Button asChild variant="outline" size="sm">
@@ -51,7 +51,7 @@ export function PlanTable({
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead className="pl-4">Package</TableHead>
-            <TableHead className="text-right">Duration</TableHead>
+            <TableHead className="text-right">Visits</TableHead>
             <TableHead className="text-right">Price</TableHead>
             <TableHead className="hidden text-right sm:table-cell">Members</TableHead>
             <TableHead>Status</TableHead>
@@ -65,7 +65,7 @@ export function PlanTable({
                 <div className="font-semibold">{plan.name}</div>
                 {plan.description ? <div className="text-xs text-muted-foreground">{plan.description}</div> : null}
               </TableCell>
-              <TableCell className="text-right tabular-nums">{plan.durationDays} days</TableCell>
+              <TableCell className="text-right tabular-nums">{plan.visits} visits</TableCell>
               <TableCell className="text-right tabular-nums">{formatMoney(plan.price)}</TableCell>
               <TableCell className="hidden text-right tabular-nums sm:table-cell">
                 {plan.activeEnrolments} active

@@ -8,7 +8,7 @@ import { member, memberCheckin, memberPackage, packagePlan, type PackagePlan } f
 import { packageConfirmationMessage, welcomeMessage } from "@/lib/whatsapp/messages";
 import { sendWhatsApp } from "@/lib/whatsapp/send";
 import type { FormState } from "./form-state";
-import { packageEndDate, today } from "./dates";
+import { today } from "./dates";
 import type { FieldErrors, IntakeInput, MeasurementsInput } from "./validation";
 
 /**
@@ -37,16 +37,14 @@ export async function activePlan(planId: string, prefix = ""): Promise<PackagePl
 
 export function enrolmentValues(
   plan: PackagePlan,
-  input: { extraDays: number | null; startDate: string; amountPaid: number | null; notes: string | null },
+  input: { extraVisits: number | null; startDate: string; amountPaid: number | null; notes: string | null },
 ) {
-  const extraDays = input.extraDays ?? 0;
   return {
     planId: plan.id,
     name: plan.name,
-    durationDays: plan.durationDays,
-    extraDays,
+    visits: plan.visits,
+    extraVisits: input.extraVisits ?? 0,
     startDate: input.startDate,
-    endDate: packageEndDate(input.startDate, plan.durationDays, extraDays),
     price: plan.price,
     amountPaid: input.amountPaid ?? 0,
     notes: input.notes,
@@ -108,11 +106,11 @@ export function welcomeMember(created: { id: string; serialNo: number }, input: 
 
 /**
  * Confirm a package added to an enrolled member on WhatsApp, once it is
- * saved. A package that has already ended is history being filled in, and
+ * saved. A package that started before today is history being filled in, and
  * gets nothing.
  */
-export function confirmPackage(memberId: string, pkg: { name: string; startDate: string; endDate: string }) {
-  if (pkg.endDate < today()) return;
+export function confirmPackage(memberId: string, pkg: { name: string; startDate: string; visits: number; extraVisits: number }) {
+  if (pkg.startDate < today()) return;
   after(async () => {
     const found = await db.query.member.findFirst({
       where: eq(member.id, memberId),
@@ -126,7 +124,7 @@ export function confirmPackage(memberId: string, pkg: { name: string; startDate:
         firstName: found.firstName,
         packageName: pkg.name,
         startDate: pkg.startDate,
-        endDate: pkg.endDate,
+        visits: pkg.visits + pkg.extraVisits,
       }),
     });
   });

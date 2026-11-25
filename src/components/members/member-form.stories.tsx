@@ -2,13 +2,12 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, fn, mocked, waitFor } from "storybook/test";
 import { MemberForm } from "@/components/members/member-form";
 import { createMember } from "@/lib/members/actions";
-import { formatDay } from "@/lib/members/dates";
 import { memberToDefaults } from "@/lib/members/form-defaults";
 import type { FormAction, FormState } from "@/lib/members/form-state";
 import { memberWithHealth, planOptions } from "@/stories/fixtures/members";
 import { TODAY } from "@/stories/fixtures/time";
 
-const threeMonths = planOptions.find((p) => p.durationDays === 90)!;
+const threeMonths = planOptions.find((p) => p.visits === 90)!;
 
 /** The FormData of the n-th call to the mocked `createMember`. */
 function submitted(call = 0): FormData {
@@ -51,14 +50,14 @@ export const WithPackage: Story = {
     await userEvent.click(canvas.getByRole("checkbox", { name: "Start a package now" }));
     await expect(canvas.getByText("follows join date")).toBeVisible();
     await expect(canvas.getByLabelText("Start date")).toHaveValue(TODAY);
-    await expect(canvas.getByText("Choose a package and start date")).toBeVisible();
+    await expect(canvas.getByText("Choose a package")).toBeVisible();
 
     await userEvent.selectOptions(canvas.getByLabelText("Package"), threeMonths.id);
     await expect(canvas.getByText(threeMonths.description!)).toBeVisible();
-    await expect(canvas.getByText(formatDay("2027-02-06"))).toBeVisible();
+    await expect(canvas.getByText("90 visits")).toBeVisible();
 
-    await userEvent.type(canvas.getByLabelText("Extra days"), "7");
-    await expect(canvas.getByText(/97 days \(90 \+ 7\)/)).toBeVisible();
+    await userEvent.type(canvas.getByLabelText("Extra visits"), "7");
+    await expect(canvas.getByText("97 visits")).toBeVisible();
   },
 };
 

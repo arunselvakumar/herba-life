@@ -1,13 +1,13 @@
 import Link from "next/link";
-import { CalendarClockIcon, PackagePlusIcon, Trash2Icon } from "lucide-react";
+import { PackagePlusIcon, TicketIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import type { MemberPackage } from "@/db/schema";
 import { deletePackage, setPackageStatus } from "@/lib/members/actions";
-import { EXPIRING_SOON_DAYS } from "@/lib/members/constants";
-import { daysBetween, formatDay } from "@/lib/members/dates";
-import { daysLeft, formatMoney, packageState } from "@/lib/members/format";
+import { LOW_VISITS_THRESHOLD } from "@/lib/members/constants";
+import { formatDay } from "@/lib/members/dates";
+import { describeVisitsLeft, formatMoney, packageState, visitsLeft, visitsTotal } from "@/lib/members/format";
 import { ConfirmAction } from "./confirm-action";
 import { PackageBadge } from "./package-badge";
 
@@ -63,10 +63,9 @@ function PackageItem({
   today: string;
   canManage: boolean;
 }) {
-  const state = packageState(pkg, EXPIRING_SOON_DAYS, today);
-  const total = pkg.durationDays + pkg.extraDays;
-  const elapsed = Math.min(Math.max(daysBetween(pkg.startDate, today) + 1, 0), total);
-  const left = daysLeft(pkg, today);
+  const state = packageState(pkg, LOW_VISITS_THRESHOLD, today);
+  const total = visitsTotal(pkg);
+  const left = visitsLeft(pkg);
   const balance = pkg.price !== null ? Math.max(pkg.price - pkg.amountPaid, 0) : null;
   const isOpen = pkg.status === "active";
 
@@ -79,8 +78,8 @@ function PackageItem({
             <PackageBadge state={state} />
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {formatDay(pkg.startDate)} → {formatDay(pkg.endDate)} · {pkg.durationDays} days
-            {pkg.extraDays > 0 ? ` + ${pkg.extraDays} extra` : ""}
+            {state === "upcoming" ? "Starts" : "Started"} {formatDay(pkg.startDate)} · {pkg.visits} visits
+            {pkg.extraVisits > 0 ? ` + ${pkg.extraVisits} extra` : ""}
           </p>
         </div>
         <div className="text-right text-sm">
@@ -92,12 +91,13 @@ function PackageItem({
         </div>
       </div>
 
-      {isOpen && state !== "upcoming" ? (
+      {state !== "upcoming" ? (
         <div className="space-y-1">
-          <Progress value={(elapsed / total) * 100} className="h-1.5" />
+          {isOpen ? <Progress value={total > 0 ? (pkg.visitsUsed / total) * 100 : 0} className="h-1.5" /> : null}
           <p className="flex items-center gap-1 text-xs text-muted-foreground">
-            <CalendarClockIcon className="size-3" />
-            {left < 0 ? `Ended ${-left} days ago` : left === 0 ? "Last day today" : `${left} days left`} · day {elapsed} of {total}
+            <TicketIcon className="size-3" />
+            {pkg.visitsUsed} of {total} visits used
+            {isOpen ? ` · ${describeVisitsLeft(left).toLowerCase()}` : left > 0 ? ` · ${left} not used` : ""}
           </p>
         </div>
       ) : null}
@@ -111,7 +111,7 @@ function PackageItem({
               <ConfirmAction
                 action={setPackageStatus.bind(null, memberId, pkg.id, "completed")}
                 title="Mark package as completed?"
-                description="The member finished this programme. You can still create a new package afterwards."
+                description="This closes the package. Any visits left on it can no longer be used, unless you reopen it. You can still create a new package afterwards."
                 confirmLabel="Mark completed"
               >
                 Mark completed

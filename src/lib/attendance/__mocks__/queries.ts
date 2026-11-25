@@ -1,7 +1,7 @@
 // Storybook mock for `queries.ts`, registered with sb.mock() in .storybook/preview.tsx.
 // These read the database, so there is no sensible default: a story that renders
 // a server component sets the data it needs, e.g.
-//   beforeEach: () => { mocked(runningPackageOn).mockResolvedValue(fixture) }
+//   beforeEach: () => { mocked(usablePackageOn).mockResolvedValue(fixture) }
 import { fn } from "storybook/test";
 import type * as Actual from "../queries";
 
@@ -11,11 +11,11 @@ function unset(name: string) {
   };
 }
 
-export const runningPackageOn: typeof Actual.runningPackageOn = fn(unset("runningPackageOn")).mockName("runningPackageOn");
+export const usablePackageOn: typeof Actual.usablePackageOn = fn(unset("usablePackageOn")).mockName("usablePackageOn");
 export const listKioskMembers: typeof Actual.listKioskMembers = fn(unset("listKioskMembers")).mockName("listKioskMembers");
 export const findKioskMemberIdsByMobile: typeof Actual.findKioskMemberIdsByMobile = fn(unset("findKioskMemberIdsByMobile")).mockName("findKioskMemberIdsByMobile");
 export const listDayAttendance: typeof Actual.listDayAttendance = fn(unset("listDayAttendance")).mockName("listDayAttendance");
-export const latestVisitSince: typeof Actual.latestVisitSince = fn(unset("latestVisitSince")).mockName("latestVisitSince");
+export const visitOn: typeof Actual.visitOn = fn(unset("visitOn")).mockName("visitOn");
 export const countVisits: typeof Actual.countVisits = fn(unset("countVisits")).mockName("countVisits");
 export const countDay: typeof Actual.countDay = fn(unset("countDay")).mockName("countDay");
 export const getAttendanceDashboard: typeof Actual.getAttendanceDashboard = fn(unset("getAttendanceDashboard")).mockName("getAttendanceDashboard");

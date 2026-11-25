@@ -32,10 +32,20 @@ import { MemberAttendance } from "@/components/attendance/member-attendance";
 import { MemberPurchases } from "@/components/stock/member-purchases";
 import { can } from "@/lib/access/can";
 import { addCheckin, deleteMember } from "@/lib/members/actions";
-import { DIETS, EXPIRING_SOON_DAYS, GENDERS, MEASUREMENTS, PAIN_AREAS, SYMPTOMS } from "@/lib/members/constants";
+import { DIETS, GENDERS, LOW_VISITS_THRESHOLD, MEASUREMENTS, PAIN_AREAS, SYMPTOMS } from "@/lib/members/constants";
 import { formatDay, today } from "@/lib/members/dates";
 import { UUID_RE } from "@/lib/members/form-defaults";
-import { daysLeft, displayAge, formatNumber, fullName, packageState, rangeVerdict } from "@/lib/members/format";
+import {
+  describeVisitsLeft,
+  displayAge,
+  formatNumber,
+  fullName,
+  packageState,
+  pickCurrentPackage,
+  rangeVerdict,
+  visitsLeft,
+  visitsTotal,
+} from "@/lib/members/format";
 import { getMember, type MemberDetail } from "@/lib/members/queries";
 import { sourceLabel } from "@/lib/inquiries/format";
 import { getSourceInquiry } from "@/lib/inquiries/queries";
@@ -75,11 +85,9 @@ async function MemberProfile({ params }: { params: PageProps<"/members/[id]">["p
   const name = fullName(member);
   const age = displayAge(member);
   const gender = GENDERS.find((g) => g.value === member.gender)?.label;
-  const currentPackage =
-    member.packages.find((p) => p.status === "active" && p.startDate <= now && p.endDate >= now) ??
-    member.packages.find((p) => p.status === "active") ??
-    null;
-  const currentState = currentPackage ? packageState(currentPackage, EXPIRING_SOON_DAYS, now) : null;
+  const picked = pickCurrentPackage(member.packages, now);
+  const currentPackage = picked?.status === "active" ? picked : null;
+  const currentState = currentPackage ? packageState(currentPackage, LOW_VISITS_THRESHOLD, now) : null;
   const latest = member.checkins[0] ?? null;
   const baseline = member.checkins[member.checkins.length - 1] ?? null;
   const sourceInquiry = await getSourceInquiry(member.id);
@@ -142,9 +150,9 @@ async function MemberProfile({ params }: { params: PageProps<"/members/[id]">["p
             {currentPackage
               ? currentState === "upcoming"
                 ? `Starts ${formatDay(currentPackage.startDate)}`
-                : daysLeft(currentPackage, now) >= 0
-                  ? `${daysLeft(currentPackage, now)} days left · until ${formatDay(currentPackage.endDate)}`
-                  : `Ended ${formatDay(currentPackage.endDate)}`
+                : currentState === "used_up"
+                  ? `All ${visitsTotal(currentPackage)} visits used`
+                  : `${describeVisitsLeft(visitsLeft(currentPackage))} · ${currentPackage.visitsUsed} of ${visitsTotal(currentPackage)} used`
               : "Add a package to start tracking the programme."}
           </CardContent>
         </Card>

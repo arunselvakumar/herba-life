@@ -23,11 +23,11 @@ export type WhatsAppMessage = {
 // Set explicitly because the server's own clock is not the branch's in production.
 const timeFormat = new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit", timeZone: BRANCH_TIME_ZONE });
 
-/** Sent for each recorded visit. */
-export function checkInMessage(visit: { firstName: string; at: Date; packageName: string; daysLeft: number }): WhatsAppMessage {
+/** Sent for each recorded visit. `visitsLeft` is what remains on the package after this visit. */
+export function checkInMessage(visit: { firstName: string; at: Date; packageName: string; visitsLeft: number }): WhatsAppMessage {
   return {
     template: "checkin",
-    values: [visit.firstName, timeFormat.format(visit.at).toLowerCase(), visit.packageName, String(visit.daysLeft)],
+    values: [visit.firstName, timeFormat.format(visit.at).toLowerCase(), visit.packageName, String(visit.visitsLeft)],
   };
 }
 
@@ -44,19 +44,20 @@ export function packageConfirmationMessage(pkg: {
   firstName: string;
   packageName: string;
   startDate: string;
-  endDate: string;
+  /** Every visit the package gives, bonus visits included. */
+  visits: number;
 }): WhatsAppMessage {
   return {
-    template: "package_confirmation",
-    values: [pkg.firstName, pkg.packageName, formatDay(pkg.startDate), formatDay(pkg.endDate)],
+    template: "package_confirmation_visits",
+    values: [pkg.firstName, pkg.packageName, formatDay(pkg.startDate), String(pkg.visits)],
   };
 }
 
-/** Sent once per package, a few days before its last day. */
-export function packageExpiryMessage(pkg: { firstName: string; packageName: string; endDate: string }): WhatsAppMessage {
+/** Sent once per package, when it is down to its last few visits. */
+export function packageLowVisitsMessage(pkg: { firstName: string; packageName: string; visitsLeft: number }): WhatsAppMessage {
   return {
-    template: "package_expiry_reminder",
-    values: [pkg.firstName, pkg.packageName, formatDay(pkg.endDate)],
+    template: "package_low_visits_reminder",
+    values: [pkg.firstName, pkg.packageName, String(pkg.visitsLeft)],
   };
 }
 

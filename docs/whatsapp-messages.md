@@ -18,7 +18,7 @@ Hi {{1}}, thanks for coming in today!
 
 You checked in at {{2}}.
 Package: {{3}}
-Days remaining: {{4}}
+Visits remaining: {{4}}
 
 See you at your next visit.
 ```
@@ -28,7 +28,12 @@ See you at your next visit.
 | `{{1}}` | First name                | Arun              |
 | `{{2}}` | Check-in time in India    | 7:45 am           |
 | `{{3}}` | Package name              | 3 months          |
-| `{{4}}` | Days left on the package  | 29                |
+| `{{4}}` | Visits left on the package after this one | 29 |
+
+The template was first approved with "Days remaining" on that line. The value
+sent is now the number of visits left, so the wording has to be edited in
+MSG91 to "Visits remaining" and approved again; until then members read the
+visit count under the old label.
 
 ## 2. `welcome`
 
@@ -56,7 +61,7 @@ You will receive your check-in and package updates on this number.
 - A member enrolled together with a first package gets this message only, not
   the package confirmation as well.
 
-## 3. `package_confirmation`
+## 3. `package_confirmation_visits`
 
 Sent when a package is added to a member who is already enrolled: a renewal,
 or a first package taken some time after joining.
@@ -66,7 +71,7 @@ Hi {{1}}, your Herbalife package is confirmed.
 
 Package: {{2}}
 Starts on: {{3}}
-Valid until: {{4}}
+Visits: {{4}}
 
 Thank you. See you at your next visit.
 ```
@@ -76,21 +81,23 @@ Thank you. See you at your next visit.
 | `{{1}}` | First name       | Arun        |
 | `{{2}}` | Package name     | 3 months    |
 | `{{3}}` | First day        | 19 Nov 2026 |
-| `{{4}}` | Last covered day | 16 Feb 2027 |
+| `{{4}}` | Visits in the package, extra visits included | 90 |
 
-- **Not sent** for a package whose last day has already passed: that is
+- **Not sent** for a package whose start date is before today: that is
   history being filled in.
+- This replaces `package_confirmation`, whose fourth line was a "Valid until"
+  date. Packages no longer have an end date, so that template is not used.
 
-## 4. `package_expiry_reminder`
+## 4. `package_low_visits_reminder`
 
-Sent once per package, when its last day is within 3 days
-(`EXPIRY_REMINDER_DAYS`).
+Sent once per package, when it is down to its last 3 visits
+(`LOW_VISITS_REMINDER`).
 
 ```
-Hi {{1}}, this is a reminder that your Herbalife package is ending soon.
+Hi {{1}}, this is a reminder that your Herbalife package is almost used up.
 
 Package: {{2}}
-Ends on: {{3}}
+Visits remaining: {{3}}
 
 Please renew at the front desk to continue without a break.
 ```
@@ -99,18 +106,21 @@ Please renew at the front desk to continue without a break.
 | ------- | ---------------- | ----------- |
 | `{{1}}` | First name       | Arun        |
 | `{{2}}` | Package name     | 3 months    |
-| `{{3}}` | Last covered day | 16 Feb 2027 |
+| `{{3}}` | Visits left      | 3           |
 
-- **When**: Vercel Cron calls `GET /api/cron/package-expiry` once a day at
+- This replaces `package_expiry_reminder`, which named the package's last
+  day.
+- **When**: Vercel Cron calls `GET /api/cron/package-reminder` once a day at
   03:30 UTC, about 9 am in India (`vercel.json`). On Vercel's Hobby plan the
   call can arrive any time within that hour.
-- **Who**: members whose running, active package ends today or within the next
-  3 days. Members who have already taken a package that runs beyond it are
-  left alone.
-- **Once**: the package is marked (`member_package.expiry_reminder_sent_at`)
-  when MSG91 accepts the reminder, or when the member has no usable number. A
-  request MSG91 refuses or that never reaches it is not marked, so the next
-  day's run tries again while the package is still inside the window.
+- **Who**: members whose open package has 1 to 3 visits left and has been
+  visited on at least once. Members who have already taken another package
+  with visits left are left alone.
+- **Once**: the package is marked
+  (`member_package.low_visits_reminder_sent_at`) when MSG91 accepts the
+  reminder, or when the member has no usable number. A request MSG91 refuses
+  or that never reaches it is not marked, so the next day's run tries again
+  while the package still has visits left.
 - **Protected** by `CRON_SECRET`: Vercel sends it as a bearer token, and the
   route refuses every call when it is missing or different.
 
@@ -124,10 +134,10 @@ Please renew at the front desk to continue without a break.
   only in the server logs, and in MSG91 under WhatsApp → Logs.
 - **Switching it on**: nothing is sent unless `MSG91_AUTH_KEY` is set. It is
   left out locally so development and tests never message anyone. The
-  expiry reminder also needs `CRON_SECRET`.
+  few-visits-left reminder also needs `CRON_SECRET`.
 - **A template that is not approved yet**: MSG91 still accepts the request and
   fails it afterwards, so the failure shows only in MSG91's logs and the app
-  counts the message as sent. An expiry reminder lost that way is not tried
+  counts the message as sent. A reminder lost that way is not tried
   again. Do not deploy a message before its template is approved.
 - **Code**: template names, the order of the values, the sender number and
   the namespace are in `src/lib/whatsapp/messages.ts`. Change a template's

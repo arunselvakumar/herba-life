@@ -12,7 +12,7 @@ The digital version of the branch's paper **Wellness Record** and **Follow Up
 Record**:
 
 - **Members** (`/members`) – searchable list with the current package state and
-  last follow-up. Filters: on a package, follow-up due, ending soon, no package.
+  last follow-up. Filters: on a package, follow-up due, few visits left, no package.
 - **Enrolment** (`/members/new`) – personal details, eating habits, health
   conditions, baseline measurements and an optional starting package, all on
   one form like the paper sheet.
@@ -21,15 +21,19 @@ Record**:
   follow-up grid (weight, fat %, BMI, VF, BMR, body age, MM %, waist), and the
   member's packages.
 - **Packages** (`/packages`) – the catalog of programmes the branch sells:
-  name, duration in days, price. Administrators create, edit, archive or delete
-  them. Enrolment copies the plan's name, duration and price onto the member's
-  record, so catalog edits never rewrite history.
+  name, number of visits, price. A package is a number of visits, not a
+  stretch of the calendar: "1 month" is 30 visits, and it has no end date.
+  Administrators create, edit, archive or delete them. Enrolment copies the
+  plan's name, visits and price onto the member's record, so catalog edits
+  never rewrite history.
 - **Enrolment** – a member is enrolled in a catalog package from their join
-  date (editable), with optional extra days and an advance paid. The last
-  covered day is `start + duration + extra - 1`; days left count down from
-  today. Enrolments can be completed, cancelled, reopened or deleted.
+  date (editable), with optional extra visits and an advance paid. Each
+  check-in takes one visit from the package, at most one a day; skipped days
+  cost nothing. The package is over when its visits are used. Enrolments can
+  be completed, cancelled, reopened or deleted.
 - **Dashboard** – member and package counts, follow-ups due (on a package but
-  not measured in 30 days), packages ending within 14 days, recent follow-ups.
+  not measured in 30 days), packages down to their last 5 visits, recent
+  follow-ups.
 
 ### Inquiries
 
@@ -67,9 +71,10 @@ and `src/app/(app)/packages/`.
 Members mark their own visits on a tablet at the entrance:
 
 - **Attendance Mode** (`/attendance/kiosk`) – full-screen, member-facing
-  kiosk for members on an active package. Search by name, mobile or member
-  number, tap, confirm; a welcome screen shows the time and the visit count for
-  the month. A second tap within 45 minutes is treated as the same visit.
+  kiosk for members with visits left on a package. Search by name, mobile or
+  member number, tap, confirm; a welcome screen shows the time, the visit
+  count for the month and the visits left. A member can check in once a day:
+  a second try is told when they checked in, and nothing is recorded.
   Leaving the kiosk requires the signed-in staff member's password.
 - **Attendance** (`/attendance`) – per-day view with check-ins, morning /
   afternoon / evening split, a chart over 2 weeks to 12 months, busy hours,
@@ -207,7 +212,7 @@ pooled Neon string) and `BETTER_AUTH_SECRET` from the Vercel project's
 production environment; the auth base URL falls back to Vercel's own
 `VERCEL_PROJECT_PRODUCTION_URL`, so `BETTER_AUTH_URL` is only needed once a
 custom domain is in use. WhatsApp messages need `MSG91_AUTH_KEY`, and the
-daily package-expiry reminder also needs `CRON_SECRET`, both in the same
+daily "few visits left" reminder also needs `CRON_SECRET`, both in the same
 production environment; see [docs/whatsapp-messages.md](docs/whatsapp-messages.md).
 
 A fresh database has no accounts and public sign-up is disabled. Create the

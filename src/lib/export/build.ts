@@ -35,10 +35,9 @@ import { PERIODS, SOURCES } from "@/lib/attendance/constants";
 import { formatTime } from "@/lib/attendance/time";
 import { ACTIVITY_LABELS } from "@/lib/inquiries/constants";
 import { goalLabels, sourceLabel, statusLabel } from "@/lib/inquiries/format";
-import { DIETS, EXPIRING_SOON_DAYS, GENDERS, PAIN_AREAS, SYMPTOMS } from "@/lib/members/constants";
+import { DIETS, GENDERS, LOW_VISITS_THRESHOLD, PAIN_AREAS, SYMPTOMS } from "@/lib/members/constants";
 import { addDays, today } from "@/lib/members/dates";
-import { daysLeft, displayAge, fullName, packageState } from "@/lib/members/format";
-import { pickCurrentPackage } from "@/lib/members/queries";
+import { PACKAGE_STATE_LABELS, displayAge, fullName, packageState, pickCurrentPackage, visitsLeft } from "@/lib/members/format";
 import { listPlans, type PlanRow } from "@/lib/packages/queries";
 import { MOVEMENT_KINDS, PAYMENT_MODES, PRICE_LEVELS, STOCK_STATE_LABELS, stockState } from "@/lib/stock/format";
 import type { CurrentUser } from "@/lib/session";
@@ -72,7 +71,6 @@ const labels = (options: readonly { value: string; label: string }[], values: re
     .filter((o) => values.includes(o.value))
     .map((o) => o.label)
     .join(", ");
-const capitalise = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 const memberLabel = (m: Named | null | undefined) => (m ? `#${m.serialNo} ${fullName(m)}` : null);
 
 // ---------------------------------------------------------------------------
@@ -177,7 +175,7 @@ async function membersSheet(ctx: Context): Promise<SheetSpec<MemberWithHistory>>
   const current = (m: MemberWithHistory) => pickCurrentPackage(m.packages, ctx.today);
   const state = (m: MemberWithHistory) => {
     const pkg = current(m);
-    return pkg ? packageState(pkg, EXPIRING_SOON_DAYS, ctx.today) : null;
+    return pkg ? packageState(pkg, LOW_VISITS_THRESHOLD, ctx.today) : null;
   };
   const columns: Column<MemberWithHistory>[] = [
     { header: "Member no.", kind: "number", width: 11, get: (r) => r.serialNo },
@@ -185,17 +183,28 @@ async function membersSheet(ctx: Context): Promise<SheetSpec<MemberWithHistory>>
     { header: "Joined on", kind: "date", get: (r) => r.joinedOn },
     { header: "Height (cm)", kind: "number", width: 11, get: (r) => r.heightCm },
     { header: "Current package", width: 20, get: (r) => current(r)?.name },
-    { header: "Package status", width: 14, get: (r) => (state(r) ? capitalise(state(r) as string) : null) },
-    { header: "Package start", kind: "date", get: (r) => current(r)?.startDate },
-    { header: "Package end", kind: "date", get: (r) => current(r)?.endDate },
     {
-      header: "Days left",
+      header: "Package status",
+      width: 14,
+      get: (r) => {
+        const s = state(r);
+        return s ? PACKAGE_STATE_LABELS[s] : null;
+      },
+    },
+    { header: "Package start", kind: "date", get: (r) => current(r)?.startDate },
+    {
+      header: "Visits used",
       kind: "number",
-      width: 9,
+      width: 11,
+      get: (r) => current(r)?.visitsUsed,
+    },
+    {
+      header: "Visits left",
+      kind: "number",
+      width: 10,
       get: (r) => {
         const pkg = current(r);
-        const s = state(r);
-        return pkg && (s === "active" || s === "expiring") ? daysLeft(pkg, ctx.today) : null;
+        return pkg && pkg.status === "active" ? visitsLeft(pkg) : null;
       },
     },
     { header: "Last follow-up", kind: "date", get: (r) => r.checkins[0]?.recordedOn },
@@ -227,11 +236,12 @@ async function enrolmentsSheet(ctx: Context): Promise<SheetSpec<EnrolmentRow>> {
     { header: "Member no.", kind: "number", width: 11, get: (r) => r.member.serialNo },
     { header: "Member", width: 24, get: (r) => fullName(r.member) },
     { header: "Package", width: 20, get: (r) => r.name },
-    { header: "Duration (days)", kind: "number", width: 14, get: (r) => r.durationDays },
-    { header: "Extra days", kind: "number", width: 10, get: (r) => r.extraDays },
+    { header: "Visits", kind: "number", width: 8, get: (r) => r.visits },
+    { header: "Extra visits", kind: "number", width: 11, get: (r) => r.extraVisits },
+    { header: "Visits used", kind: "number", width: 11, get: (r) => r.visitsUsed },
+    { header: "Visits left", kind: "number", width: 10, get: (r) => visitsLeft(r) },
     { header: "Start date", kind: "date", get: (r) => r.startDate },
-    { header: "End date", kind: "date", get: (r) => r.endDate },
-    { header: "Status", width: 11, get: (r) => capitalise(packageState(r, EXPIRING_SOON_DAYS, ctx.today)) },
+    { header: "Status", width: 14, get: (r) => PACKAGE_STATE_LABELS[packageState(r, LOW_VISITS_THRESHOLD, ctx.today)] },
     { header: "Price", kind: "money", get: (r) => r.price },
     { header: "Amount paid", kind: "money", get: (r) => r.amountPaid },
     { header: "Balance", kind: "money", get: (r) => (r.price === null ? null : r.price - r.amountPaid) },
@@ -268,12 +278,15 @@ async function followUpsSheet(ctx: Context): Promise<SheetSpec<CheckinRow>> {
   return { name: "Follow-ups", description: "every follow-up reading, oldest first", columns, rows };
 }
 
-type AttendanceRow = Attendance & { member: Named & { mobile: string | null } };
+type AttendanceRow = Attendance & { member: Named & { mobile: string | null }; memberPackage: { name: string } | null };
 
 async function loadAttendance(ctx: Context): Promise<AttendanceRow[]> {
   return db.query.attendance.findMany({
     ...(ctx.memberId ? { where: eq(attendance.memberId, ctx.memberId) } : {}),
-    with: { member: { columns: { serialNo: true, firstName: true, lastName: true, mobile: true } } },
+    with: {
+      member: { columns: { serialNo: true, firstName: true, lastName: true, mobile: true } },
+      memberPackage: { columns: { name: true } },
+    },
     orderBy: [asc(attendance.checkedInAt)],
   });
 }
@@ -286,12 +299,14 @@ async function attendanceSheet(ctx: Context): Promise<SheetSpec<AttendanceRow>> 
     { header: "Period", width: 11, get: (r) => label(PERIODS, r.period) },
     { header: "Member no.", kind: "number", width: 11, get: (r) => r.member.serialNo },
     { header: "Member", width: 24, get: (r) => fullName(r.member) },
+    { header: "Package", width: 20, get: (r) => r.memberPackage?.name },
     { header: "Source", width: 18, get: (r) => label(SOURCES, r.source) },
     { header: "Note", width: 28, get: (r) => r.note },
     { header: "Recorded by", get: (r) => (r.recordedBy ? ctx.staff.get(r.recordedBy) : null) },
     { header: "Checked in at", kind: "datetime", get: (r) => r.checkedInAt },
     { header: "Check-in ID", width: 38, get: (r) => r.id },
     { header: "Member ID", width: 38, get: (r) => r.memberId },
+    { header: "Enrolment ID", width: 38, get: (r) => r.memberPackageId },
   ];
   return { name: "Attendance", description: "every check-in, oldest first", columns, rows };
 }
@@ -415,7 +430,7 @@ async function packagesSheet(ctx: Context): Promise<SheetSpec<PlanRow>> {
   const rows = await listPlans();
   const columns: Column<PlanRow>[] = [
     { header: "Package", width: 24, get: (r) => r.name },
-    { header: "Duration (days)", kind: "number", width: 14, get: (r) => r.durationDays },
+    { header: "Visits", kind: "number", width: 8, get: (r) => r.visits },
     { header: "Price", kind: "money", get: (r) => r.price },
     { header: "Description", width: 40, get: (r) => r.description },
     { header: "Status", width: 10, get: (r) => (r.isActive ? "Active" : "Archived") },

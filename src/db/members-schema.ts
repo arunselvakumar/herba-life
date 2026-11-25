@@ -49,13 +49,16 @@ export const member = pgTable(
 );
 
 /**
- * Package catalog: the programmes the branch sells (e.g. "3 months", 90 days).
- * Maintained by admins; members are enrolled in a package from this list.
+ * Package catalog: the programmes the branch sells (e.g. "1 month", 30 visits).
+ * A package is a number of visits, not a stretch of the calendar: a member
+ * can skip days and loses nothing. Maintained by admins; members are enrolled
+ * in a package from this list.
  */
 export const packagePlan = pgTable("package_plan", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
-  durationDays: integer("duration_days").notNull(),
+  /** How many visits the package buys. A member can use at most one a day. */
+  visits: integer("visits").notNull(),
   price: money("price"),
   description: text("description"),
   /** Archived plans stay on old enrolments but cannot be picked for new ones. */
@@ -70,7 +73,7 @@ export const packagePlan = pgTable("package_plan", {
 });
 
 /**
- * A member's enrolment in a package. Name, duration and price are copied from
+ * A member's enrolment in a package. Name, visits and price are copied from
  * the plan at enrolment time so later edits to the catalog do not rewrite
  * history.
  */
@@ -83,18 +86,23 @@ export const memberPackage = pgTable(
       .references(() => member.id, { onDelete: "cascade" }),
     planId: uuid("plan_id").references(() => packagePlan.id, { onDelete: "set null" }),
     name: text("name").notNull(),
-    durationDays: integer("duration_days").notNull(),
-    /** Bonus/extension days added on top of the plan's duration. */
-    extraDays: integer("extra_days").notNull().default(0),
+    visits: integer("visits").notNull(),
+    /** Bonus visits added on top of the plan's. */
+    extraVisits: integer("extra_visits").notNull().default(0),
+    /**
+     * Visits taken so far: the attendance rows that point at this package.
+     * Kept here so "has visits left" is a plain column comparison; it is only
+     * ever changed in the same transaction that adds or removes such a row.
+     */
+    visitsUsed: integer("visits_used").notNull().default(0),
+    /** First day a visit can be taken from this package. There is no last day: it runs until its visits are used. */
     startDate: date("start_date").notNull(),
-    /** Last covered day: startDate + durationDays + extraDays - 1. Stored for querying. */
-    endDate: date("end_date").notNull(),
     price: money("price"),
     amountPaid: money("amount_paid").notNull().default(0),
     status: packageStatusEnum("status").notNull().default("active"),
     notes: text("notes"),
-    /** When the "ending soon" WhatsApp reminder was dealt with, so each package is reminded about once. */
-    expiryReminderSentAt: timestamp("expiry_reminder_sent_at"),
+    /** When the "few visits left" WhatsApp reminder was dealt with, so each package is reminded about once. */
+    lowVisitsReminderSentAt: timestamp("low_visits_reminder_sent_at"),
     createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
@@ -104,7 +112,7 @@ export const memberPackage = pgTable(
   },
   (table) => [
     index("member_package_member_idx").on(table.memberId, table.startDate),
-    index("member_package_end_idx").on(table.status, table.endDate),
+    index("member_package_status_idx").on(table.status, table.startDate),
     index("member_package_plan_idx").on(table.planId),
   ],
 );

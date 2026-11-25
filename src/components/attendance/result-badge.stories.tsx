@@ -2,7 +2,7 @@ import type { Decorator, Meta, StoryObj } from "@storybook/nextjs-vite";
 import { ResultBadge } from "@/components/attendance/result-badge";
 
 // The badge is white line art; on the kiosk it sits on the result screen's
-// brand green (checked in), ink (already in) or red (error).
+// brand green (checked in), ink (already checked in today) or red (error).
 function onResult(tone: string): Decorator {
   const OnResult: Decorator = (Story) => (
     <div className={`rounded-3xl p-10 ${tone}`}>

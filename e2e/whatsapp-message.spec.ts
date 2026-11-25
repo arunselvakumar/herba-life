@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   checkInMessage,
   packageConfirmationMessage,
-  packageExpiryMessage,
+  packageLowVisitsMessage,
   templateRequestBody,
   toWhatsAppNumber,
   welcomeMessage,
@@ -29,7 +29,7 @@ test.describe("WhatsApp messages", () => {
     // 03:44 UTC is 9:14 am in India, whatever the server's own clock says.
     const body = templateRequestBody(
       "919876543210",
-      checkInMessage({ firstName: "Priya", at: new Date("2026-11-06T03:44:00Z"), packageName: "Gold", daysLeft: 0 }),
+      checkInMessage({ firstName: "Priya", at: new Date("2026-11-06T03:44:00Z"), packageName: "Gold", visitsLeft: 0 }),
     );
 
     const { name, language, to_and_components: recipients } = body.payload.template;
@@ -56,26 +56,24 @@ test.describe("WhatsApp messages", () => {
     });
   });
 
-  test("a package is confirmed with its name and both dates", () => {
-    expect(
-      packageConfirmationMessage({ firstName: "Priya", packageName: "3 months", startDate: "2026-11-19", endDate: "2027-02-16" }),
-    ).toEqual({
-      template: "package_confirmation",
-      values: ["Priya", "3 months", "19 Nov 2026", "16 Feb 2027"],
+  test("a package is confirmed with its name, first day and number of visits", () => {
+    expect(packageConfirmationMessage({ firstName: "Priya", packageName: "3 months", startDate: "2026-11-19", visits: 90 })).toEqual({
+      template: "package_confirmation_visits",
+      values: ["Priya", "3 months", "19 Nov 2026", "90"],
     });
   });
 
-  test("the expiry reminder names the package and its last day", () => {
-    const message = packageExpiryMessage({ firstName: "Priya", packageName: "3 months", endDate: "2027-02-16" });
-    expect(message).toEqual({ template: "package_expiry_reminder", values: ["Priya", "3 months", "16 Feb 2027"] });
+  test("the reminder names the package and the visits left on it", () => {
+    const message = packageLowVisitsMessage({ firstName: "Priya", packageName: "3 months", visitsLeft: 3 });
+    expect(message).toEqual({ template: "package_low_visits_reminder", values: ["Priya", "3 months", "3"] });
 
     const { name, to_and_components: recipients } = templateRequestBody("919876543210", message).payload.template;
-    expect(name).toBe("package_expiry_reminder");
+    expect(name).toBe("package_low_visits_reminder");
     expect(Object.keys(recipients[0]?.components ?? {})).toEqual(["body_1", "body_2", "body_3"]);
   });
 
   test("the reminder job refuses a call without the cron secret", async ({ request }) => {
-    const response = await request.get("/api/cron/package-expiry");
+    const response = await request.get("/api/cron/package-reminder");
     expect(response.status()).toBe(401);
   });
 });

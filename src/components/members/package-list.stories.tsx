@@ -30,30 +30,32 @@ export const Active: Story = {
   parameters: progressTodo,
   play: async ({ canvas }) => {
     await expect(canvas.getByText("Active")).toBeVisible();
-    await expect(canvas.getByText(/59 days left · day 31 of 90/)).toBeVisible();
+    await expect(canvas.getByText(/22 of 90 visits used · 68 visits left/)).toBeVisible();
     await expect(canvas.getByText(pkgs.active.notes!)).toBeVisible();
     await expect(canvas.getByRole("link", { name: "New package" })).toHaveAttribute("href", `/members/${memberId}/packages/new`);
   },
 };
 
-/** Ends within the warning window, with part of the price still due. */
-export const Expiring: Story = {
+/** Down to its last few visits, with part of the price still due. */
+export const FewVisitsLeft: Story = {
   parameters: progressTodo,
-  args: { packages: [pkgs.expiring] },
+  args: { packages: [pkgs.low] },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText("Ending soon")).toBeVisible();
+    await expect(canvas.getByText("Few visits left")).toBeVisible();
+    await expect(canvas.getByText(/27 of 30 visits used · 3 visits left/)).toBeVisible();
     await expect(canvas.getByText(/Due/)).toBeVisible();
   },
 };
 
-/** Upcoming hides the progress bar; an open package past its end shows "Ended N days ago". */
-export const UpcomingAndExpired: Story = {
+/** Upcoming hides the progress bar; an open package with every visit taken shows "Used up". */
+export const UpcomingAndUsedUp: Story = {
   parameters: progressTodo,
-  args: { packages: [pkgs.upcoming, pkgs.expired] },
+  args: { packages: [pkgs.upcoming, pkgs.usedUp] },
   play: async ({ canvas }) => {
     await expect(canvas.getByText("Upcoming")).toBeVisible();
     await expect(canvas.getByText(/\+ 7 extra/)).toBeVisible();
-    await expect(canvas.getByText(/Ended 31 days ago/)).toBeVisible();
+    await expect(canvas.getByText("Used up")).toBeVisible();
+    await expect(canvas.getByText(/90 of 90 visits used · no visits left/)).toBeVisible();
   },
 };
 

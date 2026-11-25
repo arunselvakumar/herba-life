@@ -44,7 +44,7 @@ export const Mobile: Story = {
 };
 
 /** One story per filter chip: the page passes the filter to `listMembers` and marks the chip current. */
-function filterStory(filter: "active" | "due" | "expiring" | "no-package", label: string, expected: string): Story {
+function filterStory(filter: "active" | "due" | "low" | "no-package", label: string, expected: string): Story {
   return {
     args: { searchParams: Promise.resolve({ filter }) },
     beforeEach: () => {
@@ -62,7 +62,7 @@ function filterStory(filter: "active" | "due" | "expiring" | "no-package", label
 
 export const OnAPackage = filterStory("active", "On a package", "Priya Sharma");
 export const FollowUpDue = filterStory("due", "Follow-up due", "Rahul Iyer");
-export const EndingSoon = filterStory("expiring", "Ending soon", "Rahul Iyer");
+export const FewVisitsLeft = filterStory("low", "Few visits left", "Rahul Iyer");
 export const NoPackage = filterStory("no-package", "No package", "George Mathew");
 
 /** A search keeps the filter in the form and the count says what matched. */
@@ -102,7 +102,7 @@ export const Empty: Story = {
 
 /** An empty filter. */
 export const EmptyGroup: Story = {
-  args: { searchParams: Promise.resolve({ filter: "expiring" }) },
+  args: { searchParams: Promise.resolve({ filter: "low" }) },
   beforeEach: () => {
     mocked(listMembers).mockResolvedValue([]);
   },

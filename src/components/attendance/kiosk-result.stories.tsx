@@ -25,7 +25,6 @@ const meta = {
   args: {
     result: checkInResults.checkedIn,
     seconds: KIOSK_WELCOME_SECONDS,
-    pkg: { name: "3 months", daysLeft: 42 },
     onDismiss: fn(),
   },
 } satisfies Meta<typeof KioskResult>;
@@ -37,7 +36,7 @@ export const Success: Story = {
   play: async ({ canvas, args, userEvent }) => {
     await waitFor(() => expect(canvas.getByRole("heading", { name: "Welcome, Priya!" })).toBeVisible());
     await waitFor(() => expect(canvas.getByText("7th")).toBeVisible());
-    await waitFor(() => expect(canvas.getByText("42 days left")).toBeVisible());
+    await waitFor(() => expect(canvas.getByText("41 visits left")).toBeVisible());
     await userEvent.click(canvas.getByRole("button"));
     await expect(args.onDismiss).toHaveBeenCalledOnce();
   },
@@ -50,31 +49,34 @@ export const FirstVisitOfMonth: Story = {
   },
 };
 
-/** The package ends soon: a day or two left, or its last day. */
-export const PackageExpiring: Story = {
-  args: { pkg: { name: "1 month", daysLeft: 1 } },
+/** The package is nearly used up: one visit left after this one. */
+export const OneVisitLeft: Story = {
+  args: { result: checkInResults.oneVisitLeft },
   play: async ({ canvas }) => {
-    await waitFor(() => expect(canvas.getByText("1 day left")).toBeVisible());
+    await waitFor(() => expect(canvas.getByText("1 visit left")).toBeVisible());
   },
 };
 
-export const PackageLastDay: Story = {
-  args: { pkg: { name: "1 month", daysLeft: 0 } },
+/** This visit was the last one on the package, so the member is asked to renew. */
+export const LastVisit: Story = {
+  args: { result: checkInResults.lastVisit },
   play: async ({ canvas }) => {
-    await waitFor(() => expect(canvas.getByText("Last day")).toBeVisible());
+    await waitFor(() => expect(canvas.getByText("No visits left")).toBeVisible());
+    await waitFor(() => expect(canvas.getByText(/last visit on your package/)).toBeVisible());
   },
 };
 
 export const AlreadyInToday: Story = {
   args: { result: checkInResults.already },
   play: async ({ canvas }) => {
-    await waitFor(() => expect(canvas.getByRole("heading", { name: /already in, Priya/ })).toBeVisible());
+    await waitFor(() => expect(canvas.getByRole("heading", { name: "Already checked in, Priya" })).toBeVisible());
     await waitFor(() => expect(canvas.getByText("7:42 am")).toBeVisible());
+    await waitFor(() => expect(canvas.getByText(/already checked in today at 7:42 am\. You can’t check in again today\./)).toBeVisible());
   },
 };
 
-/** The package ended since the kiosk loaded its list. */
-export const PackageExpired: Story = {
+/** The package ran out of visits, or was closed, since the kiosk loaded its list. */
+export const NoPackage: Story = {
   args: { result: checkInResults.noPackage },
   play: async ({ canvas }) => {
     await waitFor(() => expect(canvas.getByRole("heading", { name: "No active package, Priya" })).toBeVisible());

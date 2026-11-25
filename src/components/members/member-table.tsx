@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDay } from "@/lib/members/dates";
-import { daysLeft, formatNumber, fullName } from "@/lib/members/format";
+import { describeVisitsLeft, formatNumber, fullName, visitsLeft } from "@/lib/members/format";
 import type { MemberListRow } from "@/lib/members/queries";
 import { PackageBadge } from "./package-badge";
 
@@ -53,7 +53,6 @@ export function MemberTable({
         <TableBody>
           {members.map((c) => {
             const pkg = c.currentPackage;
-            const left = pkg ? daysLeft(pkg) : null;
             return (
               <TableRow key={c.id} className="group">
                 <TableCell className="pl-4 font-mono text-xs text-muted-foreground">#{c.serialNo}</TableCell>
@@ -69,10 +68,10 @@ export function MemberTable({
                     {pkg ? (
                       <span className="text-xs text-muted-foreground">
                         {pkg.name}
-                        {c.packageState === "active" || c.packageState === "expiring"
-                          ? ` · ${left} days left`
-                          : c.packageState === "expired"
-                            ? ` · ended ${formatDay(pkg.endDate)}`
+                        {c.packageState === "active" || c.packageState === "low"
+                          ? ` · ${describeVisitsLeft(visitsLeft(pkg)).toLowerCase()}`
+                          : c.packageState === "upcoming"
+                            ? ` · starts ${formatDay(pkg.startDate)}`
                             : ""}
                       </span>
                     ) : null}

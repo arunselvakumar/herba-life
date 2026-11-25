@@ -5,20 +5,21 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { after } from "next/server";
 import { db } from "@/db";
-import { attendance, member } from "@/db/schema";
+import { member } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { daysBetween, toDay } from "@/lib/members/dates";
+import { toDay } from "@/lib/members/dates";
+import { describeVisitsLeft } from "@/lib/members/format";
 import type { FormState } from "@/lib/members/form-state";
 import { can } from "@/lib/access/can";
 import { PermissionDeniedError, permissionFor, requirePermission } from "@/lib/access/guards";
 import { requireSession } from "@/lib/session";
 import { checkInMessage } from "@/lib/whatsapp/messages";
 import { sendWhatsApp } from "@/lib/whatsapp/send";
-import { CHECKIN_COOLDOWN_MINUTES, KIOSK_MARKER_COOKIE } from "./constants";
+import { KIOSK_MARKER_COOKIE } from "./constants";
 import { exitRetryAfterSeconds, findKioskLock, lockKiosk, registerFailedExit, unlockKiosk } from "./kiosk-lock";
-import { countDay, countVisits, findKioskMemberIdsByMobile, latestVisitSince, runningPackageOn } from "./queries";
+import { countDay, countVisits, findKioskMemberIdsByMobile } from "./queries";
 import { mobileNeedle } from "./search";
-import { combineDayAndTime, formatTime, periodFor } from "./time";
+import { combineDayAndTime, formatTime } from "./time";
 import {
   exitPasswordSchema,
   flattenErrors,
@@ -27,6 +28,7 @@ import {
   memberIdSchema,
   type FieldErrors,
 } from "./validation";
+import { removeVisit, takeVisit } from "./visits";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -40,9 +42,8 @@ function revalidateAttendance(memberId?: string) {
 /** Sends the WhatsApp confirmation once the response is on its way, so nobody waits on it. */
 function notifyCheckIn(
   found: { id: string; firstName: string; mobile: string | null },
-  pkg: { name: string; endDate: string },
+  pkg: { packageName: string; visitsLeft: number },
   at: Date,
-  day: string,
 ) {
   after(() =>
     sendWhatsApp({
@@ -51,8 +52,8 @@ function notifyCheckIn(
       message: checkInMessage({
         firstName: found.firstName,
         at,
-        packageName: pkg.name,
-        daysLeft: daysBetween(day, pkg.endDate),
+        packageName: pkg.packageName,
+        visitsLeft: pkg.visitsLeft,
       }),
     }),
   );
@@ -65,16 +66,20 @@ export type KioskCheckInResult =
       time: string;
       visitsThisMonth: number;
       todayVisits: number;
+      packageName: string;
+      /** Visits left on that package after this one. */
+      visitsLeft: number;
     }
+  /** They have already checked in today, at `time`. One visit a day. */
   | { status: "already"; firstName: string; time: string; todayVisits: number }
   | { status: "no_package"; firstName: string }
   | { status: "error"; message: string };
 
 /**
- * Self check-in from the tablet. A second tap within the cooldown window is
- * reported back as "already checked in" instead of creating another row. The
- * package is checked here as well as in the member list, because the kiosk's
- * list can be minutes old.
+ * Self check-in from the tablet. A member can check in once a day: a second
+ * try is told when they checked in and nothing is written. The package is
+ * checked here as well as in the member list, because the kiosk's list can be
+ * minutes old.
  */
 export async function kioskCheckIn(memberId: string): Promise<KioskCheckInResult> {
   const user = await requirePermission("attendance.kiosk");
@@ -89,32 +94,28 @@ export async function kioskCheckIn(memberId: string): Promise<KioskCheckInResult
 
   const now = new Date();
   const day = toDay(now);
-  const pkg = await runningPackageOn(found.id, day);
-  if (!pkg) return { status: "no_package", firstName: found.firstName };
-
-  const since = new Date(now.getTime() - CHECKIN_COOLDOWN_MINUTES * 60_000);
-  const recent = await latestVisitSince(found.id, since);
-  if (recent) {
+  const outcome = await takeVisit({ memberId: found.id, at: now, day, source: "kiosk", recordedBy: user.id });
+  if (outcome.status === "no_package") return { status: "no_package", firstName: found.firstName };
+  if (outcome.status === "already") {
     const { visits } = await countDay(day);
-    return { status: "already", firstName: found.firstName, time: formatTime(recent.checkedInAt), todayVisits: visits };
+    return { status: "already", firstName: found.firstName, time: formatTime(outcome.checkedInAt), todayVisits: visits };
   }
-
-  await db.insert(attendance).values({
-    memberId: found.id,
-    checkedInAt: now,
-    day,
-    period: periodFor(now),
-    source: "kiosk",
-    recordedBy: user.id,
-  });
-  notifyCheckIn(found, pkg, now, day);
+  notifyCheckIn(found, outcome, now);
 
   const [visitsThisMonth, { visits: todayVisits }] = await Promise.all([
     countVisits(found.id, `${day.slice(0, 7)}-01`, day),
     countDay(day),
   ]);
   revalidateAttendance(found.id);
-  return { status: "checked_in", firstName: found.firstName, time: formatTime(now), visitsThisMonth, todayVisits };
+  return {
+    status: "checked_in",
+    firstName: found.firstName,
+    time: formatTime(now),
+    visitsThisMonth,
+    todayVisits,
+    packageName: outcome.packageName,
+    visitsLeft: outcome.visitsLeft,
+  };
 }
 
 /** Which kiosk members have a mobile containing the typed number. Returns ids only, never the numbers. */
@@ -142,29 +143,30 @@ export async function recordAttendance(_prev: FormState, formData: FormData): Pr
 
   const found = await db.query.member.findFirst({ where: eq(member.id, memberId), columns: { id: true, firstName: true, mobile: true } });
   if (!found) return invalid({ memberId: ["That member no longer exists."] });
-  const pkg = await runningPackageOn(memberId, day);
-  if (!pkg) return invalid({ memberId: [`${found.firstName} has no active package on that day.`] });
+  const isToday = day === toDay(new Date());
 
-  await db.insert(attendance).values({
-    memberId,
-    checkedInAt: at,
-    day,
-    period: periodFor(at),
-    source: "manual",
-    note,
-    recordedBy: user.id,
-  });
+  const outcome = await takeVisit({ memberId, at, day, source: "manual", note, recordedBy: user.id });
+  if (outcome.status === "no_package") {
+    return invalid({ memberId: [`${found.firstName} has no package with visits left on that day.`] });
+  }
+  if (outcome.status === "already") {
+    const when = `${isToday ? "today" : "on that day"} at ${formatTime(outcome.checkedInAt)}`;
+    return invalid({ memberId: [`${found.firstName} has already checked in ${when}. Only one visit a day can be recorded.`] });
+  }
   // The message says "thanks for coming in today", so a backdated visit gets none.
-  if (day === toDay(new Date())) notifyCheckIn(found, pkg, at, day);
+  if (isToday) notifyCheckIn(found, outcome, at);
 
   revalidateAttendance(memberId);
-  return { status: "success", message: `${found.firstName} marked present at ${formatTime(at)}.` };
+  return {
+    status: "success",
+    message: `${found.firstName} marked present at ${formatTime(at)}. ${describeVisitsLeft(outcome.visitsLeft)} on ${outcome.packageName}.`,
+  };
 }
 
 export async function deleteAttendance(id: string): Promise<void> {
   await requirePermission("attendance.delete");
   if (!UUID.test(id)) throw new Error("Invalid id");
-  const [removed] = await db.delete(attendance).where(eq(attendance.id, id)).returning({ memberId: attendance.memberId });
+  const removed = await removeVisit(id);
   revalidateAttendance(removed?.memberId);
 }
 

@@ -18,7 +18,7 @@ async function checkInPriya({ canvas, userEvent }: PlayContext) {
   await userEvent.type(search(canvas), "sharma");
   await userEvent.click(await canvas.findByRole("button", { name: /priya sharma/i }));
   const dialog = within(document.body).getByRole("dialog", { name: "Priya Sharma" });
-  await expect(within(dialog).getByText(/Member #101 · mobile ending 2345 · 3 months package, 42 days left/)).toBeInTheDocument();
+  await expect(within(dialog).getByText(/Member #101 · mobile ending 2345 · 3 months package, 42 visits left/)).toBeInTheDocument();
   await userEvent.click(within(dialog).getByRole("button", { name: "Yes, check me in" }));
   await expect(kioskCheckIn).toHaveBeenCalledWith(kioskPriya.id);
   // The dialog hides the rest of the page from assistive tech until it has gone.
@@ -158,7 +158,7 @@ export const AlreadyCheckedIn: Story = {
   play: async (ctx) => {
     const { canvas } = ctx;
     await checkInPriya(ctx);
-    await waitFor(() => expect(canvas.getByRole("heading", { name: /already in, Priya/ })).toBeVisible());
+    await waitFor(() => expect(canvas.getByRole("heading", { name: "Already checked in, Priya" })).toBeVisible());
     await expect(canvas.getByText(/check-ins today/)).toHaveTextContent("23 check-ins today");
   },
 };
@@ -193,7 +193,7 @@ export const NotMe: Story = {
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole("button", { name: /priya nair/i }));
     const dialog = within(document.body).getByRole("dialog", { name: "Priya Nair" });
-    await expect(within(dialog).getByText(/3 days left/)).toBeInTheDocument();
+    await expect(within(dialog).getByText(/3 visits left/)).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole("button", { name: "Not me" }));
     await waitFor(() => expect(dialog).not.toBeInTheDocument());
     await expect(kioskCheckIn).not.toHaveBeenCalled();

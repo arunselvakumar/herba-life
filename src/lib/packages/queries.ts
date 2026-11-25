@@ -16,15 +16,15 @@ export async function listPlans(): Promise<PlanRow[]> {
     .from(packagePlan)
     .leftJoin(memberPackage, eq(memberPackage.planId, packagePlan.id))
     .groupBy(packagePlan.id)
-    .orderBy(asc(packagePlan.sortOrder), asc(packagePlan.durationDays), asc(packagePlan.name));
+    .orderBy(asc(packagePlan.sortOrder), asc(packagePlan.visits), asc(packagePlan.name));
   return rows.map((r) => ({ ...r.plan, enrolments: r.enrolments, activeEnrolments: r.activeEnrolments }));
 }
 
-/** Plans members can currently be enrolled in, shortest first. */
+/** Plans members can currently be enrolled in, smallest first. */
 export async function listActivePlans(): Promise<PackagePlan[]> {
   return db.query.packagePlan.findMany({
     where: eq(packagePlan.isActive, true),
-    orderBy: [asc(packagePlan.sortOrder), asc(packagePlan.durationDays), asc(packagePlan.name)],
+    orderBy: [asc(packagePlan.sortOrder), asc(packagePlan.visits), asc(packagePlan.name)],
   });
 }
 

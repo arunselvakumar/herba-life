@@ -29,14 +29,14 @@ const followUpsDue = memberRows.filter(
 export const dashboardData = {
   totalMembers: 142,
   activePackages: 96,
-  expiringSoon: 7,
+  lowPackages: 7,
   checkinsThisMonth: 38,
   newMembersThisMonth: 9,
   followUpsDue,
-  expiringPackages: [
-    { ...makePackage({ memberId: anjali.id, name: "1 month", durationDays: 30, startDate: daysFromToday(-29) }), member: anjali },
-    { ...makePackage({ memberId: karthik.id, name: "3 months", durationDays: 90, startDate: daysFromToday(-85) }), member: karthik },
-    { ...makePackage({ memberId: shalini.id, name: "3 months", durationDays: 90, startDate: daysFromToday(-78) }), member: shalini },
+  lowPackageList: [
+    { ...makePackage({ memberId: anjali.id, name: "1 month", visits: 30, visitsUsed: 29, startDate: daysFromToday(-38) }), member: anjali },
+    { ...makePackage({ memberId: karthik.id, name: "3 months", visits: 90, visitsUsed: 87, startDate: daysFromToday(-110) }), member: karthik },
+    { ...makePackage({ memberId: shalini.id, name: "3 months", visits: 90, visitsUsed: 85, startDate: daysFromToday(-101) }), member: shalini },
   ],
   recentCheckins: [
     {
@@ -61,11 +61,11 @@ export const dashboardData = {
 export const emptyDashboardData = {
   totalMembers: 0,
   activePackages: 0,
-  expiringSoon: 0,
+  lowPackages: 0,
   checkinsThisMonth: 0,
   newMembersThisMonth: 0,
   followUpsDue: [],
-  expiringPackages: [],
+  lowPackageList: [],
   recentCheckins: [],
 } satisfies DashboardData;
 

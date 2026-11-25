@@ -67,7 +67,7 @@ export function RecordAttendanceDialog({ members, day, today }: { members: Optio
           <DialogHeader>
             <DialogTitle className="text-lg font-bold">Record a visit</DialogTitle>
             <DialogDescription>
-              For when someone forgot to tap the tablet. Only members with an active package on that day can be marked present.
+              For when someone forgot to tap the tablet. Only members with visits left on a package can be marked present, once a day.
             </DialogDescription>
           </DialogHeader>
 

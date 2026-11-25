@@ -5,12 +5,12 @@ import { connection } from "next/server";
 import {
   BoxesIcon,
   CalendarCheckIcon,
-  CalendarClockIcon,
   ClipboardListIcon,
   HourglassIcon,
   MessageSquareMoreIcon,
   PackageCheckIcon,
   ShoppingBagIcon,
+  TicketIcon,
   UserRoundPlusIcon,
   UsersRoundIcon,
 } from "lucide-react";
@@ -29,9 +29,9 @@ import { FollowUpDue, InquiryStatusBadge } from "@/components/inquiries/inquiry-
 import { PackageBadge } from "@/components/members/package-badge";
 import { sourceLabel } from "@/lib/inquiries/format";
 import { getInquiryDashboard } from "@/lib/inquiries/queries";
-import { EXPIRING_SOON_DAYS, FOLLOW_UP_INTERVAL_DAYS } from "@/lib/members/constants";
+import { FOLLOW_UP_INTERVAL_DAYS, LOW_VISITS_THRESHOLD } from "@/lib/members/constants";
 import { daysBetween, formatDay, today } from "@/lib/members/dates";
-import { formatMoney, formatNumber, fullName } from "@/lib/members/format";
+import { formatMoney, formatNumber, fullName, visitsLeft, visitsTotal } from "@/lib/members/format";
 import { getDashboardData } from "@/lib/members/queries";
 import { countDay } from "@/lib/attendance/queries";
 import { getStockDashboard } from "@/lib/stock/queries";
@@ -167,7 +167,7 @@ async function Overview({ reach }: { reach: Reach }) {
       id: "active",
       label: "Active packages",
       value: data.activePackages,
-      hint: "running today",
+      hint: "with visits left",
       icon: PackageCheckIcon,
       tone: "brand",
       ...(reach.members ? { href: "/members?filter=active" } : {}),
@@ -178,17 +178,17 @@ async function Overview({ reach }: { reach: Reach }) {
       },
     },
     {
-      id: "expiring",
-      label: "Ending soon",
-      value: data.expiringSoon,
-      hint: `within the next ${EXPIRING_SOON_DAYS} days`,
+      id: "low",
+      label: "Few visits left",
+      value: data.lowPackages,
+      hint: `${LOW_VISITS_THRESHOLD} visits or fewer`,
       icon: HourglassIcon,
-      tone: data.expiringSoon > 0 ? "warning" : "default",
-      ...(reach.members ? { href: "/members?filter=expiring" } : {}),
+      tone: data.lowPackages > 0 ? "warning" : "default",
+      ...(reach.members ? { href: "/members?filter=low" } : {}),
       progress: {
-        value: data.activePackages > 0 ? data.expiringSoon / data.activePackages : 0,
+        value: data.activePackages > 0 ? data.lowPackages / data.activePackages : 0,
         tone: "leaf",
-        label: "Share of active packages ending soon",
+        label: "Share of active packages with few visits left",
       },
     },
     {
@@ -297,31 +297,31 @@ async function Overview({ reach }: { reach: Reach }) {
 
         <Card data-reveal>
           <CardHeader>
-            <CardTitle className="text-lg font-semibold">Packages ending soon</CardTitle>
+            <CardTitle className="text-lg font-semibold">Packages running low</CardTitle>
             <CardDescription>Time to talk about renewals</CardDescription>
             {reach.members ? (
               <CardAction>
                 <Button asChild variant="secondary" size="sm">
-                  <Link href={{ pathname: "/members", query: { filter: "expiring" } }}>View all</Link>
+                  <Link href={{ pathname: "/members", query: { filter: "low" } }}>View all</Link>
                 </Button>
               </CardAction>
             ) : null}
           </CardHeader>
           <CardContent className="px-0">
-            {data.expiringPackages.length === 0 ? (
-              <EmptyRow>No packages end in the next {EXPIRING_SOON_DAYS} days.</EmptyRow>
+            {data.lowPackageList.length === 0 ? (
+              <EmptyRow>No package is down to its last {LOW_VISITS_THRESHOLD} visits.</EmptyRow>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="pl-4">Member</TableHead>
                     <TableHead>Package</TableHead>
-                    <TableHead className="pr-4 text-right">Ends</TableHead>
+                    <TableHead className="pr-4 text-right">Visits left</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.expiringPackages.map((p) => {
-                    const left = daysBetween(now, p.endDate);
+                  {data.lowPackageList.map((p) => {
+                    const left = visitsLeft(p);
                     return (
                       <TableRow key={p.id}>
                         <TableCell className="pl-4">
@@ -332,13 +332,13 @@ async function Overview({ reach }: { reach: Reach }) {
                         <TableCell>
                           <span className="flex items-center gap-2">
                             {p.name}
-                            <PackageBadge state="expiring" />
+                            <PackageBadge state="low" />
                           </span>
                         </TableCell>
                         <TableCell className="pr-4 text-right text-muted-foreground">
                           <span className="inline-flex items-center gap-1">
-                            <CalendarClockIcon className="size-3.5" />
-                            {left === 0 ? "Today" : `${left} days`}
+                            <TicketIcon className="size-3.5" />
+                            {left} of {visitsTotal(p)}
                           </span>
                         </TableCell>
                       </TableRow>

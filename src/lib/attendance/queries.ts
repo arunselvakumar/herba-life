@@ -1,9 +1,11 @@
 import "server-only";
 
-import { and, asc, count, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, asc, count, eq, gte, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { attendance, member, memberPackage, type Attendance, type Member } from "@/db/schema";
 import { addDays, branchClock } from "@/lib/members/dates";
+import { visitsLeft } from "@/lib/members/format";
+import { oldestFirst, usableOn } from "@/lib/members/package-sql";
 import { KIOSK_SEARCH_LIMIT, NOT_SEEN_AFTER_DAYS, PERIODS, RANGES, type Period, type Range } from "./constants";
 import { eachDay, lastMonths, monthKey, weekdayIndex } from "./time";
 
@@ -15,43 +17,59 @@ export type KioskMember = {
   serialNo: number;
   /** Last four digits of the mobile, to tell two "Priya"s apart. */
   mobileHint: string | null;
-  /** Days left on the running package. */
-  packageDaysLeft: number;
+  /** Visits left on the package the next visit comes from. */
+  packageVisitsLeft: number;
   packageName: string;
 };
 
-/** A package counts on `day` when it is still open and `day` falls inside its dates. */
-function runningOn(day: string) {
-  return and(eq(memberPackage.status, "active"), lte(memberPackage.startDate, day), gte(memberPackage.endDate, day));
-}
+export type UsablePackage = { id: string; name: string; visits: number; extraVisits: number; visitsUsed: number };
 
-/** Attendance is only for members on a running package; this is the one that ends last, if any. */
-export async function runningPackageOn(memberId: string, day: string): Promise<{ name: string; endDate: string } | null> {
+/**
+ * Attendance is only for members with visits left. This is the package the
+ * visit on `day` comes from: the oldest one that is open, has started and has
+ * visits left.
+ */
+export async function usablePackageOn(memberId: string, day: string): Promise<UsablePackage | null> {
   const row = await db.query.memberPackage.findFirst({
-    where: and(eq(memberPackage.memberId, memberId), runningOn(day)),
-    columns: { name: true, endDate: true },
-    orderBy: [desc(memberPackage.endDate)],
+    where: and(eq(memberPackage.memberId, memberId), usableOn(day)),
+    columns: { id: true, name: true, visits: true, extraVisits: true, visitsUsed: true },
+    orderBy: oldestFirst,
   });
   return row ?? null;
 }
 
-/** Only members who can check in today are listed. */
+/** The member's visit on `day`, if they have one. There is never more than one. */
+export async function visitOn(memberId: string, day: string): Promise<Attendance | null> {
+  const row = await db.query.attendance.findFirst({ where: and(eq(attendance.memberId, memberId), eq(attendance.day, day)) });
+  return row ?? null;
+}
+
+/**
+ * Members who can check in today, plus those who already have: someone who
+ * used their last visit this morning must still find their name, so the
+ * kiosk can tell them they are checked in rather than leave them searching.
+ */
 export async function listKioskMembers(today: string): Promise<KioskMember[]> {
-  const rows = await db.query.member.findMany({
-    columns: { id: true, firstName: true, lastName: true, serialNo: true, mobile: true },
-    with: {
-      packages: {
-        columns: { name: true, startDate: true, endDate: true, status: true },
-        where: runningOn(today),
-        orderBy: [desc(memberPackage.endDate)],
-        limit: 1,
+  const [rows, visits] = await Promise.all([
+    db.query.member.findMany({
+      columns: { id: true, firstName: true, lastName: true, serialNo: true, mobile: true },
+      with: {
+        packages: {
+          columns: { id: true, name: true, visits: true, extraVisits: true, visitsUsed: true },
+          where: and(eq(memberPackage.status, "active"), lte(memberPackage.startDate, today)),
+          orderBy: oldestFirst,
+        },
       },
-    },
-    orderBy: [asc(member.firstName), asc(member.lastName)],
-  });
+      orderBy: [asc(member.firstName), asc(member.lastName)],
+    }),
+    db.select({ memberId: attendance.memberId, packageId: attendance.memberPackageId }).from(attendance).where(eq(attendance.day, today)),
+  ]);
+  const visitedOn = new Map(visits.map((v) => [v.memberId, v.packageId]));
 
   return rows.flatMap((row) => {
-    const pkg = row.packages[0];
+    const pkg =
+      row.packages.find((p) => visitsLeft(p) > 0) ??
+      (visitedOn.has(row.id) ? row.packages.find((p) => p.id === visitedOn.get(row.id)) : undefined);
     if (!pkg) return [];
     const digits = row.mobile?.replace(/\D/g, "") ?? "";
     return {
@@ -60,23 +78,24 @@ export async function listKioskMembers(today: string): Promise<KioskMember[]> {
       lastName: row.lastName,
       serialNo: row.serialNo,
       mobileHint: digits.length >= 4 ? digits.slice(-4) : null,
-      packageDaysLeft: daysUntil(today, pkg.endDate),
+      packageVisitsLeft: visitsLeft(pkg),
       packageName: pkg.name,
     };
   });
 }
 
 /**
- * Kiosk members whose mobile contains `digits`. This runs on the server so the
- * tablet never holds anyone's full number. Stored numbers are free text, so
- * the spaces and dashes are stripped before comparing.
+ * Members with an open package whose mobile contains `digits`. This runs on
+ * the server so the tablet never holds anyone's full number, and the tablet
+ * only shows the ones that are also on its list. Stored numbers are free
+ * text, so the spaces and dashes are stripped before comparing.
  */
 export async function findKioskMemberIdsByMobile(digits: string, today: string): Promise<string[]> {
   const rows = await db
     .selectDistinct({ id: member.id })
     .from(member)
     .innerJoin(memberPackage, eq(memberPackage.memberId, member.id))
-    .where(and(runningOn(today), sql`regexp_replace(${member.mobile}, '\\D', '', 'g') like ${`%${digits}%`}`))
+    .where(and(eq(memberPackage.status, "active"), lte(memberPackage.startDate, today), sql`regexp_replace(${member.mobile}, '\\D', '', 'g') like ${`%${digits}%`}`))
     .limit(KIOSK_SEARCH_LIMIT);
   return rows.map((row) => row.id);
 }
@@ -104,15 +123,6 @@ export async function listDayAttendance(day: string): Promise<AttendanceRow[]> {
     },
     orderBy: [asc(attendance.checkedInAt)],
   });
-}
-
-/** The member's most recent visit at or after `since`, used for the duplicate-tap guard. */
-export async function latestVisitSince(memberId: string, since: Date): Promise<Attendance | null> {
-  const row = await db.query.attendance.findFirst({
-    where: and(eq(attendance.memberId, memberId), gte(attendance.checkedInAt, since)),
-    orderBy: [desc(attendance.checkedInAt)],
-  });
-  return row ?? null;
 }
 
 export async function countVisits(memberId: string, from: string, to: string): Promise<number> {
@@ -206,7 +216,8 @@ export async function getAttendanceDashboard(day: string, range: Range, today: s
       })
       .from(memberPackage)
       .innerJoin(member, eq(member.id, memberPackage.memberId))
-      .where(runningOn(today)),
+      .where(usableOn(today))
+      .orderBy(...oldestFirst),
     db
       .select({ memberId: attendance.memberId, lastDay: sql<string>`max(${attendance.day})` })
       .from(attendance)
@@ -299,12 +310,12 @@ export async function getAttendanceDashboard(day: string, range: Range, today: s
   };
 }
 
-/** Members for the staff "record a visit" picker: those on a running package on `day`. */
+/** Members for the staff "record a visit" picker: those with a package that has started by `day` and has visits left. */
 export async function listMemberOptions(day: string): Promise<Pick<Member, "id" | "firstName" | "lastName" | "serialNo">[]> {
   return db
     .selectDistinct({ id: member.id, firstName: member.firstName, lastName: member.lastName, serialNo: member.serialNo })
     .from(member)
     .innerJoin(memberPackage, eq(memberPackage.memberId, member.id))
-    .where(runningOn(day))
+    .where(usableOn(day))
     .orderBy(asc(member.firstName), asc(member.lastName));
 }
