@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, count, eq, gte, lte, sql } from "drizzle-orm";
+import { and, asc, count, eq, exists, gte, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { attendance, member, memberPackage, type Attendance, type Member } from "@/db/schema";
 import { addDays, branchClock } from "@/lib/members/dates";
@@ -85,17 +85,29 @@ export async function listKioskMembers(today: string): Promise<KioskMember[]> {
 }
 
 /**
- * Members with an open package whose mobile contains `digits`. This runs on
- * the server so the tablet never holds anyone's full number, and the tablet
- * only shows the ones that are also on its list. Stored numbers are free
+ * Kiosk members whose mobile contains `digits`. This runs on the server so
+ * the tablet never holds anyone's full number. Who counts is the same as in
+ * `listKioskMembers`, and it is decided here, before the limit, so members
+ * who cannot check in never crowd out one who can. Stored numbers are free
  * text, so the spaces and dashes are stripped before comparing.
  */
 export async function findKioskMemberIdsByMobile(digits: string, today: string): Promise<string[]> {
+  const visitedOnIt = exists(
+    db
+      .select({ id: attendance.id })
+      .from(attendance)
+      .where(and(eq(attendance.memberId, member.id), eq(attendance.day, today), eq(attendance.memberPackageId, memberPackage.id))),
+  );
   const rows = await db
     .selectDistinct({ id: member.id })
     .from(member)
     .innerJoin(memberPackage, eq(memberPackage.memberId, member.id))
-    .where(and(eq(memberPackage.status, "active"), lte(memberPackage.startDate, today), sql`regexp_replace(${member.mobile}, '\\D', '', 'g') like ${`%${digits}%`}`))
+    .where(
+      and(
+        or(usableOn(today), and(eq(memberPackage.status, "active"), lte(memberPackage.startDate, today), visitedOnIt)),
+        sql`regexp_replace(${member.mobile}, '\\D', '', 'g') like ${`%${digits}%`}`,
+      ),
+    )
     .limit(KIOSK_SEARCH_LIMIT);
   return rows.map((row) => row.id);
 }

@@ -21,11 +21,12 @@ DELETE FROM "attendance" a USING "attendance" b
 WHERE a."member_id" = b."member_id" AND a."day" = b."day"
   AND (a."checked_in_at" > b."checked_in_at" OR (a."checked_in_at" = b."checked_in_at" AND a."id" > b."id"));--> statement-breakpoint
 
--- Each remaining visit is taken from the package whose dates covered that day.
+-- Each remaining visit is taken from the package whose dates covered that day;
+-- where two did, from the older one, which is the order the app takes them in.
 UPDATE "attendance" a SET "member_package_id" = (
   SELECT mp."id" FROM "member_package" mp
   WHERE mp."member_id" = a."member_id" AND mp."start_date" <= a."day" AND mp."end_date" >= a."day"
-  ORDER BY (mp."status" = 'active') DESC, mp."end_date" DESC, mp."created_at" DESC
+  ORDER BY (mp."status" = 'active') DESC, mp."start_date" ASC, mp."created_at" ASC
   LIMIT 1
 );--> statement-breakpoint
 UPDATE "member_package" mp SET "visits_used" = (SELECT count(*) FROM "attendance" a WHERE a."member_package_id" = mp."id");--> statement-breakpoint

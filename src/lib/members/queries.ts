@@ -7,7 +7,7 @@ import type { Member, MemberCheckin, MemberPackage } from "@/db/schema";
 import { FOLLOW_UP_INTERVAL_DAYS, LOW_VISITS_THRESHOLD } from "./constants";
 import { addDays } from "./dates";
 import { packageState, pickCurrentPackage, type PackageState } from "./format";
-import { usableOn, visitsLeftSql } from "./package-sql";
+import { inUseOn, usableOn, visitsLeftSql } from "./package-sql";
 
 export type MemberListRow = Member & {
   latestCheckin: MemberCheckin | null;
@@ -95,7 +95,7 @@ export async function getMember(id: string): Promise<MemberDetail | null> {
 export type DashboardData = {
   totalMembers: number;
   activePackages: number;
-  /** Packages in use with few visits left. */
+  /** Members whose package in use has few visits left: the same people as the "Few visits left" filter. */
   lowPackages: number;
   checkinsThisMonth: number;
   newMembersThisMonth: number;
@@ -106,7 +106,9 @@ export type DashboardData = {
 
 export async function getDashboardData(today: string): Promise<DashboardData> {
   const monthStart = `${today.slice(0, 7)}-01`;
-  const runningLow = and(usableOn(today), lte(visitsLeftSql, LOW_VISITS_THRESHOLD));
+  // Only the package a member is taking visits from counts, as in `listMembers`,
+  // so this list and the "Few visits left" filter it links to show the same people.
+  const runningLow = and(inUseOn(today), lte(visitsLeftSql, LOW_VISITS_THRESHOLD));
 
   const [[members], [active], [low], [checkins], [newMembers], followUps, lowPackageList, recentCheckins] =
     await Promise.all([
@@ -116,12 +118,13 @@ export async function getDashboardData(today: string): Promise<DashboardData> {
       db.select({ value: count() }).from(memberCheckin).where(gte(memberCheckin.recordedOn, monthStart)),
       db.select({ value: count() }).from(member).where(gte(member.joinedOn, monthStart)),
       listMembers({ filter: "due", today }),
-      db.query.memberPackage.findMany({
-        where: runningLow,
-        with: { member: true },
-        orderBy: [asc(visitsLeftSql), asc(memberPackage.startDate)],
-        limit: 8,
-      }),
+      db
+        .select({ pkg: memberPackage, member })
+        .from(memberPackage)
+        .innerJoin(member, eq(member.id, memberPackage.memberId))
+        .where(runningLow)
+        .orderBy(asc(visitsLeftSql), asc(memberPackage.startDate))
+        .limit(8),
       db.query.memberCheckin.findMany({
         with: { member: true, recordedByUser: { columns: { name: true } } },
         orderBy: [desc(memberCheckin.recordedOn), desc(memberCheckin.createdAt)],
@@ -136,7 +139,7 @@ export async function getDashboardData(today: string): Promise<DashboardData> {
     checkinsThisMonth: checkins?.value ?? 0,
     newMembersThisMonth: newMembers?.value ?? 0,
     followUpsDue: followUps.slice(0, 8),
-    lowPackageList,
+    lowPackageList: lowPackageList.map((row) => ({ ...row.pkg, member: row.member })),
     recentCheckins,
   };
 }

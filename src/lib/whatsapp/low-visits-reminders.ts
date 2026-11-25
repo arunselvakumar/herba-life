@@ -17,9 +17,10 @@ export type ReminderRun = { due: number; sent: number; noNumber: number; failed:
  * package spends several days in that range and a run that was missed or
  * that failed is made up for by the next one.
  *
- * A package is reminded about once: it is marked when the message goes out,
- * or when the member has no number to send it to. A failed send is left
- * unmarked so the next run tries again. Packages nobody has visited on yet
+ * A package is reminded about once. It is marked before the message goes
+ * out, so two runs that overlap cannot both send it, and it stays marked when
+ * the message is accepted or the member has no number to send it to. A failed
+ * send is unmarked again so the next run tries again. Packages nobody has visited on yet
  * are left alone, as are members who have already taken another package with
  * visits left.
  */
@@ -62,16 +63,24 @@ export async function sendLowVisitsReminders(): Promise<ReminderRun> {
 
   const run: ReminderRun = { due: due.length, sent: 0, noNumber: 0, failed: 0 };
   for (const pkg of due) {
+    // Whichever run marks the package is the one that sends.
+    const [claimed] = await db
+      .update(memberPackage)
+      .set({ lowVisitsReminderSentAt: new Date() })
+      .where(and(eq(memberPackage.id, pkg.packageId), isNull(memberPackage.lowVisitsReminderSentAt)))
+      .returning({ id: memberPackage.id });
+    if (!claimed) continue;
+
     const result = await sendWhatsApp({ memberId: pkg.memberId, mobile: pkg.mobile, message: packageLowVisitsMessage(pkg) });
-    // Sending is switched off here, so nothing was dealt with and nothing is marked.
-    if (result === "off") break;
-    if (result === "failed") {
+    if (result === "off" || result === "failed") {
+      await db.update(memberPackage).set({ lowVisitsReminderSentAt: null }).where(eq(memberPackage.id, pkg.packageId));
+      // Sending is switched off here, so nothing was dealt with and nothing stays marked.
+      if (result === "off") break;
       run.failed += 1;
       continue;
     }
     if (result === "sent") run.sent += 1;
     else run.noNumber += 1;
-    await db.update(memberPackage).set({ lowVisitsReminderSentAt: new Date() }).where(eq(memberPackage.id, pkg.packageId));
   }
   return run;
 }

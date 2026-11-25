@@ -304,10 +304,14 @@ async function main(): Promise<void> {
         used.set(pkg.id, (used.get(pkg.id) ?? 0) + 1);
       }
     }
-    if (rows.length) await db.insert(attendance).values(rows);
-    for (const [packageId, visitsUsed] of used) {
-      await db.update(memberPackage).set({ visitsUsed }).where(eq(memberPackage.id, packageId));
-    }
+    // Together or not at all: a run that failed halfway would be skipped next
+    // time, with its counters left wrong.
+    await db.transaction(async (tx) => {
+      if (rows.length) await tx.insert(attendance).values(rows);
+      for (const [packageId, visitsUsed] of used) {
+        await tx.update(memberPackage).set({ visitsUsed }).where(eq(memberPackage.id, packageId));
+      }
+    });
     console.log(`✓ created ${rows.length} attendance check-ins`);
   }
 

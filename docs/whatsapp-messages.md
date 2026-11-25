@@ -117,10 +117,11 @@ Please renew at the front desk to continue without a break.
   visited on at least once. Members who have already taken another package
   with visits left are left alone.
 - **Once**: the package is marked
-  (`member_package.low_visits_reminder_sent_at`) when MSG91 accepts the
-  reminder, or when the member has no usable number. A request MSG91 refuses
-  or that never reaches it is not marked, so the next day's run tries again
-  while the package still has visits left.
+  (`member_package.low_visits_reminder_sent_at`) just before the reminder is
+  sent, so two runs that overlap cannot both send it. The mark stays when
+  MSG91 accepts the reminder or the member has no usable number. It is
+  cleared when MSG91 refuses the request or cannot be reached, so the next
+  day's run tries again while the package still has visits left.
 - **Protected** by `CRON_SECRET`: Vercel sends it as a bearer token, and the
   route refuses every call when it is missing or different.
 
